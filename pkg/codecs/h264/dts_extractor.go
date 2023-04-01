@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bluenviron/mediabase/pkg/bits"
+	"github.com/bluenviron/mediacommon/pkg/bits"
 )
 
 func getPictureOrderCount(buf []byte, sps *SPS) (uint32, error) {

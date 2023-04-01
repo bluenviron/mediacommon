@@ -1,4 +1,4 @@
-module github.com/bluenviron/mediabase
+module github.com/bluenviron/mediacommon
 
 go 1.18
 

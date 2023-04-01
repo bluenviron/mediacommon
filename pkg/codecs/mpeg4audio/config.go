@@ -3,7 +3,7 @@ package mpeg4audio
 import (
 	"fmt"
 
-	"github.com/bluenviron/mediabase/pkg/bits"
+	"github.com/bluenviron/mediacommon/pkg/bits"
 )
 
 // Config is a MPEG-4 Audio configuration.

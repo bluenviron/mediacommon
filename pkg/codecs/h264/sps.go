@@ -3,7 +3,7 @@ package h264
 import (
 	"fmt"
 
-	"github.com/bluenviron/mediabase/pkg/bits"
+	"github.com/bluenviron/mediacommon/pkg/bits"
 )
 
 const (

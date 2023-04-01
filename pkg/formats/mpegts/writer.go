@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/asticode/go-astits"
-	"github.com/bluenviron/mediabase/pkg/codecs"
-	"github.com/bluenviron/mediabase/pkg/codecs/h264"
-	"github.com/bluenviron/mediabase/pkg/codecs/mpeg4audio"
+	"github.com/bluenviron/mediacommon/pkg/codecs"
+	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
+	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
 )
 
 const (

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bluenviron/mediabase/pkg/bits"
-	"github.com/bluenviron/mediabase/pkg/codecs/h264"
+	"github.com/bluenviron/mediacommon/pkg/bits"
+	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
 )
 
 func getPictureOrderCount(buf []byte, sps *SPS, pps *PPS) (uint32, uint32, error) {

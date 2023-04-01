@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/asticode/go-astits"
-	"github.com/bluenviron/mediabase/pkg/codecs"
-	"github.com/bluenviron/mediabase/pkg/codecs/mpeg4audio"
+	"github.com/bluenviron/mediacommon/pkg/codecs"
+	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
 )
 
 const (

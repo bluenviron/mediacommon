@@ -3,7 +3,7 @@ package mpegts
 import (
 	"fmt"
 
-	"github.com/bluenviron/mediabase/pkg/bits"
+	"github.com/bluenviron/mediacommon/pkg/bits"
 )
 
 // OpusControlHeader is a MPEG-TS Opus control header.
