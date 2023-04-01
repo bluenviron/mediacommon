@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/asticode/go-astits"
-	"github.com/bluenviron/mediacommon/pkg/codecs"
 	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
 )
@@ -21,10 +20,28 @@ func (f writerFunc) Write(p []byte) (int, error) {
 	return f(p)
 }
 
+func trackToElementaryStream(t *Track) *astits.PMTElementaryStream {
+	switch t.Codec.(type) {
+	case *CodecH264:
+		return &astits.PMTElementaryStream{
+			ElementaryPID: 256,
+			StreamType:    astits.StreamTypeH264Video,
+		}
+
+	case *CodecMPEG4Audio:
+		return &astits.PMTElementaryStream{
+			ElementaryPID: 257,
+			StreamType:    astits.StreamTypeAACAudio,
+		}
+	}
+
+	return nil
+}
+
 // Writer is a MPEG-TS writer.
 type Writer struct {
-	videoFormat *codecs.H264
-	audioFormat *codecs.MPEG4Audio
+	videoTrack *Track
+	audioTrack *Track
 
 	bw         io.Writer
 	tsw        *astits.Muxer
@@ -33,12 +50,12 @@ type Writer struct {
 
 // NewWriter allocates a Writer.
 func NewWriter(
-	videoFormat *codecs.H264,
-	audioFormat *codecs.MPEG4Audio,
+	videoTrack *Track,
+	audioTrack *Track,
 ) *Writer {
 	w := &Writer{
-		videoFormat: videoFormat,
-		audioFormat: audioFormat,
+		videoTrack: videoTrack,
+		audioTrack: audioTrack,
 	}
 
 	w.tsw = astits.NewMuxer(
@@ -47,21 +64,15 @@ func NewWriter(
 			return w.bw.Write(p)
 		}))
 
-	if videoFormat != nil {
-		w.tsw.AddElementaryStream(astits.PMTElementaryStream{
-			ElementaryPID: 256,
-			StreamType:    astits.StreamTypeH264Video,
-		})
+	if videoTrack != nil {
+		w.tsw.AddElementaryStream(*trackToElementaryStream(videoTrack))
 	}
 
-	if audioFormat != nil {
-		w.tsw.AddElementaryStream(astits.PMTElementaryStream{
-			ElementaryPID: 257,
-			StreamType:    astits.StreamTypeAACAudio,
-		})
+	if audioTrack != nil {
+		w.tsw.AddElementaryStream(*trackToElementaryStream(audioTrack))
 	}
 
-	if videoFormat != nil {
+	if videoTrack != nil {
 		w.tsw.SetPCRPID(256)
 	} else {
 		w.tsw.SetPCRPID(257)
@@ -151,9 +162,9 @@ func (w *Writer) WriteAAC(
 ) error {
 	pkts := mpeg4audio.ADTSPackets{
 		{
-			Type:         w.audioFormat.Config.Type,
-			SampleRate:   w.audioFormat.Config.SampleRate,
-			ChannelCount: w.audioFormat.Config.ChannelCount,
+			Type:         w.audioTrack.Codec.(*CodecMPEG4Audio).Config.Type,
+			SampleRate:   w.audioTrack.Codec.(*CodecMPEG4Audio).Config.SampleRate,
+			ChannelCount: w.audioTrack.Codec.(*CodecMPEG4Audio).Config.ChannelCount,
 			AU:           au,
 		},
 	}
@@ -167,7 +178,7 @@ func (w *Writer) WriteAAC(
 		RandomAccessIndicator: true,
 	}
 
-	if w.videoFormat == nil {
+	if w.videoTrack == nil {
 		// send PCR once in a while
 		if w.pcrCounter == 0 {
 			af.HasPCR = true

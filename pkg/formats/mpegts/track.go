@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/asticode/go-astits"
-	"github.com/bluenviron/mediacommon/pkg/codecs"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
 )
 
@@ -49,7 +48,7 @@ func findOpusRegistration(descriptors []*astits.Descriptor) bool {
 	return false
 }
 
-func findOpusChannelCount(descriptors []*astits.Descriptor) int {
+func findOpusChannels(descriptors []*astits.Descriptor) int {
 	for _, sd := range descriptors {
 		if sd.Extension != nil && sd.Extension.Tag == 0x80 &&
 			sd.Extension.Unknown != nil && len(*sd.Extension.Unknown) >= 1 {
@@ -59,25 +58,25 @@ func findOpusChannelCount(descriptors []*astits.Descriptor) int {
 	return 0
 }
 
-func findOpusCodec(descriptors []*astits.Descriptor) *codecs.Opus {
+func findOpusCodec(descriptors []*astits.Descriptor) *CodecOpus {
 	if !findOpusRegistration(descriptors) {
 		return nil
 	}
 
-	channelCount := findOpusChannelCount(descriptors)
-	if channelCount <= 0 {
+	channels := findOpusChannels(descriptors)
+	if channels <= 0 {
 		return nil
 	}
 
-	return &codecs.Opus{
-		IsStereo: (channelCount == 2),
+	return &CodecOpus{
+		Channels: channels,
 	}
 }
 
 // Track is a MPEG-TS track.
 type Track struct {
 	ES    *astits.PMTElementaryStream
-	Codec codecs.Codec
+	Codec Codec
 }
 
 // FindTracks finds the tracks in a MPEG-TS stream.
@@ -98,11 +97,11 @@ func FindTracks(dem *astits.Demuxer) ([]*Track, error) {
 
 				switch es.StreamType {
 				case astits.StreamTypeH264Video:
-					track.Codec = &codecs.H264{}
+					track.Codec = &CodecH264{}
 					tracks = append(tracks, track)
 
 				case astits.StreamTypeH265Video:
-					track.Codec = &codecs.H265{}
+					track.Codec = &CodecH265{}
 					tracks = append(tracks, track)
 
 				case astits.StreamTypeAACAudio:
@@ -111,7 +110,7 @@ func FindTracks(dem *astits.Demuxer) ([]*Track, error) {
 						return nil, err
 					}
 
-					track.Codec = &codecs.MPEG4Audio{
+					track.Codec = &CodecMPEG4Audio{
 						Config: *conf,
 					}
 					tracks = append(tracks, track)

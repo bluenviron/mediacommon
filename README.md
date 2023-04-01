@@ -10,7 +10,6 @@ Definitions and functions shared between gortsplib, gohlslib and mediamtx.
 
 In particular:
 
-* [Codec definitions](pkg/codecs)
 * [Codec utilities](pkg/codecs)
 * [Format utilities](pkg/formats)
 * [Bit reader and writer](pkg/bits)

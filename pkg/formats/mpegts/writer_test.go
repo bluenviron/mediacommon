@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/asticode/go-astits"
-	"github.com/bluenviron/mediacommon/pkg/codecs"
 	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
 	"github.com/stretchr/testify/require"
@@ -21,16 +20,17 @@ func TestWriter(t *testing.T) {
 		0x20,
 	}
 
-	testVideoTrack := &codecs.H264{
-		SPS: testSPS,
-		PPS: []byte{0x08},
+	testVideoTrack := &Track{
+		Codec: &CodecH264{},
 	}
 
-	testAudioTrack := &codecs.MPEG4Audio{
-		Config: mpeg4audio.Config{
-			Type:         2,
-			SampleRate:   44100,
-			ChannelCount: 2,
+	testAudioTrack := &Track{
+		Codec: &CodecMPEG4Audio{
+			Config: mpeg4audio.Config{
+				Type:         2,
+				SampleRate:   44100,
+				ChannelCount: 2,
+			},
 		},
 	}
 
