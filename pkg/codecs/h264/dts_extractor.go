@@ -1,6 +1,7 @@
 package h264
 
 import (
+	"bytes"
 	"fmt"
 	"time"
 
@@ -77,6 +78,7 @@ func getPictureOrderCountDiff(poc1 uint32, poc2 uint32, sps *SPS) int32 {
 
 // DTSExtractor allows to extract DTS from PTS.
 type DTSExtractor struct {
+	sps             []byte
 	spsp            *SPS
 	prevDTSFilled   bool
 	prevDTS         time.Duration
@@ -100,12 +102,19 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 		typ := NALUType(nalu[0] & 0x1F)
 		switch typ {
 		case NALUTypeSPS:
-			var spsp SPS
-			err := spsp.Unmarshal(nalu)
-			if err != nil {
-				return 0, fmt.Errorf("invalid SPS: %v", err)
+			if !bytes.Equal(d.sps, nalu) {
+				var spsp SPS
+				err := spsp.Unmarshal(nalu)
+				if err != nil {
+					return 0, fmt.Errorf("invalid SPS: %v", err)
+				}
+				d.sps = nalu
+				d.spsp = &spsp
+
+				// reset state
+				d.reorderedFrames = 0
+				d.pocIncrement = 2
 			}
-			d.spsp = &spsp
 
 		case NALUTypeIDR:
 			idrPresent = true
@@ -126,18 +135,23 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 
 	if idrPresent {
 		d.expectedPOC = 0
-		d.reorderedFrames = 0
-		d.pauseDTS = 0
-		d.pocIncrement = 2
-		return pts, nil
+	} else {
+		d.expectedPOC += uint32(d.pocIncrement)
+		d.expectedPOC &= ((1 << (d.spsp.Log2MaxPicOrderCntLsbMinus4 + 4)) - 1)
 	}
-
-	d.expectedPOC += uint32(d.pocIncrement)
-	d.expectedPOC &= ((1 << (d.spsp.Log2MaxPicOrderCntLsbMinus4 + 4)) - 1)
 
 	if d.pauseDTS > 0 {
 		d.pauseDTS--
 		return d.prevDTS + 1*time.Millisecond, nil
+	}
+
+	if idrPresent {
+		if !d.prevDTSFilled || d.reorderedFrames == 0 {
+			return pts, nil
+		}
+
+		pocDiff := d.reorderedFrames * d.pocIncrement
+		return d.prevDTS + (pts-d.prevDTS)*time.Duration(d.pocIncrement)/time.Duration(pocDiff+d.pocIncrement), nil
 	}
 
 	poc, err := findPictureOrderCount(au, d.spsp)
@@ -167,7 +181,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 		return d.prevDTS + 1*time.Millisecond, nil
 	}
 
-	return d.prevDTS + ((pts - d.prevDTS) * time.Duration(d.pocIncrement) / time.Duration(pocDiff+d.pocIncrement)), nil
+	return d.prevDTS + (pts-d.prevDTS)*time.Duration(d.pocIncrement)/time.Duration(pocDiff+d.pocIncrement), nil
 }
 
 // Extract extracts the DTS of a access unit.
