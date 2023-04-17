@@ -6,8 +6,11 @@ import (
 	"github.com/bluenviron/mediacommon/pkg/bits"
 )
 
-// Config is a MPEG-4 Audio configuration.
-type Config struct {
+// Config is an alias for AudioSpecificConfig.
+type Config = AudioSpecificConfig
+
+// AudioSpecificConfig is an AudioSpecificConfig as defined in ISO 14496-3.
+type AudioSpecificConfig struct {
 	Type         ObjectType
 	SampleRate   int
 	ChannelCount int
@@ -16,17 +19,20 @@ type Config struct {
 	ExtensionType       ObjectType
 	ExtensionSampleRate int
 
-	// AAC-LC specific
 	FrameLengthFlag    bool
 	DependsOnCoreCoder bool
 	CoreCoderDelay     uint16
 }
 
 // Unmarshal decodes a Config.
-func (c *Config) Unmarshal(buf []byte) error {
+func (c *AudioSpecificConfig) Unmarshal(buf []byte) error {
 	pos := 0
+	return c.UnmarshalFromPos(buf, &pos)
+}
 
-	tmp, err := bits.ReadBits(buf, &pos, 5)
+// UnmarshalFromPos decodes a Config.
+func (c *AudioSpecificConfig) UnmarshalFromPos(buf []byte, pos *int) error {
+	tmp, err := bits.ReadBits(buf, pos, 5)
 	if err != nil {
 		return err
 	}
@@ -40,7 +46,7 @@ func (c *Config) Unmarshal(buf []byte) error {
 		return fmt.Errorf("unsupported object type: %d", c.Type)
 	}
 
-	sampleRateIndex, err := bits.ReadBits(buf, &pos, 4)
+	sampleRateIndex, err := bits.ReadBits(buf, pos, 4)
 	if err != nil {
 		return err
 	}
@@ -50,7 +56,7 @@ func (c *Config) Unmarshal(buf []byte) error {
 		c.SampleRate = sampleRates[sampleRateIndex]
 
 	case sampleRateIndex == 0x0F:
-		tmp, err := bits.ReadBits(buf, &pos, 24)
+		tmp, err := bits.ReadBits(buf, pos, 24)
 		if err != nil {
 			return err
 		}
@@ -60,12 +66,18 @@ func (c *Config) Unmarshal(buf []byte) error {
 		return fmt.Errorf("invalid sample rate index (%d)", sampleRateIndex)
 	}
 
-	channelConfig, err := bits.ReadBits(buf, &pos, 4)
+	channelConfig, err := bits.ReadBits(buf, pos, 4)
 	if err != nil {
 		return err
 	}
 
 	switch {
+	case c.Type == ObjectTypePS:
+		if channelConfig != 1 {
+			return fmt.Errorf("channelConfig must be 1 when parametric stereo is used")
+		}
+		c.ChannelCount = 2
+
 	case channelConfig == 0:
 		return fmt.Errorf("not yet supported")
 
@@ -81,7 +93,8 @@ func (c *Config) Unmarshal(buf []byte) error {
 
 	if c.Type == ObjectTypeSBR || c.Type == ObjectTypePS {
 		c.ExtensionType = c.Type
-		extensionSamplingFrequencyIndex, err := bits.ReadBits(buf, &pos, 4)
+
+		extensionSamplingFrequencyIndex, err := bits.ReadBits(buf, pos, 4)
 		if err != nil {
 			return err
 		}
@@ -91,7 +104,7 @@ func (c *Config) Unmarshal(buf []byte) error {
 			c.ExtensionSampleRate = sampleRates[extensionSamplingFrequencyIndex]
 
 		case extensionSamplingFrequencyIndex == 0x0F:
-			tmp, err := bits.ReadBits(buf, &pos, 24)
+			tmp, err := bits.ReadBits(buf, pos, 24)
 			if err != nil {
 				return err
 			}
@@ -101,7 +114,7 @@ func (c *Config) Unmarshal(buf []byte) error {
 			return fmt.Errorf("invalid extension sample rate index (%d)", extensionSamplingFrequencyIndex)
 		}
 
-		tmp, err = bits.ReadBits(buf, &pos, 5)
+		tmp, err = bits.ReadBits(buf, pos, 5)
 		if err != nil {
 			return err
 		}
@@ -112,25 +125,25 @@ func (c *Config) Unmarshal(buf []byte) error {
 		}
 	}
 
-	c.FrameLengthFlag, err = bits.ReadFlag(buf, &pos)
+	c.FrameLengthFlag, err = bits.ReadFlag(buf, pos)
 	if err != nil {
 		return err
 	}
 
-	c.DependsOnCoreCoder, err = bits.ReadFlag(buf, &pos)
+	c.DependsOnCoreCoder, err = bits.ReadFlag(buf, pos)
 	if err != nil {
 		return err
 	}
 
 	if c.DependsOnCoreCoder {
-		tmp, err := bits.ReadBits(buf, &pos, 14)
+		tmp, err := bits.ReadBits(buf, pos, 14)
 		if err != nil {
 			return err
 		}
 		c.CoreCoderDelay = uint16(tmp)
 	}
 
-	extensionFlag, err := bits.ReadFlag(buf, &pos)
+	extensionFlag, err := bits.ReadFlag(buf, pos)
 	if err != nil {
 		return err
 	}
@@ -142,8 +155,8 @@ func (c *Config) Unmarshal(buf []byte) error {
 	return nil
 }
 
-func (c Config) marshalSize() int {
-	n := 5 + 4 + 3
+func (c AudioSpecificConfig) marshalSizeBits() int {
+	n := 5 + 4 + 2 + 1
 
 	_, ok := reverseSampleRates[c.SampleRate]
 	if !ok {
@@ -160,9 +173,17 @@ func (c Config) marshalSize() int {
 			n += 4
 		}
 		n += 5
-	} else if c.DependsOnCoreCoder {
+	}
+
+	if c.DependsOnCoreCoder {
 		n += 14
 	}
+
+	return n
+}
+
+func (c AudioSpecificConfig) marshalSize() int {
+	n := c.marshalSizeBits()
 
 	ret := n / 8
 	if (n % 8) != 0 {
@@ -173,26 +194,38 @@ func (c Config) marshalSize() int {
 }
 
 // Marshal encodes a Config.
-func (c Config) Marshal() ([]byte, error) {
+func (c AudioSpecificConfig) Marshal() ([]byte, error) {
 	buf := make([]byte, c.marshalSize())
 	pos := 0
 
+	err := c.marshalTo(buf, &pos)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf, nil
+}
+
+func (c AudioSpecificConfig) marshalTo(buf []byte, pos *int) error {
 	if c.ExtensionType == ObjectTypeSBR || c.ExtensionType == ObjectTypePS {
-		bits.WriteBits(buf, &pos, uint64(c.ExtensionType), 5)
+		bits.WriteBits(buf, pos, uint64(c.ExtensionType), 5)
 	} else {
-		bits.WriteBits(buf, &pos, uint64(c.Type), 5)
+		bits.WriteBits(buf, pos, uint64(c.Type), 5)
 	}
 
 	sampleRateIndex, ok := reverseSampleRates[c.SampleRate]
 	if !ok {
-		bits.WriteBits(buf, &pos, uint64(15), 4)
-		bits.WriteBits(buf, &pos, uint64(c.SampleRate), 24)
+		bits.WriteBits(buf, pos, uint64(15), 4)
+		bits.WriteBits(buf, pos, uint64(c.SampleRate), 24)
 	} else {
-		bits.WriteBits(buf, &pos, uint64(sampleRateIndex), 4)
+		bits.WriteBits(buf, pos, uint64(sampleRateIndex), 4)
 	}
 
 	var channelConfig int
 	switch {
+	case c.ExtensionType == ObjectTypePS:
+		channelConfig = 1
+
 	case c.ChannelCount >= 1 && c.ChannelCount <= 6:
 		channelConfig = c.ChannelCount
 
@@ -200,36 +233,38 @@ func (c Config) Marshal() ([]byte, error) {
 		channelConfig = 7
 
 	default:
-		return nil, fmt.Errorf("invalid channel count (%d)", c.ChannelCount)
+		return fmt.Errorf("invalid channel count (%d)", c.ChannelCount)
 	}
-	bits.WriteBits(buf, &pos, uint64(channelConfig), 4)
+	bits.WriteBits(buf, pos, uint64(channelConfig), 4)
 
 	if c.ExtensionType == ObjectTypeSBR || c.ExtensionType == ObjectTypePS {
 		sampleRateIndex, ok := reverseSampleRates[c.ExtensionSampleRate]
 		if !ok {
-			bits.WriteBits(buf, &pos, uint64(0x0F), 4)
-			bits.WriteBits(buf, &pos, uint64(c.ExtensionSampleRate), 24)
+			bits.WriteBits(buf, pos, uint64(0x0F), 4)
+			bits.WriteBits(buf, pos, uint64(c.ExtensionSampleRate), 24)
 		} else {
-			bits.WriteBits(buf, &pos, uint64(sampleRateIndex), 4)
+			bits.WriteBits(buf, pos, uint64(sampleRateIndex), 4)
 		}
-		bits.WriteBits(buf, &pos, uint64(c.Type), 5)
-	} else {
-		if c.FrameLengthFlag {
-			bits.WriteBits(buf, &pos, 1, 1)
-		} else {
-			bits.WriteBits(buf, &pos, 0, 1)
-		}
-
-		if c.DependsOnCoreCoder {
-			bits.WriteBits(buf, &pos, 1, 1)
-		} else {
-			bits.WriteBits(buf, &pos, 0, 1)
-		}
-
-		if c.DependsOnCoreCoder {
-			bits.WriteBits(buf, &pos, uint64(c.CoreCoderDelay), 14)
-		}
+		bits.WriteBits(buf, pos, uint64(c.Type), 5)
 	}
 
-	return buf, nil
+	if c.FrameLengthFlag {
+		bits.WriteBits(buf, pos, 1, 1)
+	} else {
+		bits.WriteBits(buf, pos, 0, 1)
+	}
+
+	if c.DependsOnCoreCoder {
+		bits.WriteBits(buf, pos, 1, 1)
+	} else {
+		bits.WriteBits(buf, pos, 0, 1)
+	}
+
+	if c.DependsOnCoreCoder {
+		bits.WriteBits(buf, pos, uint64(c.CoreCoderDelay), 14)
+	}
+
+	*pos++ // extensionFlag
+
+	return nil
 }
