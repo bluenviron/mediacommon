@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// ADTSPacket is an ADTS packet.
+// ADTSPacket is an ADTS frame, as defined in ISO 14496-3.
 type ADTSPacket struct {
 	Type         ObjectType
 	SampleRate   int
@@ -70,6 +70,11 @@ func (ps *ADTSPackets) Unmarshal(buf []byte) error {
 		frameLen := int(((uint16(buf[pos+3])&0x03)<<11)|
 			(uint16(buf[pos+4])<<3)|
 			((uint16(buf[pos+5])>>5)&0x07)) - 7
+
+		if frameLen <= 0 {
+			return fmt.Errorf("invalid FrameLen")
+		}
+
 		if frameLen > MaxAccessUnitSize {
 			return fmt.Errorf("AU size (%d) is too big (maximum is %d)", frameLen, MaxAccessUnitSize)
 		}
