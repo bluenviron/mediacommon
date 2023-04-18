@@ -72,12 +72,6 @@ func (c *AudioSpecificConfig) UnmarshalFromPos(buf []byte, pos *int) error {
 	}
 
 	switch {
-	case c.Type == ObjectTypePS:
-		if channelConfig != 1 {
-			return fmt.Errorf("channelConfig must be 1 when parametric stereo is used")
-		}
-		c.ChannelCount = 2
-
 	case channelConfig == 0:
 		return fmt.Errorf("not yet supported")
 
@@ -223,9 +217,6 @@ func (c AudioSpecificConfig) marshalTo(buf []byte, pos *int) error {
 
 	var channelConfig int
 	switch {
-	case c.ExtensionType == ObjectTypePS:
-		channelConfig = 1
-
 	case c.ChannelCount >= 1 && c.ChannelCount <= 6:
 		channelConfig = c.ChannelCount
 

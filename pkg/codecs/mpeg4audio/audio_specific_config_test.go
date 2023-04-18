@@ -107,7 +107,7 @@ var audioSpecificConfigCases = []struct {
 		AudioSpecificConfig{
 			Type:                ObjectTypeAACLC,
 			SampleRate:          24000,
-			ChannelCount:        2,
+			ChannelCount:        1,
 			ExtensionSampleRate: 48000,
 			ExtensionType:       ObjectTypePS,
 		},
