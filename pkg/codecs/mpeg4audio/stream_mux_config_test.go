@@ -75,7 +75,7 @@ var streamMuxConfigCases = []struct {
 						ExtensionType:       29,
 						ExtensionSampleRate: 48000,
 						SampleRate:          24000,
-						ChannelCount:        2,
+						ChannelCount:        1,
 					},
 					LatmBufferFullness: 255,
 				}},
