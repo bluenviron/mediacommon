@@ -2,9 +2,9 @@
 package mpeg4audio
 
 const (
-	// MaxAccessUnitSize is the maximum size of an Access Unit (AU).
+	// MaxAccessUnitSize is the maximum size of an access unit.
 	MaxAccessUnitSize = 5 * 1024
 
-	// SamplesPerAccessUnit is the number of samples contained by a single AAC AU.
+	// SamplesPerAccessUnit is the number of samples contained by an access unit.
 	SamplesPerAccessUnit = 1024
 )
