@@ -46,13 +46,25 @@ var sampleRates = map[uint8]int{
 	0b10: 32000,
 }
 
+// ChannelMode is a channel mode of a MPEG-2 or MPEG-2 audio frame.
+type ChannelMode int
+
+// standard channel modes.
+const (
+	ChannelModeStereo      ChannelMode = 0
+	ChannelModeJointStereo ChannelMode = 1
+	ChannelModeDualChannel ChannelMode = 2
+	ChannelModeMono        ChannelMode = 3
+)
+
 // FrameHeader is the header of a MPEG-1 or MPEG-2 audio frame.
 type FrameHeader struct {
-	MPEG2      bool
-	Layer      uint8
-	Bitrate    int
-	SampleRate int
-	Padding    bool
+	MPEG2       bool
+	Layer       uint8
+	Bitrate     int
+	SampleRate  int
+	Padding     bool
+	ChannelMode ChannelMode
 }
 
 // Unmarshal decodes a FrameHeader.
@@ -90,6 +102,7 @@ func (h *FrameHeader) Unmarshal(buf []byte) error {
 	}
 
 	h.Padding = ((buf[2] >> 1) & 0b1) != 0
+	h.ChannelMode = ChannelMode(buf[3] >> 6)
 
 	return nil
 }
