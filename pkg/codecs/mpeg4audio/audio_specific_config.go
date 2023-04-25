@@ -39,9 +39,7 @@ func (c *AudioSpecificConfig) UnmarshalFromPos(buf []byte, pos *int) error {
 	c.Type = ObjectType(tmp)
 
 	switch c.Type {
-	case ObjectTypeAACLC:
-	case ObjectTypeSBR:
-	case ObjectTypePS:
+	case ObjectTypeAACLC, ObjectTypeSBR, ObjectTypePS:
 	default:
 		return fmt.Errorf("unsupported object type: %d", c.Type)
 	}
