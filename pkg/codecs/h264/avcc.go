@@ -23,7 +23,7 @@ func AVCCUnmarshal(buf []byte) ([][]byte, error) {
 		}
 
 		if l > MaxNALUSize {
-			return nil, fmt.Errorf("NALU size (%d) is too big (maximum is %d)", l, MaxNALUSize)
+			return nil, fmt.Errorf("NALU size (%d) is too big, maximum is %d", l, MaxNALUSize)
 		}
 
 		if (len(ret) + 1) > MaxNALUsPerGroup {
