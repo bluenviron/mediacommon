@@ -85,7 +85,7 @@ outer:
 					return nil, fmt.Errorf("invalid NALU")
 				}
 				if l > MaxNALUSize {
-					return nil, fmt.Errorf("NALU size (%d) is too big (maximum is %d)", l, MaxNALUSize)
+					return nil, fmt.Errorf("NALU size (%d) is too big, maximum is %d", l, MaxNALUSize)
 				}
 
 				ret[pos] = byts[start:delimStart]
@@ -104,7 +104,7 @@ outer:
 		return nil, fmt.Errorf("invalid NALU")
 	}
 	if l > MaxNALUSize {
-		return nil, fmt.Errorf("NALU size (%d) is too big (maximum is %d)", l, MaxNALUSize)
+		return nil, fmt.Errorf("NALU size (%d) is too big, maximum is %d", l, MaxNALUSize)
 	}
 
 	ret[pos] = byts[start:bl]
