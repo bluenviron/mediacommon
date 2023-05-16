@@ -6,7 +6,7 @@
 [![CodeCov](https://codecov.io/gh/bluenviron/mediacommon/branch/main/graph/badge.svg)](https://app.codecov.io/gh/bluenviron/mediacommon/branch/main)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/bluenviron/mediacommon)](https://pkg.go.dev/github.com/bluenviron/mediacommon#pkg-index)
 
-Definitions and functions shared between [gortsplib](https://github.com/bluenviron/gortsplib), [gohlslib](https://github.com/bluenviron/gohlslib) and [MediaMTX](https://github.com/aler9/mediamtx), in particular:
+Definitions and functions shared between [gortsplib](https://github.com/bluenviron/gortsplib), [gohlslib](https://github.com/bluenviron/gohlslib) and [MediaMTX](https://github.com/bluenviron/mediamtx), in particular:
 
 * [Codec utilities](pkg/codecs)
 * [Format utilities](pkg/formats)
@@ -25,6 +25,6 @@ Definitions and functions shared between [gortsplib](https://github.com/bluenvir
 
 Related projects
 
-* [MediaMTX](https://github.com/aler9/mediamtx)
+* [MediaMTX](https://github.com/bluenviron/mediamtx)
 * [gortsplib](https://github.com/bluenviron/gortsplib)
 * [gohlslib](https://github.com/bluenviron/gohlslib)
