@@ -46,7 +46,7 @@ var sampleRates = map[uint8]int{
 	0b10: 32000,
 }
 
-// ChannelMode is a channel mode of a MPEG-2 or MPEG-2 audio frame.
+// ChannelMode is a channel mode of a MPEG-1/2 audio frame.
 type ChannelMode int
 
 // standard channel modes.
@@ -57,7 +57,7 @@ const (
 	ChannelModeMono        ChannelMode = 3
 )
 
-// FrameHeader is the header of a MPEG-1 or MPEG-2 audio frame.
+// FrameHeader is the header of a MPEG-1/2 audio frame.
 type FrameHeader struct {
 	MPEG2       bool
 	Layer       uint8
