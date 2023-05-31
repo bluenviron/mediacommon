@@ -8,9 +8,9 @@
 
 Definitions and functions shared between [gortsplib](https://github.com/bluenviron/gortsplib), [gohlslib](https://github.com/bluenviron/gohlslib) and [MediaMTX](https://github.com/bluenviron/mediamtx), in particular:
 
-* [Codec utilities](pkg/codecs)
-* [Format utilities](pkg/formats)
-* [Bit reader and writer](pkg/bits)
+* [Codec utilities](https://pkg.go.dev/github.com/bluenviron/mediacommon/pkg/codecs)
+* [Format utilities](https://pkg.go.dev/github.com/bluenviron/mediacommon/pkg/formats)
+* [Bit reader and writer](https://pkg.go.dev/github.com/bluenviron/mediacommon/pkg/bits)
 
 ## Standards
 
