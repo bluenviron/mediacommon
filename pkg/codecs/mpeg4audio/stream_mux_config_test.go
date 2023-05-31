@@ -79,6 +79,46 @@ var streamMuxConfigCases = []struct {
 			}},
 		},
 	},
+	{
+		"other data and checksum",
+		[]byte{0x40, 0x00, 0x24, 0x10, 0xad, 0xca, 0x00},
+		StreamMuxConfig{
+			Programs: []*StreamMuxConfigProgram{{
+				Layers: []*StreamMuxConfigLayer{{
+					AudioSpecificConfig: &AudioSpecificConfig{
+						Type:         2,
+						SampleRate:   44100,
+						ChannelCount: 1,
+					},
+					FrameLengthType: 2,
+				}},
+			}},
+			OtherDataPresent: true,
+			OtherDataLenBits: 220,
+			CRCCheckPresent:  true,
+			CRCCheckSum:      64,
+		},
+	},
+	{
+		"other data > 256 and checksum",
+		[]byte{0x40, 0x00, 0x24, 0x10, 0xb0, 0x33, 0x85, 0x0},
+		StreamMuxConfig{
+			Programs: []*StreamMuxConfigProgram{{
+				Layers: []*StreamMuxConfigLayer{{
+					AudioSpecificConfig: &AudioSpecificConfig{
+						Type:         2,
+						SampleRate:   44100,
+						ChannelCount: 1,
+					},
+					FrameLengthType: 2,
+				}},
+			}},
+			OtherDataPresent: true,
+			OtherDataLenBits: 880,
+			CRCCheckPresent:  true,
+			CRCCheckSum:      64,
+		},
+	},
 }
 
 func TestStreamMuxConfigUnmarshal(t *testing.T) {

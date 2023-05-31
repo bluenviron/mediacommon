@@ -23,8 +23,12 @@ type StreamMuxConfigProgram struct {
 
 // StreamMuxConfig is a StreamMuxConfig as defined in ISO 14496-3.
 type StreamMuxConfig struct {
-	NumSubFrames uint
-	Programs     []*StreamMuxConfigProgram
+	NumSubFrames     uint
+	Programs         []*StreamMuxConfigProgram
+	OtherDataPresent bool
+	OtherDataLenBits uint32
+	CRCCheckPresent  bool
+	CRCCheckSum      uint8
 }
 
 // Unmarshal decodes a StreamMuxConfig.
@@ -126,19 +130,41 @@ func (c *StreamMuxConfig) Unmarshal(buf []byte) error {
 		}
 	}
 
-	err = bits.HasSpace(buf, pos, 2)
+	c.OtherDataPresent, err = bits.ReadFlag(buf, &pos)
 	if err != nil {
 		return err
 	}
 
-	otherDataPresent := bits.ReadFlagUnsafe(buf, &pos)
-	if otherDataPresent {
-		return fmt.Errorf("otherDataPresent is not supported")
+	if c.OtherDataPresent {
+		for {
+			c.OtherDataLenBits *= 256
+
+			err := bits.HasSpace(buf, pos, 9)
+			if err != nil {
+				return err
+			}
+
+			otherDataLenEsc := bits.ReadFlagUnsafe(buf, &pos)
+			otherDataLenTmp := uint32(bits.ReadBitsUnsafe(buf, &pos, 8))
+			c.OtherDataLenBits += otherDataLenTmp
+
+			if !otherDataLenEsc {
+				break
+			}
+		}
 	}
 
-	crcCheckPresent := bits.ReadFlagUnsafe(buf, &pos)
-	if crcCheckPresent {
-		return fmt.Errorf("crcCheckPresent is not supported")
+	c.CRCCheckPresent, err = bits.ReadFlag(buf, &pos)
+	if err != nil {
+		return err
+	}
+
+	if c.CRCCheckPresent {
+		tmp, err := bits.ReadBits(buf, &pos, 8)
+		if err != nil {
+			return err
+		}
+		c.CRCCheckSum = uint8(tmp)
 	}
 
 	return nil
@@ -177,7 +203,25 @@ func (c StreamMuxConfig) marshalSize() int {
 		}
 	}
 
-	n += 2
+	n++ // otherDataPresent
+
+	if c.OtherDataPresent {
+		tmp := c.OtherDataLenBits
+		for {
+			tmp /= 256
+			n += 9
+
+			if tmp == 0 {
+				break
+			}
+		}
+	}
+
+	n++ // crcCheckPresent
+
+	if c.CRCCheckPresent {
+		n += 8
+	}
 
 	ret := n / 8
 	if (n % 8) != 0 {
@@ -236,6 +280,41 @@ func (c StreamMuxConfig) Marshal() ([]byte, error) {
 				}
 			}
 		}
+	}
+
+	if c.OtherDataPresent {
+		bits.WriteBits(buf, &pos, 1, 1)
+
+		var lenBytes []byte
+		tmp := c.OtherDataLenBits
+
+		for {
+			mod := tmp % 256
+			tmp -= mod
+			tmp /= 256
+			lenBytes = append(lenBytes, uint8(mod))
+
+			if tmp == 0 {
+				break
+			}
+		}
+
+		for i := len(lenBytes) - 1; i > 0; i-- {
+			bits.WriteBits(buf, &pos, 1, 1)
+			bits.WriteBits(buf, &pos, uint64(lenBytes[i]), 8)
+		}
+
+		bits.WriteBits(buf, &pos, 0, 1)
+		bits.WriteBits(buf, &pos, uint64(lenBytes[0]), 8)
+	} else {
+		bits.WriteBits(buf, &pos, 0, 1)
+	}
+
+	if c.CRCCheckPresent {
+		bits.WriteBits(buf, &pos, 1, 1)
+		bits.WriteBits(buf, &pos, uint64(c.CRCCheckSum), 8)
+	} else {
+		bits.WriteBits(buf, &pos, 0, 1)
 	}
 
 	return buf, nil
