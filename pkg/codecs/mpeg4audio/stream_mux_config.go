@@ -94,7 +94,7 @@ func (c *StreamMuxConfig) Unmarshal(buf []byte) error {
 			if err != nil {
 				// support truncated configs
 				l.LatmBufferFullness = 255
-				return nil
+				return nil //nolint:nilerr
 			}
 			l.FrameLengthType = uint(tmp)
 
