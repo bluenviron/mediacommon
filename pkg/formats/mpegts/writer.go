@@ -49,7 +49,7 @@ func NewWriter(
 		w.tsw.SetPCRPID(audioTrack.PID)
 	}
 
-	// WriteTable() is not necessary
+	// WriteTables() is not necessary
 	// since it's called automatically when WriteData() is called with
 	// * PID == PCRPID
 	// * AdaptationField != nil

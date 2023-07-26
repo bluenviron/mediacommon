@@ -115,7 +115,9 @@ func TestWriter(t *testing.T) {
 			}
 		}
 
-		dem := astits.NewDemuxer(context.Background(), bytes.NewReader(buf.Bytes()),
+		dem := astits.NewDemuxer(
+			context.Background(),
+			bytes.NewReader(buf.Bytes()),
 			astits.DemuxerOptPacketSize(188))
 
 		// PMT
@@ -217,7 +219,9 @@ func TestWriter(t *testing.T) {
 			}
 		}
 
-		dem := astits.NewDemuxer(context.Background(), bytes.NewReader(buf.Bytes()),
+		dem := astits.NewDemuxer(
+			context.Background(),
+			bytes.NewReader(buf.Bytes()),
 			astits.DemuxerOptPacketSize(188))
 
 		// PMT
@@ -293,7 +297,9 @@ func TestWriter(t *testing.T) {
 			}
 		}
 
-		dem := astits.NewDemuxer(context.Background(), bytes.NewReader(buf.Bytes()),
+		dem := astits.NewDemuxer(
+			context.Background(),
+			bytes.NewReader(buf.Bytes()),
 			astits.DemuxerOptPacketSize(188))
 
 		// PMT

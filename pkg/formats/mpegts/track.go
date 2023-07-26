@@ -124,14 +124,15 @@ func (t *Track) Unmarshal(dem *astits.Demuxer, es *astits.PMTElementaryStream) e
 	return errUnsupportedTrack
 }
 
-// FindTracks finds the tracks in a MPEG-TS stream.
-func FindTracks(dem *astits.Demuxer) ([]*Track, error) {
-	var tracks []*Track
+// Tracks is a list of Tracks.
+type Tracks []*Track
 
+// Unmarshal decodes tracks from a demuxer.
+func (tr *Tracks) Unmarshal(dem *astits.Demuxer) error {
 	for {
 		data, err := dem.NextData()
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		if data.PMT != nil {
@@ -142,18 +143,18 @@ func FindTracks(dem *astits.Demuxer) ([]*Track, error) {
 					if err == errUnsupportedTrack {
 						continue
 					}
-					return nil, err
+					return err
 				}
 
-				tracks = append(tracks, &track)
+				*tr = append(*tr, &track)
 			}
 			break
 		}
 	}
 
-	if tracks == nil {
-		return nil, fmt.Errorf("no tracks found")
+	if *tr == nil {
+		return fmt.Errorf("no tracks found")
 	}
 
-	return tracks, nil
+	return nil
 }
