@@ -13,6 +13,7 @@ const (
 )
 
 // OBUHeader is a OBU header.
+// Specification: https://aomediacodec.github.io/av1-spec/#obu-header-syntax
 type OBUHeader struct {
 	Type    OBUType
 	HasSize bool

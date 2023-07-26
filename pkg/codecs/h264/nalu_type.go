@@ -5,6 +5,7 @@ import (
 )
 
 // NALUType is the type of a NALU.
+// Specification: ITU-T Rec. H.264, Table 7-1
 type NALUType uint8
 
 // NALU types.

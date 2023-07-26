@@ -514,6 +514,7 @@ func (r *SPS_ShortTermRefPicSet) unmarshal(buf []byte, pos *int, stRpsIdx uint32
 }
 
 // SPS is a H265 sequence parameter set.
+// Specification: ITU-T Rec. H.265, 7.3.2.2.1
 type SPS struct {
 	VPSID                                uint8
 	MaxSubLayersMinus1                   uint8

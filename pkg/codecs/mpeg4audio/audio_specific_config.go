@@ -9,7 +9,8 @@ import (
 // Config is an alias for AudioSpecificConfig.
 type Config = AudioSpecificConfig
 
-// AudioSpecificConfig is an AudioSpecificConfig as defined in ISO 14496-3.
+// AudioSpecificConfig is an AudioSpecificConfig.
+// Specification: ISO 14496-3, 1.6.2.1
 type AudioSpecificConfig struct {
 	Type         ObjectType
 	SampleRate   int

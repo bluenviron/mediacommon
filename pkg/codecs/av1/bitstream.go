@@ -13,6 +13,7 @@ func obuRemoveSize(h *OBUHeader, sizeN int, ob []byte) []byte {
 
 // BitstreamUnmarshal extracts OBUs from a bitstream.
 // Optionally, it also removes the size field from OBUs.
+// Specification: https://aomediacodec.github.io/av1-spec/#low-overhead-bitstream-format
 func BitstreamUnmarshal(bs []byte, removeSizeField bool) ([][]byte, error) {
 	var ret [][]byte
 

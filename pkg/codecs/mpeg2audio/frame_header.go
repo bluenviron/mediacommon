@@ -58,6 +58,7 @@ const (
 )
 
 // FrameHeader is the header of a MPEG-1/2 audio frame.
+// Specification: ISO 11172-3, 2.4.1.3
 type FrameHeader struct {
 	MPEG2       bool
 	Layer       uint8

@@ -4,7 +4,8 @@ import (
 	"fmt"
 )
 
-// ADTSPacket is an ADTS frame, as defined in ISO 14496-3.
+// ADTSPacket is an ADTS frame.
+// Specification: ISO 14496-3, Table 1.A.5
 type ADTSPacket struct {
 	Type         ObjectType
 	SampleRate   int

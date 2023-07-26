@@ -5,6 +5,7 @@ import (
 )
 
 // AnnexBUnmarshal decodes NALUs from the Annex-B stream format.
+// Specification: ITU-T Rec. H.264, Annex B
 func AnnexBUnmarshal(byts []byte) ([][]byte, error) {
 	bl := len(byts)
 	initZeroCount := 0
@@ -121,6 +122,7 @@ func annexBMarshalSize(nalus [][]byte) int {
 }
 
 // AnnexBMarshal encodes NALUs into the Annex-B stream format.
+// Specification: ITU-T Rec. H.264, Annex B
 func AnnexBMarshal(nalus [][]byte) ([]byte, error) {
 	buf := make([]byte, annexBMarshalSize(nalus))
 	pos := 0

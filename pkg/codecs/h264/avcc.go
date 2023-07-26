@@ -5,6 +5,7 @@ import (
 )
 
 // AVCCUnmarshal decodes NALUs from the AVCC stream format.
+// Specification: ?
 func AVCCUnmarshal(buf []byte) ([][]byte, error) {
 	bl := len(buf)
 	pos := 0
@@ -55,6 +56,7 @@ func avccMarshalSize(nalus [][]byte) int {
 }
 
 // AVCCMarshal encodes NALUs into the AVCC stream format.
+// Specification: ?
 func AVCCMarshal(nalus [][]byte) ([]byte, error) {
 	buf := make([]byte, avccMarshalSize(nalus))
 	pos := 0

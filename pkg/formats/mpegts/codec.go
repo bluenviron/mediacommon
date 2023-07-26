@@ -21,7 +21,7 @@ type CodecH265 struct{}
 func (*CodecH265) isCodec() {
 }
 
-// CodecMPEG4Audio is a MPEG4-Audio codec.
+// CodecMPEG4Audio is a MPEG-4 Audio codec.
 type CodecMPEG4Audio struct {
 	mpeg4audio.Config
 }
