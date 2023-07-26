@@ -6,15 +6,13 @@ import (
 	"github.com/bluenviron/mediacommon/pkg/bits"
 )
 
-// OpusControlHeader is a MPEG-TS Opus control header.
-type OpusControlHeader struct {
+type opusControlHeader struct {
 	PayloadSize uint64
 	StartTrim   uint16
 	EndTrim     uint16
 }
 
-// Unmarshal decodes a control header.
-func (h *OpusControlHeader) Unmarshal(buf []byte) (int, error) {
+func (h *opusControlHeader) unmarshal(buf []byte) (int, error) {
 	pos := 0
 
 	err := bits.HasSpace(buf, pos, 16)

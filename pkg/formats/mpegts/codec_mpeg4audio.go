@@ -11,8 +11,7 @@ type CodecMPEG4Audio struct {
 	mpeg4audio.Config
 }
 
-// Marshal implements Codec.
-func (c CodecMPEG4Audio) Marshal(pid uint16) (*astits.PMTElementaryStream, error) {
+func (c CodecMPEG4Audio) marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 	return &astits.PMTElementaryStream{
 		ElementaryPID:               pid,
 		ElementaryStreamDescriptors: nil,
@@ -20,7 +19,6 @@ func (c CodecMPEG4Audio) Marshal(pid uint16) (*astits.PMTElementaryStream, error
 	}, nil
 }
 
-// IsVideo implements Codec.
-func (CodecMPEG4Audio) IsVideo() bool {
+func (CodecMPEG4Audio) isVideo() bool {
 	return false
 }

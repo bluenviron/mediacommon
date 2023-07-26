@@ -7,8 +7,7 @@ import (
 // CodecH265 is a H265 codec.
 type CodecH265 struct{}
 
-// Marshal implements Codec.
-func (c CodecH265) Marshal(pid uint16) (*astits.PMTElementaryStream, error) {
+func (c CodecH265) marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 	return &astits.PMTElementaryStream{
 		ElementaryPID:               pid,
 		ElementaryStreamDescriptors: nil,
@@ -16,7 +15,6 @@ func (c CodecH265) Marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 	}, nil
 }
 
-// IsVideo implements Codec.
-func (CodecH265) IsVideo() bool {
+func (CodecH265) isVideo() bool {
 	return true
 }

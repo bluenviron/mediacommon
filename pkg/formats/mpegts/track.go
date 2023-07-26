@@ -84,13 +84,11 @@ type Track struct {
 	Codec Codec
 }
 
-// Marshal encodes a track into a astits.PMTElementaryStream.
-func (t *Track) Marshal() (*astits.PMTElementaryStream, error) {
-	return t.Codec.Marshal(t.PID)
+func (t *Track) marshal() (*astits.PMTElementaryStream, error) {
+	return t.Codec.marshal(t.PID)
 }
 
-// Unmarshal decodes a track from a astits.PMTElementaryStream.
-func (t *Track) Unmarshal(dem *astits.Demuxer, es *astits.PMTElementaryStream) error {
+func (t *Track) unmarshal(dem *astits.Demuxer, es *astits.PMTElementaryStream) error {
 	t.PID = es.ElementaryPID
 
 	switch es.StreamType {
@@ -122,39 +120,4 @@ func (t *Track) Unmarshal(dem *astits.Demuxer, es *astits.PMTElementaryStream) e
 	}
 
 	return errUnsupportedTrack
-}
-
-// Tracks is a list of Tracks.
-type Tracks []*Track
-
-// Unmarshal decodes tracks from a demuxer.
-func (tr *Tracks) Unmarshal(dem *astits.Demuxer) error {
-	for {
-		data, err := dem.NextData()
-		if err != nil {
-			return err
-		}
-
-		if data.PMT != nil {
-			for _, es := range data.PMT.ElementaryStreams {
-				var track Track
-				err := track.Unmarshal(dem, es)
-				if err != nil {
-					if err == errUnsupportedTrack {
-						continue
-					}
-					return err
-				}
-
-				*tr = append(*tr, &track)
-			}
-			break
-		}
-	}
-
-	if *tr == nil {
-		return fmt.Errorf("no tracks found")
-	}
-
-	return nil
 }

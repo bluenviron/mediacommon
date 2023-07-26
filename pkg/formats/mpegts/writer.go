@@ -3,7 +3,6 @@ package mpegts
 import (
 	"context"
 	"io"
-	"time"
 
 	"github.com/asticode/go-astits"
 	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
@@ -17,7 +16,7 @@ const (
 
 func leadingTrack(tracks []*Track) *Track {
 	for _, track := range tracks {
-		if track.Codec.IsVideo() {
+		if track.Codec.isVideo() {
 			return track
 		}
 	}
@@ -26,7 +25,7 @@ func leadingTrack(tracks []*Track) *Track {
 
 // Writer is a MPEG-TS writer.
 type Writer struct {
-	tsw *astits.Muxer
+	mux *astits.Muxer
 }
 
 // NewWriter allocates a Writer.
@@ -36,16 +35,16 @@ func NewWriter(
 ) *Writer {
 	w := &Writer{}
 
-	w.tsw = astits.NewMuxer(
+	w.mux = astits.NewMuxer(
 		context.Background(),
 		bw)
 
 	for _, track := range tracks {
-		es, _ := track.Marshal()
-		w.tsw.AddElementaryStream(*es)
+		es, _ := track.marshal()
+		w.mux.AddElementaryStream(*es)
 	}
 
-	w.tsw.SetPCRPID(leadingTrack(tracks).PID)
+	w.mux.SetPCRPID(leadingTrack(tracks).PID)
 
 	// WriteTables() is not necessary
 	// since it's called automatically when WriteData() is called with
@@ -59,8 +58,8 @@ func NewWriter(
 // WriteH26x writes a H26x access unit.
 func (w *Writer) WriteH26x(
 	track *Track,
-	dts time.Duration,
-	pts time.Duration,
+	dts int64,
+	pts int64,
 	idrPresent bool,
 	au [][]byte,
 ) error {
@@ -82,14 +81,14 @@ func (w *Writer) WriteH26x(
 
 	if dts == pts {
 		oh.PTSDTSIndicator = astits.PTSDTSIndicatorOnlyPTS
-		oh.PTS = &astits.ClockReference{Base: int64(pts.Seconds() * 90000)}
+		oh.PTS = &astits.ClockReference{Base: pts}
 	} else {
 		oh.PTSDTSIndicator = astits.PTSDTSIndicatorBothPresent
-		oh.DTS = &astits.ClockReference{Base: int64(dts.Seconds() * 90000)}
-		oh.PTS = &astits.ClockReference{Base: int64(pts.Seconds() * 90000)}
+		oh.DTS = &astits.ClockReference{Base: dts}
+		oh.PTS = &astits.ClockReference{Base: pts}
 	}
 
-	_, err = w.tsw.WriteData(&astits.MuxerData{
+	_, err = w.mux.WriteData(&astits.MuxerData{
 		PID:             track.PID,
 		AdaptationField: af,
 		PES: &astits.PESData{
@@ -103,21 +102,23 @@ func (w *Writer) WriteH26x(
 	return err
 }
 
-// WriteAAC writes an AAC access unit.
-func (w *Writer) WriteAAC(
+// WriteMPEG4Audio writes MPEG-4 Audio access units.
+func (w *Writer) WriteMPEG4Audio(
 	track *Track,
-	pts time.Duration,
-	au []byte,
+	pts int64,
+	aus [][]byte,
 ) error {
 	aacCodec := track.Codec.(*CodecMPEG4Audio)
 
-	pkts := mpeg4audio.ADTSPackets{
-		{
+	pkts := make(mpeg4audio.ADTSPackets, len(aus))
+
+	for i, au := range aus {
+		pkts[i] = &mpeg4audio.ADTSPacket{
 			Type:         aacCodec.Config.Type,
 			SampleRate:   aacCodec.SampleRate,
 			ChannelCount: aacCodec.Config.ChannelCount,
 			AU:           au,
-		},
+		}
 	}
 
 	enc, err := pkts.Marshal()
@@ -129,7 +130,7 @@ func (w *Writer) WriteAAC(
 		RandomAccessIndicator: true,
 	}
 
-	_, err = w.tsw.WriteData(&astits.MuxerData{
+	_, err = w.mux.WriteData(&astits.MuxerData{
 		PID:             track.PID,
 		AdaptationField: af,
 		PES: &astits.PESData{
@@ -137,7 +138,7 @@ func (w *Writer) WriteAAC(
 				OptionalHeader: &astits.PESOptionalHeader{
 					MarkerBits:      2,
 					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
-					PTS:             &astits.ClockReference{Base: int64(pts.Seconds() * 90000)},
+					PTS:             &astits.ClockReference{Base: pts},
 				},
 				PacketLength: uint16(len(enc) + 8),
 				StreamID:     streamIDAudio,

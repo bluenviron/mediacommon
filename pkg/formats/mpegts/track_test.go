@@ -254,7 +254,7 @@ var trackCases = []struct {
 func TestTrackMarshal(t *testing.T) {
 	for _, ca := range trackCases {
 		t.Run(ca.name, func(t *testing.T) {
-			es, err := ca.track.Marshal()
+			es, err := ca.track.marshal()
 			require.NoError(t, err)
 
 			var buf bytes.Buffer
@@ -281,11 +281,13 @@ func TestTrackUnmarshal(t *testing.T) {
 				bytes.NewReader(ca.byts),
 				astits.DemuxerOptPacketSize(188))
 
-			var tracks Tracks
-			err := tracks.Unmarshal(dem)
+			pmt, err := findPMT(dem)
 			require.NoError(t, err)
 
-			require.Equal(t, Tracks{ca.track}, tracks)
+			var track Track
+			err = track.unmarshal(dem, pmt.ElementaryStreams[0])
+			require.NoError(t, err)
+			require.Equal(t, ca.track, &track)
 		})
 	}
 }
@@ -978,10 +980,13 @@ func TestTrackUnmarshalExternal(t *testing.T) {
 				bytes.NewReader(ca.byts),
 				astits.DemuxerOptPacketSize(188))
 
-			var tracks Tracks
-			err := tracks.Unmarshal(dem)
+			pmt, err := findPMT(dem)
 			require.NoError(t, err)
-			require.Equal(t, Tracks{ca.track}, tracks)
+
+			var track Track
+			err = track.unmarshal(dem, pmt.ElementaryStreams[0])
+			require.NoError(t, err)
+			require.Equal(t, ca.track, &track)
 		})
 	}
 }

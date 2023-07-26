@@ -4,15 +4,13 @@ import (
 	"fmt"
 )
 
-// OpusAccessUnit is a MPEG-TS Opus access unit.
-type OpusAccessUnit struct {
-	ControlHeader OpusControlHeader
-	Frame         []byte
+type opusAccessUnit struct {
+	ControlHeader opusControlHeader
+	Packet        []byte
 }
 
-// Unmarshal decodes an access unit.
-func (au *OpusAccessUnit) Unmarshal(buf []byte) (int, error) {
-	n, err := au.ControlHeader.Unmarshal(buf)
+func (au *opusAccessUnit) unmarshal(buf []byte) (int, error) {
+	n, err := au.ControlHeader.unmarshal(buf)
 	if err != nil {
 		return 0, fmt.Errorf("could not decode Opus control header: %v", err)
 	}
@@ -22,7 +20,7 @@ func (au *OpusAccessUnit) Unmarshal(buf []byte) (int, error) {
 		return 0, fmt.Errorf("buffer is too small")
 	}
 
-	au.Frame = buf[:au.ControlHeader.PayloadSize]
+	au.Packet = buf[:au.ControlHeader.PayloadSize]
 
 	return n + int(au.ControlHeader.PayloadSize), nil
 }

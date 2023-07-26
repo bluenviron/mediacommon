@@ -7,10 +7,15 @@ import (
 	"time"
 
 	"github.com/asticode/go-astits"
+	"github.com/stretchr/testify/require"
+
 	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
-	"github.com/stretchr/testify/require"
 )
+
+func durationGoToMPEGTS(d time.Duration) int64 {
+	return int64(d.Seconds() * 90000)
+}
 
 func TestWriter(t *testing.T) {
 	testSPS := []byte{
@@ -20,12 +25,12 @@ func TestWriter(t *testing.T) {
 		0x20,
 	}
 
-	testVideoTrack := &Track{
+	h264Track := &Track{
 		PID:   256,
 		Codec: &CodecH264{},
 	}
 
-	testAudioTrack := &Track{
+	aacTrack := &Track{
 		PID: 257,
 		Codec: &CodecMPEG4Audio{
 			Config: mpeg4audio.Config{
@@ -37,9 +42,9 @@ func TestWriter(t *testing.T) {
 	}
 
 	type videoSample struct {
-		NALUs [][]byte
-		PTS   time.Duration
-		DTS   time.Duration
+		AU  [][]byte
+		PTS time.Duration
+		DTS time.Duration
 	}
 
 	type audioSample struct {
@@ -51,7 +56,7 @@ func TestWriter(t *testing.T) {
 
 	testSamples := []sample{
 		videoSample{
-			NALUs: [][]byte{
+			AU: [][]byte{
 				testSPS, // SPS
 				{8},     // PPS
 				{5},     // IDR
@@ -72,7 +77,7 @@ func TestWriter(t *testing.T) {
 			PTS: 3500 * time.Millisecond,
 		},
 		videoSample{
-			NALUs: [][]byte{
+			AU: [][]byte{
 				{1}, // non-IDR
 			},
 			PTS: 4 * time.Second,
@@ -85,7 +90,7 @@ func TestWriter(t *testing.T) {
 			PTS: 4500 * time.Millisecond,
 		},
 		videoSample{
-			NALUs: [][]byte{
+			AU: [][]byte{
 				{1}, // non-IDR
 			},
 			PTS: 6 * time.Second,
@@ -93,26 +98,26 @@ func TestWriter(t *testing.T) {
 		},
 	}
 
-	t.Run("video + audio", func(t *testing.T) {
+	t.Run("h264 + aac", func(t *testing.T) {
 		var buf bytes.Buffer
-		w := NewWriter(&buf, []*Track{testVideoTrack, testAudioTrack})
+		w := NewWriter(&buf, []*Track{h264Track, aacTrack})
 
 		for _, sample := range testSamples {
 			switch tsample := sample.(type) {
 			case videoSample:
 				err := w.WriteH26x(
-					testVideoTrack,
-					tsample.DTS,
-					tsample.PTS,
-					h264.IDRPresent(tsample.NALUs),
-					tsample.NALUs)
+					h264Track,
+					durationGoToMPEGTS(tsample.DTS),
+					durationGoToMPEGTS(tsample.PTS),
+					h264.IDRPresent(tsample.AU),
+					tsample.AU)
 				require.NoError(t, err)
 
 			case audioSample:
-				err := w.WriteAAC(
-					testAudioTrack,
-					tsample.PTS,
-					tsample.AU)
+				err := w.WriteMPEG4Audio(
+					aacTrack,
+					durationGoToMPEGTS(tsample.PTS),
+					[][]byte{tsample.AU})
 				require.NoError(t, err)
 			}
 		}
@@ -206,18 +211,18 @@ func TestWriter(t *testing.T) {
 		}, pkt)
 	})
 
-	t.Run("video only", func(t *testing.T) {
+	t.Run("h264", func(t *testing.T) {
 		var buf bytes.Buffer
-		w := NewWriter(&buf, []*Track{testVideoTrack})
+		w := NewWriter(&buf, []*Track{h264Track})
 
 		for _, sample := range testSamples {
 			if tsample, ok := sample.(videoSample); ok {
 				err := w.WriteH26x(
-					testVideoTrack,
-					tsample.DTS,
-					tsample.PTS,
-					h264.IDRPresent(tsample.NALUs),
-					tsample.NALUs)
+					h264Track,
+					durationGoToMPEGTS(tsample.DTS),
+					durationGoToMPEGTS(tsample.PTS),
+					h264.IDRPresent(tsample.AU),
+					tsample.AU)
 				require.NoError(t, err)
 			}
 		}
@@ -287,16 +292,16 @@ func TestWriter(t *testing.T) {
 		}, pkt)
 	})
 
-	t.Run("audio only", func(t *testing.T) {
+	t.Run("aac", func(t *testing.T) {
 		var buf bytes.Buffer
-		w := NewWriter(&buf, []*Track{testAudioTrack})
+		w := NewWriter(&buf, []*Track{aacTrack})
 
 		for _, sample := range testSamples {
 			if tsample, ok := sample.(audioSample); ok {
-				err := w.WriteAAC(
-					testAudioTrack,
-					tsample.PTS,
-					tsample.AU)
+				err := w.WriteMPEG4Audio(
+					aacTrack,
+					durationGoToMPEGTS(tsample.PTS),
+					[][]byte{tsample.AU})
 				require.NoError(t, err)
 			}
 		}
