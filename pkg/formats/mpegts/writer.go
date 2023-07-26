@@ -74,8 +74,8 @@ func NewWriter(
 	return w
 }
 
-// WriteH264 writes a H264 access unit.
-func (w *Writer) WriteH264(
+// WriteH26x writes a H264 access unit.
+func (w *Writer) WriteH26x(
 	dts time.Duration,
 	pts time.Duration,
 	idrPresent bool,

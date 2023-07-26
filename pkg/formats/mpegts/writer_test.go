@@ -98,7 +98,7 @@ func TestWriter(t *testing.T) {
 		for _, sample := range testSamples {
 			switch tsample := sample.(type) {
 			case videoSample:
-				err := w.WriteH264(
+				err := w.WriteH26x(
 					tsample.DTS,
 					tsample.PTS,
 					h264.IDRPresent(tsample.NALUs),
@@ -206,7 +206,7 @@ func TestWriter(t *testing.T) {
 
 		for _, sample := range testSamples {
 			if tsample, ok := sample.(videoSample); ok {
-				err := w.WriteH264(
+				err := w.WriteH26x(
 					tsample.DTS,
 					tsample.PTS,
 					h264.IDRPresent(tsample.NALUs),
