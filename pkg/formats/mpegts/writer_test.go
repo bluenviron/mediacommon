@@ -21,10 +21,12 @@ func TestWriter(t *testing.T) {
 	}
 
 	testVideoTrack := &Track{
+		PID:   256,
 		Codec: &CodecH264{},
 	}
 
 	testAudioTrack := &Track{
+		PID: 257,
 		Codec: &CodecMPEG4Audio{
 			Config: mpeg4audio.Config{
 				Type:         2,

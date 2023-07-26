@@ -10,24 +10,6 @@ import (
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
 )
 
-func trackToElementaryStream(t *Track) *astits.PMTElementaryStream {
-	switch t.Codec.(type) {
-	case *CodecH264:
-		return &astits.PMTElementaryStream{
-			ElementaryPID: 256,
-			StreamType:    astits.StreamTypeH264Video,
-		}
-
-	case *CodecMPEG4Audio:
-		return &astits.PMTElementaryStream{
-			ElementaryPID: 257,
-			StreamType:    astits.StreamTypeAACAudio,
-		}
-	}
-
-	return nil
-}
-
 // Writer is a MPEG-TS writer.
 type Writer struct {
 	videoTrack *Track
@@ -52,17 +34,19 @@ func NewWriter(
 		bw)
 
 	if videoTrack != nil {
-		w.tsw.AddElementaryStream(*trackToElementaryStream(videoTrack))
+		es, _ := videoTrack.Marshal()
+		w.tsw.AddElementaryStream(*es)
 	}
 
 	if audioTrack != nil {
-		w.tsw.AddElementaryStream(*trackToElementaryStream(audioTrack))
+		es, _ := audioTrack.Marshal()
+		w.tsw.AddElementaryStream(*es)
 	}
 
 	if videoTrack != nil {
-		w.tsw.SetPCRPID(256)
+		w.tsw.SetPCRPID(videoTrack.PID)
 	} else {
-		w.tsw.SetPCRPID(257)
+		w.tsw.SetPCRPID(audioTrack.PID)
 	}
 
 	// WriteTable() is not necessary

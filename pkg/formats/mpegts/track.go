@@ -80,18 +80,18 @@ func findOpusCodec(descriptors []*astits.Descriptor) *CodecOpus {
 
 // Track is a MPEG-TS track.
 type Track struct {
-	ES    *astits.PMTElementaryStream
+	PID   uint16
 	Codec Codec
 }
 
 // Marshal encodes a track into a astits.PMTElementaryStream.
 func (t *Track) Marshal() (*astits.PMTElementaryStream, error) {
-	return t.Codec.Marshal(t.ES.ElementaryPID)
+	return t.Codec.Marshal(t.PID)
 }
 
 // Unmarshal decodes a track from a astits.PMTElementaryStream.
 func (t *Track) Unmarshal(dem *astits.Demuxer, es *astits.PMTElementaryStream) error {
-	t.ES = es
+	t.PID = es.ElementaryPID
 
 	switch es.StreamType {
 	case astits.StreamTypeH264Video:

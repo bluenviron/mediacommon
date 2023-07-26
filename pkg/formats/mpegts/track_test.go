@@ -70,18 +70,7 @@ func TestFindTracks(t *testing.T) {
 				0x45, 0xdd, 0x4e, 0x12,
 			},
 			&Track{
-				ES: &astits.PMTElementaryStream{
-					ElementaryPID: 65,
-					ElementaryStreamDescriptors: []*astits.Descriptor{{
-						Length: 8,
-						Tag:    astits.DescriptorTagRegistration,
-						Registration: &astits.DescriptorRegistration{
-							AdditionalIdentificationInfo: []byte{0xff, 0x1b, 0x44, 0x3f},
-							FormatIdentifier:             h264Identifier,
-						},
-					}},
-					StreamType: astits.StreamTypeH264Video,
-				},
+				PID:   65,
 				Codec: &CodecH264{},
 			},
 		},
@@ -138,11 +127,7 @@ func TestFindTracks(t *testing.T) {
 				0xff, 0xff, 0xff, 0xff,
 			},
 			&Track{
-				ES: &astits.PMTElementaryStream{
-					ElementaryPID:               256,
-					ElementaryStreamDescriptors: nil,
-					StreamType:                  astits.StreamTypeH264Video,
-				},
+				PID:   256,
 				Codec: &CodecH264{},
 			},
 		},
@@ -199,17 +184,7 @@ func TestFindTracks(t *testing.T) {
 				0xff, 0xff, 0xff, 0xff,
 			},
 			&Track{
-				ES: &astits.PMTElementaryStream{
-					ElementaryPID: 256,
-					ElementaryStreamDescriptors: []*astits.Descriptor{{
-						Length: 4,
-						Tag:    astits.DescriptorTagRegistration,
-						Registration: &astits.DescriptorRegistration{
-							FormatIdentifier: h265Identifier,
-						},
-					}},
-					StreamType: astits.StreamTypeH265Video,
-				},
+				PID:   256,
 				Codec: &CodecH265{},
 			},
 		},
@@ -648,17 +623,7 @@ func TestFindTracks(t *testing.T) {
 				0x00, 0x00, 0x00, 0x38,
 			},
 			&Track{
-				ES: &astits.PMTElementaryStream{
-					ElementaryPID: 256,
-					ElementaryStreamDescriptors: []*astits.Descriptor{{
-						Length: 4,
-						Tag:    astits.DescriptorTagISO639LanguageAndAudioType,
-						ISO639LanguageAndAudioType: &astits.DescriptorISO639LanguageAndAudioType{
-							Language: []uint8{0x65, 0x6e, 0x67},
-						},
-					}},
-					StreamType: astits.StreamTypeAACAudio,
-				},
+				PID: 256,
 				Codec: &CodecMPEG4Audio{
 					Config: mpeg4audio.AudioSpecificConfig{
 						Type:         2,
@@ -721,34 +686,7 @@ func TestFindTracks(t *testing.T) {
 				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 			},
 			&Track{
-				ES: &astits.PMTElementaryStream{
-					ElementaryPID: 256,
-					ElementaryStreamDescriptors: []*astits.Descriptor{
-						{
-							Length: 4,
-							Tag:    astits.DescriptorTagRegistration,
-							Registration: &astits.DescriptorRegistration{
-								FormatIdentifier: opusIdentifier,
-							},
-						},
-						{
-							Length: 2,
-							Tag:    astits.DescriptorTagExtension,
-							Extension: &astits.DescriptorExtension{
-								Tag:     0x80,
-								Unknown: &[]uint8{2},
-							},
-						},
-						{
-							Length: 4,
-							Tag:    astits.DescriptorTagISO639LanguageAndAudioType,
-							ISO639LanguageAndAudioType: &astits.DescriptorISO639LanguageAndAudioType{
-								Language: []uint8{0x64, 0x65, 0x75},
-							},
-						},
-					},
-					StreamType: astits.StreamTypePrivateData,
-				},
+				PID: 256,
 				Codec: &CodecOpus{
 					ChannelCount: 2,
 				},
