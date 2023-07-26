@@ -394,6 +394,7 @@ func (c *SPS_FrameCropping) unmarshal(buf []byte, pos *int) error {
 }
 
 // SPS is a H264 sequence parameter set.
+// Specification: ITU-T Rec. H.264, 7.3.2.1.1
 type SPS struct {
 	ProfileIdc         uint8
 	ConstraintSet0Flag bool

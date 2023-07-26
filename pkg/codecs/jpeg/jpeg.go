@@ -1,4 +1,4 @@
-// Package jpeg contains JPEG/JFIF markers.
+// Package jpeg contains utilities to work with the JPEG codec.
 package jpeg
 
 // standard JPEG markers.

@@ -5,6 +5,7 @@ import (
 )
 
 // LEB128Unmarshal decodes an unsigned integer from the LEB128 format.
+// Specification: https://aomediacodec.github.io/av1-spec/#leb128
 func LEB128Unmarshal(buf []byte) (uint, int, error) {
 	v := uint(0)
 	n := 0
@@ -30,6 +31,7 @@ func LEB128Unmarshal(buf []byte) (uint, int, error) {
 }
 
 // LEB128Marshal encodes an unsigned integer with the LEB128 format.
+// Specification: https://aomediacodec.github.io/av1-spec/#leb128
 func LEB128Marshal(v uint) []byte {
 	var out []byte
 

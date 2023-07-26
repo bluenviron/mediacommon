@@ -8,6 +8,7 @@ import (
 )
 
 // PPS is a H265 picture parameter set.
+// Specification: ITU-T Rec. H.265, 7.3.2.3.1
 type PPS struct {
 	ID                                uint32
 	SPSID                             uint32

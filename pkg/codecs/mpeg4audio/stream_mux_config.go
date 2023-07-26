@@ -21,7 +21,8 @@ type StreamMuxConfigProgram struct {
 	Layers []*StreamMuxConfigLayer
 }
 
-// StreamMuxConfig is a StreamMuxConfig as defined in ISO 14496-3.
+// StreamMuxConfig is a StreamMuxConfig.
+// Specification: ISO 14496-3, Table 1.42
 type StreamMuxConfig struct {
 	NumSubFrames     uint
 	Programs         []*StreamMuxConfigProgram

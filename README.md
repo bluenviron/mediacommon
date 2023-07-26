@@ -17,13 +17,13 @@ Definitions and functions shared between [gortsplib](https://github.com/bluenvir
 * [ITU-T Rec. T-871, JPEG File Interchange Format](https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-T.871-201105-I!!PDF-E&type=items)
 * [ITU-T Rec. H.264 (08/2021)](https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-H.264-202108-I!!PDF-E&type=items)
 * [ITU-T Rec. H.265 (08/2021)](https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-H.265-202108-I!!PDF-E&type=items)
+* ISO 11172-3, Coding of moving pictures and associated audio
 * ISO 13818-3, Generic Coding of Moving Pictures and Associated Audio: Audio
 * ISO 14496-3, Coding of audio-visual objects, part 3, Audio
 * [AV1 Bitstream & Decoding Process](https://aomediacodec.github.io/av1-spec/av1-spec.pdf)
+* [RFC6716, Definition of the Opus Audio Codec](https://datatracker.ietf.org/doc/html/rfc6716)
 
-## Links
-
-Related projects
+## Related projects
 
 * [MediaMTX](https://github.com/bluenviron/mediamtx)
 * [gortsplib](https://github.com/bluenviron/gortsplib)
