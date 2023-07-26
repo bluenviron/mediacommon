@@ -1,8 +1,8 @@
 package h264
 
 // IDRPresent check whether there's an IDR inside provided NALUs.
-func IDRPresent(nalus [][]byte) bool {
-	for _, nalu := range nalus {
+func IDRPresent(au [][]byte) bool {
+	for _, nalu := range au {
 		typ := NALUType(nalu[0] & 0x1F)
 		if typ == NALUTypeIDR {
 			return true

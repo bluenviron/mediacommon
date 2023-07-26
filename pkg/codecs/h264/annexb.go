@@ -113,9 +113,9 @@ outer:
 	return ret, nil
 }
 
-func annexBMarshalSize(nalus [][]byte) int {
+func annexBMarshalSize(au [][]byte) int {
 	n := 0
-	for _, nalu := range nalus {
+	for _, nalu := range au {
 		n += 4 + len(nalu)
 	}
 	return n
@@ -123,11 +123,11 @@ func annexBMarshalSize(nalus [][]byte) int {
 
 // AnnexBMarshal encodes NALUs into the Annex-B stream format.
 // Specification: ITU-T Rec. H.264, Annex B
-func AnnexBMarshal(nalus [][]byte) ([]byte, error) {
-	buf := make([]byte, annexBMarshalSize(nalus))
+func AnnexBMarshal(au [][]byte) ([]byte, error) {
+	buf := make([]byte, annexBMarshalSize(au))
 	pos := 0
 
-	for _, nalu := range nalus {
+	for _, nalu := range au {
 		pos += copy(buf[pos:], []byte{0x00, 0x00, 0x00, 0x01})
 		pos += copy(buf[pos:], nalu)
 	}

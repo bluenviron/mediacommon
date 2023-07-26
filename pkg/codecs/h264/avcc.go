@@ -47,9 +47,9 @@ func AVCCUnmarshal(buf []byte) ([][]byte, error) {
 	return ret, nil
 }
 
-func avccMarshalSize(nalus [][]byte) int {
+func avccMarshalSize(au [][]byte) int {
 	n := 0
-	for _, nalu := range nalus {
+	for _, nalu := range au {
 		n += 4 + len(nalu)
 	}
 	return n
@@ -57,11 +57,11 @@ func avccMarshalSize(nalus [][]byte) int {
 
 // AVCCMarshal encodes NALUs into the AVCC stream format.
 // Specification: ?
-func AVCCMarshal(nalus [][]byte) ([]byte, error) {
-	buf := make([]byte, avccMarshalSize(nalus))
+func AVCCMarshal(au [][]byte) ([]byte, error) {
+	buf := make([]byte, avccMarshalSize(au))
 	pos := 0
 
-	for _, nalu := range nalus {
+	for _, nalu := range au {
 		naluLen := len(nalu)
 		buf[pos] = byte(naluLen >> 24)
 		buf[pos+1] = byte(naluLen >> 16)

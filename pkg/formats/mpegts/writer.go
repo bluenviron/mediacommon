@@ -79,12 +79,12 @@ func (w *Writer) WriteH264(
 	dts time.Duration,
 	pts time.Duration,
 	idrPresent bool,
-	nalus [][]byte,
+	au [][]byte,
 ) error {
 	// prepend an AUD. This is required by video.js and iOS
-	nalus = append([][]byte{{byte(h264.NALUTypeAccessUnitDelimiter), 240}}, nalus...)
+	au = append([][]byte{{byte(h264.NALUTypeAccessUnitDelimiter), 240}}, au...)
 
-	enc, err := h264.AnnexBMarshal(nalus)
+	enc, err := h264.AnnexBMarshal(au)
 	if err != nil {
 		return err
 	}
