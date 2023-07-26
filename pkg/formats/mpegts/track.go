@@ -1,6 +1,7 @@
 package mpegts
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/asticode/go-astits"
@@ -12,6 +13,8 @@ const (
 	h265Identifier = 'H'<<24 | 'E'<<16 | 'V'<<8 | 'C'
 	opusIdentifier = 'O'<<24 | 'p'<<16 | 'u'<<8 | 's'
 )
+
+var errUnsupportedTrack = errors.New("unsupported track")
 
 func findMPEG4AudioConfig(dem *astits.Demuxer, pid uint16) (*mpeg4audio.Config, error) {
 	for {
@@ -50,7 +53,7 @@ func findOpusRegistration(descriptors []*astits.Descriptor) bool {
 	return false
 }
 
-func findOpusChannels(descriptors []*astits.Descriptor) int {
+func findOpusChannelCount(descriptors []*astits.Descriptor) int {
 	for _, sd := range descriptors {
 		if sd.Extension != nil && sd.Extension.Tag == 0x80 &&
 			sd.Extension.Unknown != nil && len(*sd.Extension.Unknown) >= 1 {
@@ -65,13 +68,13 @@ func findOpusCodec(descriptors []*astits.Descriptor) *CodecOpus {
 		return nil
 	}
 
-	channels := findOpusChannels(descriptors)
-	if channels <= 0 {
+	channelCount := findOpusChannelCount(descriptors)
+	if channelCount <= 0 {
 		return nil
 	}
 
 	return &CodecOpus{
-		Channels: channels,
+		ChannelCount: channelCount,
 	}
 }
 
@@ -79,6 +82,46 @@ func findOpusCodec(descriptors []*astits.Descriptor) *CodecOpus {
 type Track struct {
 	ES    *astits.PMTElementaryStream
 	Codec Codec
+}
+
+// Marshal encodes a track into a astits.PMTElementaryStream.
+func (t *Track) Marshal() (*astits.PMTElementaryStream, error) {
+	return t.Codec.Marshal(t.ES.ElementaryPID)
+}
+
+// Unmarshal decodes a track from a astits.PMTElementaryStream.
+func (t *Track) Unmarshal(dem *astits.Demuxer, es *astits.PMTElementaryStream) error {
+	t.ES = es
+
+	switch es.StreamType {
+	case astits.StreamTypeH264Video:
+		t.Codec = &CodecH264{}
+		return nil
+
+	case astits.StreamTypeH265Video:
+		t.Codec = &CodecH265{}
+		return nil
+
+	case astits.StreamTypeAACAudio:
+		conf, err := findMPEG4AudioConfig(dem, es.ElementaryPID)
+		if err != nil {
+			return err
+		}
+
+		t.Codec = &CodecMPEG4Audio{
+			Config: *conf,
+		}
+		return nil
+
+	case astits.StreamTypePrivateData:
+		codec := findOpusCodec(es.ElementaryStreamDescriptors)
+		if codec != nil {
+			t.Codec = codec
+			return nil
+		}
+	}
+
+	return errUnsupportedTrack
 }
 
 // FindTracks finds the tracks in a MPEG-TS stream.
@@ -93,37 +136,16 @@ func FindTracks(dem *astits.Demuxer) ([]*Track, error) {
 
 		if data.PMT != nil {
 			for _, es := range data.PMT.ElementaryStreams {
-				track := &Track{
-					ES: es,
+				var track Track
+				err := track.Unmarshal(dem, es)
+				if err != nil {
+					if err == errUnsupportedTrack {
+						continue
+					}
+					return nil, err
 				}
 
-				switch es.StreamType {
-				case astits.StreamTypeH264Video:
-					track.Codec = &CodecH264{}
-					tracks = append(tracks, track)
-
-				case astits.StreamTypeH265Video:
-					track.Codec = &CodecH265{}
-					tracks = append(tracks, track)
-
-				case astits.StreamTypeAACAudio:
-					conf, err := findMPEG4AudioConfig(dem, es.ElementaryPID)
-					if err != nil {
-						return nil, err
-					}
-
-					track.Codec = &CodecMPEG4Audio{
-						Config: *conf,
-					}
-					tracks = append(tracks, track)
-
-				case astits.StreamTypePrivateData:
-					codec := findOpusCodec(es.ElementaryStreamDescriptors)
-					if codec != nil {
-						track.Codec = codec
-						tracks = append(tracks, track)
-					}
-				}
+				tracks = append(tracks, &track)
 			}
 			break
 		}

@@ -1,6 +1,8 @@
 package mpegts
 
 import (
+	"github.com/asticode/go-astits"
+
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
 )
 
@@ -9,5 +11,11 @@ type CodecMPEG4Audio struct {
 	mpeg4audio.Config
 }
 
-func (*CodecMPEG4Audio) isCodec() {
+// Marshal implements Codec.
+func (c *CodecMPEG4Audio) Marshal(pid uint16) (*astits.PMTElementaryStream, error) {
+	return &astits.PMTElementaryStream{
+		ElementaryPID:               pid,
+		ElementaryStreamDescriptors: nil,
+		StreamType:                  astits.StreamTypeAACAudio,
+	}, nil
 }

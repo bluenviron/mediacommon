@@ -750,7 +750,7 @@ func TestFindTracks(t *testing.T) {
 					StreamType: astits.StreamTypePrivateData,
 				},
 				Codec: &CodecOpus{
-					Channels: 2,
+					ChannelCount: 2,
 				},
 			},
 		},
