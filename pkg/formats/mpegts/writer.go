@@ -10,16 +10,6 @@ import (
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
 )
 
-const (
-	pcrOffset = 400 * time.Millisecond // 2 samples @ 5fps
-)
-
-type writerFunc func(p []byte) (int, error)
-
-func (f writerFunc) Write(p []byte) (int, error) {
-	return f(p)
-}
-
 func trackToElementaryStream(t *Track) *astits.PMTElementaryStream {
 	switch t.Codec.(type) {
 	case *CodecH264:
@@ -43,13 +33,12 @@ type Writer struct {
 	videoTrack *Track
 	audioTrack *Track
 
-	bw         io.Writer
-	tsw        *astits.Muxer
-	pcrCounter int
+	tsw *astits.Muxer
 }
 
 // NewWriter allocates a Writer.
 func NewWriter(
+	bw io.Writer,
 	videoTrack *Track,
 	audioTrack *Track,
 ) *Writer {
@@ -60,9 +49,7 @@ func NewWriter(
 
 	w.tsw = astits.NewMuxer(
 		context.Background(),
-		writerFunc(func(p []byte) (int, error) {
-			return w.bw.Write(p)
-		}))
+		bw)
 
 	if videoTrack != nil {
 		w.tsw.AddElementaryStream(*trackToElementaryStream(videoTrack))
@@ -87,15 +74,8 @@ func NewWriter(
 	return w
 }
 
-// SetByteWriter sets the current byte writer.
-func (w *Writer) SetByteWriter(bw io.Writer) {
-	w.pcrCounter = 0
-	w.bw = bw
-}
-
 // WriteH264 writes a H264 access unit.
 func (w *Writer) WriteH264(
-	pcr time.Duration,
 	dts time.Duration,
 	pts time.Duration,
 	idrPresent bool,
@@ -116,28 +96,17 @@ func (w *Writer) WriteH264(
 		af.RandomAccessIndicator = true
 	}
 
-	// send PCR once in a while
-	if w.pcrCounter == 0 {
-		if af == nil {
-			af = &astits.PacketAdaptationField{}
-		}
-		af.HasPCR = true
-		af.PCR = &astits.ClockReference{Base: int64(pcr.Seconds() * 90000)}
-		w.pcrCounter = 3
-	}
-	w.pcrCounter--
-
 	oh := &astits.PESOptionalHeader{
 		MarkerBits: 2,
 	}
 
 	if dts == pts {
 		oh.PTSDTSIndicator = astits.PTSDTSIndicatorOnlyPTS
-		oh.PTS = &astits.ClockReference{Base: int64((pts + pcrOffset).Seconds() * 90000)}
+		oh.PTS = &astits.ClockReference{Base: int64(pts.Seconds() * 90000)}
 	} else {
 		oh.PTSDTSIndicator = astits.PTSDTSIndicatorBothPresent
-		oh.DTS = &astits.ClockReference{Base: int64((dts + pcrOffset).Seconds() * 90000)}
-		oh.PTS = &astits.ClockReference{Base: int64((pts + pcrOffset).Seconds() * 90000)}
+		oh.DTS = &astits.ClockReference{Base: int64(dts.Seconds() * 90000)}
+		oh.PTS = &astits.ClockReference{Base: int64(pts.Seconds() * 90000)}
 	}
 
 	_, err = w.tsw.WriteData(&astits.MuxerData{
@@ -156,7 +125,6 @@ func (w *Writer) WriteH264(
 
 // WriteAAC writes an AAC AU.
 func (w *Writer) WriteAAC(
-	pcr time.Duration,
 	pts time.Duration,
 	au []byte,
 ) error {
@@ -178,16 +146,6 @@ func (w *Writer) WriteAAC(
 		RandomAccessIndicator: true,
 	}
 
-	if w.videoTrack == nil {
-		// send PCR once in a while
-		if w.pcrCounter == 0 {
-			af.HasPCR = true
-			af.PCR = &astits.ClockReference{Base: int64(pcr.Seconds() * 90000)}
-			w.pcrCounter = 3
-		}
-		w.pcrCounter--
-	}
-
 	_, err = w.tsw.WriteData(&astits.MuxerData{
 		PID:             257,
 		AdaptationField: af,
@@ -196,7 +154,7 @@ func (w *Writer) WriteAAC(
 				OptionalHeader: &astits.PESOptionalHeader{
 					MarkerBits:      2,
 					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
-					PTS:             &astits.ClockReference{Base: int64((pts + pcrOffset).Seconds() * 90000)},
+					PTS:             &astits.ClockReference{Base: int64(pts.Seconds() * 90000)},
 				},
 				PacketLength: uint16(len(enc) + 8),
 				StreamID:     192, // audio

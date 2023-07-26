@@ -92,16 +92,13 @@ func TestWriter(t *testing.T) {
 	}
 
 	t.Run("video + audio", func(t *testing.T) {
-		w := NewWriter(testVideoTrack, testAudioTrack)
-
 		var buf bytes.Buffer
-		w.SetByteWriter(&buf)
+		w := NewWriter(&buf, testVideoTrack, testAudioTrack)
 
 		for _, sample := range testSamples {
 			switch tsample := sample.(type) {
 			case videoSample:
 				err := w.WriteH264(
-					tsample.DTS-2*time.Second,
 					tsample.DTS,
 					tsample.PTS,
 					h264.IDRPresent(tsample.NALUs),
@@ -110,7 +107,6 @@ func TestWriter(t *testing.T) {
 
 			case audioSample:
 				err := w.WriteAAC(
-					tsample.PTS-2*time.Second,
 					tsample.PTS,
 					tsample.AU)
 				require.NoError(t, err)
@@ -159,9 +155,7 @@ func TestWriter(t *testing.T) {
 		require.Equal(t, &astits.Packet{
 			AdaptationField: &astits.PacketAdaptationField{
 				Length:                124,
-				StuffingLength:        117,
-				HasPCR:                true,
-				PCR:                   &astits.ClockReference{},
+				StuffingLength:        123,
 				RandomAccessIndicator: true,
 			},
 			Header: &astits.PacketHeader{
@@ -172,7 +166,7 @@ func TestWriter(t *testing.T) {
 			},
 			Payload: []byte{
 				0x00, 0x00, 0x01, 0xe0, 0x00, 0x00, 0x80, 0x80,
-				0x05, 0x21, 0x00, 0x0d, 0x97, 0x81, 0x00, 0x00,
+				0x05, 0x21, 0x00, 0x0b, 0x7e, 0x41, 0x00, 0x00,
 				0x00, 0x01, 0x09, 0xf0, 0x00, 0x00, 0x00, 0x01,
 				0x67, 0x42, 0xc0, 0x28, 0xd9, 0x00, 0x78, 0x02,
 				0x27, 0xe5, 0x84, 0x00, 0x00, 0x03, 0x00, 0x04,
@@ -199,7 +193,7 @@ func TestWriter(t *testing.T) {
 			},
 			Payload: []byte{
 				0x00, 0x00, 0x01, 0xc0, 0x00, 0x13, 0x80, 0x80,
-				0x05, 0x21, 0x00, 0x13, 0x56, 0xa1, 0xff, 0xf1,
+				0x05, 0x21, 0x00, 0x11, 0x3d, 0x61, 0xff, 0xf1,
 				0x50, 0x80, 0x01, 0x7f, 0xfc, 0x01, 0x02, 0x03,
 				0x04,
 			},
@@ -207,15 +201,12 @@ func TestWriter(t *testing.T) {
 	})
 
 	t.Run("video only", func(t *testing.T) {
-		w := NewWriter(testVideoTrack, nil)
-
 		var buf bytes.Buffer
-		w.SetByteWriter(&buf)
+		w := NewWriter(&buf, testVideoTrack, nil)
 
 		for _, sample := range testSamples {
 			if tsample, ok := sample.(videoSample); ok {
 				err := w.WriteH264(
-					tsample.DTS-2*time.Second,
 					tsample.DTS,
 					tsample.PTS,
 					h264.IDRPresent(tsample.NALUs),
@@ -265,9 +256,7 @@ func TestWriter(t *testing.T) {
 		require.Equal(t, &astits.Packet{
 			AdaptationField: &astits.PacketAdaptationField{
 				Length:                124,
-				StuffingLength:        117,
-				HasPCR:                true,
-				PCR:                   &astits.ClockReference{},
+				StuffingLength:        123,
 				RandomAccessIndicator: true,
 			},
 			Header: &astits.PacketHeader{
@@ -278,7 +267,7 @@ func TestWriter(t *testing.T) {
 			},
 			Payload: []byte{
 				0x00, 0x00, 0x01, 0xe0, 0x00, 0x00, 0x80, 0x80,
-				0x05, 0x21, 0x00, 0x0d, 0x97, 0x81, 0x00, 0x00,
+				0x05, 0x21, 0x00, 0x0b, 0x7e, 0x41, 0x00, 0x00,
 				0x00, 0x01, 0x09, 0xf0, 0x00, 0x00, 0x00, 0x01,
 				0x67, 0x42, 0xc0, 0x28, 0xd9, 0x00, 0x78, 0x02,
 				0x27, 0xe5, 0x84, 0x00, 0x00, 0x03, 0x00, 0x04,
@@ -290,15 +279,12 @@ func TestWriter(t *testing.T) {
 	})
 
 	t.Run("audio only", func(t *testing.T) {
-		w := NewWriter(nil, testAudioTrack)
-
 		var buf bytes.Buffer
-		w.SetByteWriter(&buf)
+		w := NewWriter(&buf, nil, testAudioTrack)
 
 		for _, sample := range testSamples {
 			if tsample, ok := sample.(audioSample); ok {
 				err := w.WriteAAC(
-					tsample.PTS-2*time.Second,
 					tsample.PTS,
 					tsample.AU)
 				require.NoError(t, err)
@@ -346,10 +332,8 @@ func TestWriter(t *testing.T) {
 		require.Equal(t, &astits.Packet{
 			AdaptationField: &astits.PacketAdaptationField{
 				Length:                158,
-				StuffingLength:        151,
+				StuffingLength:        157,
 				RandomAccessIndicator: true,
-				HasPCR:                true,
-				PCR:                   &astits.ClockReference{Base: 90000},
 			},
 			Header: &astits.PacketHeader{
 				HasAdaptationField:        true,
@@ -359,7 +343,7 @@ func TestWriter(t *testing.T) {
 			},
 			Payload: []byte{
 				0x00, 0x00, 0x01, 0xc0, 0x00, 0x13, 0x80, 0x80,
-				0x05, 0x21, 0x00, 0x13, 0x56, 0xa1, 0xff, 0xf1,
+				0x05, 0x21, 0x00, 0x11, 0x3d, 0x61, 0xff, 0xf1,
 				0x50, 0x80, 0x01, 0x7f, 0xfc, 0x01, 0x02, 0x03,
 				0x04,
 			},
