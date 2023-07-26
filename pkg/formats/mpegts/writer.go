@@ -81,9 +81,6 @@ func (w *Writer) WriteH264(
 	idrPresent bool,
 	au [][]byte,
 ) error {
-	// prepend an AUD. This is required by video.js and iOS
-	au = append([][]byte{{byte(h264.NALUTypeAccessUnitDelimiter), 240}}, au...)
-
 	enc, err := h264.AnnexBMarshal(au)
 	if err != nil {
 		return err
