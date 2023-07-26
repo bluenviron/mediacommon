@@ -8,10 +8,15 @@ import (
 type CodecH264 struct{}
 
 // Marshal implements Codec.
-func (c *CodecH264) Marshal(pid uint16) (*astits.PMTElementaryStream, error) {
+func (c CodecH264) Marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 	return &astits.PMTElementaryStream{
 		ElementaryPID:               pid,
 		ElementaryStreamDescriptors: nil,
 		StreamType:                  astits.StreamTypeH264Video,
 	}, nil
+}
+
+// IsVideo implements Codec.
+func (CodecH264) IsVideo() bool {
+	return true
 }

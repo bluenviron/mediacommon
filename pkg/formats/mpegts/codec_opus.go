@@ -10,7 +10,7 @@ type CodecOpus struct {
 }
 
 // Marshal implements Codec.
-func (c *CodecOpus) Marshal(pid uint16) (*astits.PMTElementaryStream, error) {
+func (c CodecOpus) Marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 	return &astits.PMTElementaryStream{
 		ElementaryPID: pid,
 		ElementaryStreamDescriptors: []*astits.Descriptor{
@@ -32,4 +32,9 @@ func (c *CodecOpus) Marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 		},
 		StreamType: astits.StreamTypePrivateData,
 	}, nil
+}
+
+// IsVideo implements Codec.
+func (CodecOpus) IsVideo() bool {
+	return false
 }

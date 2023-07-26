@@ -95,12 +95,13 @@ func TestWriter(t *testing.T) {
 
 	t.Run("video + audio", func(t *testing.T) {
 		var buf bytes.Buffer
-		w := NewWriter(&buf, testVideoTrack, testAudioTrack)
+		w := NewWriter(&buf, []*Track{testVideoTrack, testAudioTrack})
 
 		for _, sample := range testSamples {
 			switch tsample := sample.(type) {
 			case videoSample:
 				err := w.WriteH26x(
+					testVideoTrack,
 					tsample.DTS,
 					tsample.PTS,
 					h264.IDRPresent(tsample.NALUs),
@@ -109,6 +110,7 @@ func TestWriter(t *testing.T) {
 
 			case audioSample:
 				err := w.WriteAAC(
+					testAudioTrack,
 					tsample.PTS,
 					tsample.AU)
 				require.NoError(t, err)
@@ -206,11 +208,12 @@ func TestWriter(t *testing.T) {
 
 	t.Run("video only", func(t *testing.T) {
 		var buf bytes.Buffer
-		w := NewWriter(&buf, testVideoTrack, nil)
+		w := NewWriter(&buf, []*Track{testVideoTrack})
 
 		for _, sample := range testSamples {
 			if tsample, ok := sample.(videoSample); ok {
 				err := w.WriteH26x(
+					testVideoTrack,
 					tsample.DTS,
 					tsample.PTS,
 					h264.IDRPresent(tsample.NALUs),
@@ -286,11 +289,12 @@ func TestWriter(t *testing.T) {
 
 	t.Run("audio only", func(t *testing.T) {
 		var buf bytes.Buffer
-		w := NewWriter(&buf, nil, testAudioTrack)
+		w := NewWriter(&buf, []*Track{testAudioTrack})
 
 		for _, sample := range testSamples {
 			if tsample, ok := sample.(audioSample); ok {
 				err := w.WriteAAC(
+					testAudioTrack,
 					tsample.PTS,
 					tsample.AU)
 				require.NoError(t, err)
