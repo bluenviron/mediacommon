@@ -8,7 +8,9 @@ import (
 )
 
 const (
-	opusIdentifier = uint32('O')<<24 | uint32('p')<<16 | uint32('u')<<8 | uint32('s')
+	h264Identifier = 'H'<<24 | 'D'<<16 | 'M'<<8 | 'V'
+	h265Identifier = 'H'<<24 | 'E'<<16 | 'V'<<8 | 'C'
+	opusIdentifier = 'O'<<24 | 'p'<<16 | 'u'<<8 | 's'
 )
 
 func findMPEG4AudioConfig(dem *astits.Demuxer, pid uint16) (*mpeg4audio.Config, error) {
