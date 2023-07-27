@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// AVCCUnmarshal decodes NALUs from the AVCC stream format.
+// AVCCUnmarshal decodes an access unit from the AVCC stream format.
 // Specification: ?
 func AVCCUnmarshal(buf []byte) ([][]byte, error) {
 	bl := len(buf)
@@ -27,9 +27,9 @@ func AVCCUnmarshal(buf []byte) ([][]byte, error) {
 			return nil, fmt.Errorf("NALU size (%d) is too big, maximum is %d", l, MaxNALUSize)
 		}
 
-		if (len(ret) + 1) > MaxNALUsPerGroup {
+		if (len(ret) + 1) > MaxNALUsPerAccessUnit {
 			return nil, fmt.Errorf("NALU count (%d) exceeds maximum allowed (%d)",
-				len(ret)+1, MaxNALUsPerGroup)
+				len(ret)+1, MaxNALUsPerAccessUnit)
 		}
 
 		if (bl - pos) < l {
@@ -55,7 +55,7 @@ func avccMarshalSize(au [][]byte) int {
 	return n
 }
 
-// AVCCMarshal encodes NALUs into the AVCC stream format.
+// AVCCMarshal encodes an access unit into the AVCC stream format.
 // Specification: ?
 func AVCCMarshal(au [][]byte) ([]byte, error) {
 	buf := make([]byte, avccMarshalSize(au))

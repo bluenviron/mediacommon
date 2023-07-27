@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// AnnexBUnmarshal decodes NALUs from the Annex-B stream format.
+// AnnexBUnmarshal decodes an access unit from the Annex-B stream format.
 // Specification: ITU-T Rec. H.264, Annex B
 func AnnexBUnmarshal(byts []byte) ([][]byte, error) {
 	bl := len(byts)
@@ -60,9 +60,9 @@ outer:
 		}
 	}
 
-	if (n + 1) > MaxNALUsPerGroup {
+	if (n + 1) > MaxNALUsPerAccessUnit {
 		return nil, fmt.Errorf("NALU count (%d) exceeds maximum allowed (%d)",
-			n+1, MaxNALUsPerGroup)
+			n+1, MaxNALUsPerAccessUnit)
 	}
 
 	ret := make([][]byte, n+1)
@@ -121,7 +121,7 @@ func annexBMarshalSize(au [][]byte) int {
 	return n
 }
 
-// AnnexBMarshal encodes NALUs into the Annex-B stream format.
+// AnnexBMarshal encodes an access unit into the Annex-B stream format.
 // Specification: ITU-T Rec. H.264, Annex B
 func AnnexBMarshal(au [][]byte) ([]byte, error) {
 	buf := make([]byte, annexBMarshalSize(au))
