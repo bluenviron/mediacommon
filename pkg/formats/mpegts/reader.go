@@ -1,7 +1,6 @@
 package mpegts
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -40,7 +39,7 @@ type Reader struct {
 
 // NewReader allocates a Reader.
 func NewReader(br io.Reader) (*Reader, error) {
-	rr := &recordedReader{r: br}
+	rr := &recordReader{r: br}
 
 	dem := astits.NewDemuxer(
 		context.Background(),
@@ -74,7 +73,7 @@ func NewReader(br io.Reader) (*Reader, error) {
 	// rewind demuxer
 	dem = astits.NewDemuxer(
 		context.Background(),
-		io.MultiReader(bytes.NewReader(rr.buf), br),
+		&playbackReader{r: br, buf: rr.buf},
 		astits.DemuxerOptPacketSize(188))
 
 	return &Reader{
