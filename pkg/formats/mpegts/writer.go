@@ -3,7 +3,6 @@ package mpegts
 import (
 	"context"
 	"io"
-	"time"
 
 	"github.com/asticode/go-astits"
 	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
@@ -11,74 +10,43 @@ import (
 )
 
 const (
-	pcrOffset = 400 * time.Millisecond // 2 samples @ 5fps
+	streamIDVideo = 224
+	streamIDAudio = 192
 )
 
-type writerFunc func(p []byte) (int, error)
-
-func (f writerFunc) Write(p []byte) (int, error) {
-	return f(p)
-}
-
-func trackToElementaryStream(t *Track) *astits.PMTElementaryStream {
-	switch t.Codec.(type) {
-	case *CodecH264:
-		return &astits.PMTElementaryStream{
-			ElementaryPID: 256,
-			StreamType:    astits.StreamTypeH264Video,
-		}
-
-	case *CodecMPEG4Audio:
-		return &astits.PMTElementaryStream{
-			ElementaryPID: 257,
-			StreamType:    astits.StreamTypeAACAudio,
+func leadingTrack(tracks []*Track) *Track {
+	for _, track := range tracks {
+		if track.Codec.isVideo() {
+			return track
 		}
 	}
-
-	return nil
+	return tracks[0]
 }
 
 // Writer is a MPEG-TS writer.
 type Writer struct {
-	videoTrack *Track
-	audioTrack *Track
-
-	bw         io.Writer
-	tsw        *astits.Muxer
-	pcrCounter int
+	mux *astits.Muxer
 }
 
 // NewWriter allocates a Writer.
 func NewWriter(
-	videoTrack *Track,
-	audioTrack *Track,
+	bw io.Writer,
+	tracks []*Track,
 ) *Writer {
-	w := &Writer{
-		videoTrack: videoTrack,
-		audioTrack: audioTrack,
-	}
+	w := &Writer{}
 
-	w.tsw = astits.NewMuxer(
+	w.mux = astits.NewMuxer(
 		context.Background(),
-		writerFunc(func(p []byte) (int, error) {
-			return w.bw.Write(p)
-		}))
+		bw)
 
-	if videoTrack != nil {
-		w.tsw.AddElementaryStream(*trackToElementaryStream(videoTrack))
+	for _, track := range tracks {
+		es, _ := track.marshal()
+		w.mux.AddElementaryStream(*es)
 	}
 
-	if audioTrack != nil {
-		w.tsw.AddElementaryStream(*trackToElementaryStream(audioTrack))
-	}
+	w.mux.SetPCRPID(leadingTrack(tracks).PID)
 
-	if videoTrack != nil {
-		w.tsw.SetPCRPID(256)
-	} else {
-		w.tsw.SetPCRPID(257)
-	}
-
-	// WriteTable() is not necessary
+	// WriteTables() is not necessary
 	// since it's called automatically when WriteData() is called with
 	// * PID == PCRPID
 	// * AdaptationField != nil
@@ -87,24 +55,15 @@ func NewWriter(
 	return w
 }
 
-// SetByteWriter sets the current byte writer.
-func (w *Writer) SetByteWriter(bw io.Writer) {
-	w.pcrCounter = 0
-	w.bw = bw
-}
-
-// WriteH264 writes a H264 access unit.
-func (w *Writer) WriteH264(
-	pcr time.Duration,
-	dts time.Duration,
-	pts time.Duration,
+// WriteH26x writes a H26x access unit.
+func (w *Writer) WriteH26x(
+	track *Track,
+	dts int64,
+	pts int64,
 	idrPresent bool,
-	nalus [][]byte,
+	au [][]byte,
 ) error {
-	// prepend an AUD. This is required by video.js and iOS
-	nalus = append([][]byte{{byte(h264.NALUTypeAccessUnitDelimiter), 240}}, nalus...)
-
-	enc, err := h264.AnnexBMarshal(nalus)
+	enc, err := h264.AnnexBMarshal(au)
 	if err != nil {
 		return err
 	}
@@ -116,37 +75,26 @@ func (w *Writer) WriteH264(
 		af.RandomAccessIndicator = true
 	}
 
-	// send PCR once in a while
-	if w.pcrCounter == 0 {
-		if af == nil {
-			af = &astits.PacketAdaptationField{}
-		}
-		af.HasPCR = true
-		af.PCR = &astits.ClockReference{Base: int64(pcr.Seconds() * 90000)}
-		w.pcrCounter = 3
-	}
-	w.pcrCounter--
-
 	oh := &astits.PESOptionalHeader{
 		MarkerBits: 2,
 	}
 
 	if dts == pts {
 		oh.PTSDTSIndicator = astits.PTSDTSIndicatorOnlyPTS
-		oh.PTS = &astits.ClockReference{Base: int64((pts + pcrOffset).Seconds() * 90000)}
+		oh.PTS = &astits.ClockReference{Base: pts}
 	} else {
 		oh.PTSDTSIndicator = astits.PTSDTSIndicatorBothPresent
-		oh.DTS = &astits.ClockReference{Base: int64((dts + pcrOffset).Seconds() * 90000)}
-		oh.PTS = &astits.ClockReference{Base: int64((pts + pcrOffset).Seconds() * 90000)}
+		oh.DTS = &astits.ClockReference{Base: dts}
+		oh.PTS = &astits.ClockReference{Base: pts}
 	}
 
-	_, err = w.tsw.WriteData(&astits.MuxerData{
-		PID:             256,
+	_, err = w.mux.WriteData(&astits.MuxerData{
+		PID:             track.PID,
 		AdaptationField: af,
 		PES: &astits.PESData{
 			Header: &astits.PESHeader{
 				OptionalHeader: oh,
-				StreamID:       224, // video
+				StreamID:       streamIDVideo,
 			},
 			Data: enc,
 		},
@@ -154,19 +102,23 @@ func (w *Writer) WriteH264(
 	return err
 }
 
-// WriteAAC writes an AAC AU.
-func (w *Writer) WriteAAC(
-	pcr time.Duration,
-	pts time.Duration,
-	au []byte,
+// WriteMPEG4Audio writes MPEG-4 Audio access units.
+func (w *Writer) WriteMPEG4Audio(
+	track *Track,
+	pts int64,
+	aus [][]byte,
 ) error {
-	pkts := mpeg4audio.ADTSPackets{
-		{
-			Type:         w.audioTrack.Codec.(*CodecMPEG4Audio).Config.Type,
-			SampleRate:   w.audioTrack.Codec.(*CodecMPEG4Audio).Config.SampleRate,
-			ChannelCount: w.audioTrack.Codec.(*CodecMPEG4Audio).Config.ChannelCount,
+	aacCodec := track.Codec.(*CodecMPEG4Audio)
+
+	pkts := make(mpeg4audio.ADTSPackets, len(aus))
+
+	for i, au := range aus {
+		pkts[i] = &mpeg4audio.ADTSPacket{
+			Type:         aacCodec.Config.Type,
+			SampleRate:   aacCodec.SampleRate,
+			ChannelCount: aacCodec.Config.ChannelCount,
 			AU:           au,
-		},
+		}
 	}
 
 	enc, err := pkts.Marshal()
@@ -178,28 +130,18 @@ func (w *Writer) WriteAAC(
 		RandomAccessIndicator: true,
 	}
 
-	if w.videoTrack == nil {
-		// send PCR once in a while
-		if w.pcrCounter == 0 {
-			af.HasPCR = true
-			af.PCR = &astits.ClockReference{Base: int64(pcr.Seconds() * 90000)}
-			w.pcrCounter = 3
-		}
-		w.pcrCounter--
-	}
-
-	_, err = w.tsw.WriteData(&astits.MuxerData{
-		PID:             257,
+	_, err = w.mux.WriteData(&astits.MuxerData{
+		PID:             track.PID,
 		AdaptationField: af,
 		PES: &astits.PESData{
 			Header: &astits.PESHeader{
 				OptionalHeader: &astits.PESOptionalHeader{
 					MarkerBits:      2,
 					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
-					PTS:             &astits.ClockReference{Base: int64((pts + pcrOffset).Seconds() * 90000)},
+					PTS:             &astits.ClockReference{Base: pts},
 				},
 				PacketLength: uint16(len(enc) + 8),
-				StreamID:     192, // audio
+				StreamID:     streamIDAudio,
 			},
 			Data: enc,
 		},

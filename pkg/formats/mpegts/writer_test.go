@@ -7,10 +7,15 @@ import (
 	"time"
 
 	"github.com/asticode/go-astits"
+	"github.com/stretchr/testify/require"
+
 	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
-	"github.com/stretchr/testify/require"
 )
+
+func durationGoToMPEGTS(d time.Duration) int64 {
+	return int64(d.Seconds() * 90000)
+}
 
 func TestWriter(t *testing.T) {
 	testSPS := []byte{
@@ -20,11 +25,13 @@ func TestWriter(t *testing.T) {
 		0x20,
 	}
 
-	testVideoTrack := &Track{
+	h264Track := &Track{
+		PID:   256,
 		Codec: &CodecH264{},
 	}
 
-	testAudioTrack := &Track{
+	aacTrack := &Track{
+		PID: 257,
 		Codec: &CodecMPEG4Audio{
 			Config: mpeg4audio.Config{
 				Type:         2,
@@ -35,9 +42,9 @@ func TestWriter(t *testing.T) {
 	}
 
 	type videoSample struct {
-		NALUs [][]byte
-		PTS   time.Duration
-		DTS   time.Duration
+		AU  [][]byte
+		PTS time.Duration
+		DTS time.Duration
 	}
 
 	type audioSample struct {
@@ -49,7 +56,7 @@ func TestWriter(t *testing.T) {
 
 	testSamples := []sample{
 		videoSample{
-			NALUs: [][]byte{
+			AU: [][]byte{
 				testSPS, // SPS
 				{8},     // PPS
 				{5},     // IDR
@@ -70,7 +77,7 @@ func TestWriter(t *testing.T) {
 			PTS: 3500 * time.Millisecond,
 		},
 		videoSample{
-			NALUs: [][]byte{
+			AU: [][]byte{
 				{1}, // non-IDR
 			},
 			PTS: 4 * time.Second,
@@ -83,7 +90,7 @@ func TestWriter(t *testing.T) {
 			PTS: 4500 * time.Millisecond,
 		},
 		videoSample{
-			NALUs: [][]byte{
+			AU: [][]byte{
 				{1}, // non-IDR
 			},
 			PTS: 6 * time.Second,
@@ -91,33 +98,33 @@ func TestWriter(t *testing.T) {
 		},
 	}
 
-	t.Run("video + audio", func(t *testing.T) {
-		w := NewWriter(testVideoTrack, testAudioTrack)
-
+	t.Run("h264 + aac", func(t *testing.T) {
 		var buf bytes.Buffer
-		w.SetByteWriter(&buf)
+		w := NewWriter(&buf, []*Track{h264Track, aacTrack})
 
 		for _, sample := range testSamples {
 			switch tsample := sample.(type) {
 			case videoSample:
-				err := w.WriteH264(
-					tsample.DTS-2*time.Second,
-					tsample.DTS,
-					tsample.PTS,
-					h264.IDRPresent(tsample.NALUs),
-					tsample.NALUs)
+				err := w.WriteH26x(
+					h264Track,
+					durationGoToMPEGTS(tsample.DTS),
+					durationGoToMPEGTS(tsample.PTS),
+					h264.IDRPresent(tsample.AU),
+					tsample.AU)
 				require.NoError(t, err)
 
 			case audioSample:
-				err := w.WriteAAC(
-					tsample.PTS-2*time.Second,
-					tsample.PTS,
-					tsample.AU)
+				err := w.WriteMPEG4Audio(
+					aacTrack,
+					durationGoToMPEGTS(tsample.PTS),
+					[][]byte{tsample.AU})
 				require.NoError(t, err)
 			}
 		}
 
-		dem := astits.NewDemuxer(context.Background(), bytes.NewReader(buf.Bytes()),
+		dem := astits.NewDemuxer(
+			context.Background(),
+			bytes.NewReader(buf.Bytes()),
 			astits.DemuxerOptPacketSize(188))
 
 		// PMT
@@ -158,10 +165,8 @@ func TestWriter(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, &astits.Packet{
 			AdaptationField: &astits.PacketAdaptationField{
-				Length:                124,
-				StuffingLength:        117,
-				HasPCR:                true,
-				PCR:                   &astits.ClockReference{},
+				Length:                130,
+				StuffingLength:        129,
 				RandomAccessIndicator: true,
 			},
 			Header: &astits.PacketHeader{
@@ -172,8 +177,8 @@ func TestWriter(t *testing.T) {
 			},
 			Payload: []byte{
 				0x00, 0x00, 0x01, 0xe0, 0x00, 0x00, 0x80, 0x80,
-				0x05, 0x21, 0x00, 0x0d, 0x97, 0x81, 0x00, 0x00,
-				0x00, 0x01, 0x09, 0xf0, 0x00, 0x00, 0x00, 0x01,
+				0x05, 0x21, 0x00, 0x0b, 0x7e, 0x41, 0x00, 0x00,
+				0x00, 0x01,
 				0x67, 0x42, 0xc0, 0x28, 0xd9, 0x00, 0x78, 0x02,
 				0x27, 0xe5, 0x84, 0x00, 0x00, 0x03, 0x00, 0x04,
 				0x00, 0x00, 0x03, 0x00, 0xf0, 0x3c, 0x60, 0xc9,
@@ -199,32 +204,32 @@ func TestWriter(t *testing.T) {
 			},
 			Payload: []byte{
 				0x00, 0x00, 0x01, 0xc0, 0x00, 0x13, 0x80, 0x80,
-				0x05, 0x21, 0x00, 0x13, 0x56, 0xa1, 0xff, 0xf1,
+				0x05, 0x21, 0x00, 0x11, 0x3d, 0x61, 0xff, 0xf1,
 				0x50, 0x80, 0x01, 0x7f, 0xfc, 0x01, 0x02, 0x03,
 				0x04,
 			},
 		}, pkt)
 	})
 
-	t.Run("video only", func(t *testing.T) {
-		w := NewWriter(testVideoTrack, nil)
-
+	t.Run("h264", func(t *testing.T) {
 		var buf bytes.Buffer
-		w.SetByteWriter(&buf)
+		w := NewWriter(&buf, []*Track{h264Track})
 
 		for _, sample := range testSamples {
 			if tsample, ok := sample.(videoSample); ok {
-				err := w.WriteH264(
-					tsample.DTS-2*time.Second,
-					tsample.DTS,
-					tsample.PTS,
-					h264.IDRPresent(tsample.NALUs),
-					tsample.NALUs)
+				err := w.WriteH26x(
+					h264Track,
+					durationGoToMPEGTS(tsample.DTS),
+					durationGoToMPEGTS(tsample.PTS),
+					h264.IDRPresent(tsample.AU),
+					tsample.AU)
 				require.NoError(t, err)
 			}
 		}
 
-		dem := astits.NewDemuxer(context.Background(), bytes.NewReader(buf.Bytes()),
+		dem := astits.NewDemuxer(
+			context.Background(),
+			bytes.NewReader(buf.Bytes()),
 			astits.DemuxerOptPacketSize(188))
 
 		// PMT
@@ -264,10 +269,8 @@ func TestWriter(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, &astits.Packet{
 			AdaptationField: &astits.PacketAdaptationField{
-				Length:                124,
-				StuffingLength:        117,
-				HasPCR:                true,
-				PCR:                   &astits.ClockReference{},
+				Length:                130,
+				StuffingLength:        129,
 				RandomAccessIndicator: true,
 			},
 			Header: &astits.PacketHeader{
@@ -278,8 +281,8 @@ func TestWriter(t *testing.T) {
 			},
 			Payload: []byte{
 				0x00, 0x00, 0x01, 0xe0, 0x00, 0x00, 0x80, 0x80,
-				0x05, 0x21, 0x00, 0x0d, 0x97, 0x81, 0x00, 0x00,
-				0x00, 0x01, 0x09, 0xf0, 0x00, 0x00, 0x00, 0x01,
+				0x05, 0x21, 0x00, 0x0b, 0x7e, 0x41, 0x00, 0x00,
+				0x00, 0x01,
 				0x67, 0x42, 0xc0, 0x28, 0xd9, 0x00, 0x78, 0x02,
 				0x27, 0xe5, 0x84, 0x00, 0x00, 0x03, 0x00, 0x04,
 				0x00, 0x00, 0x03, 0x00, 0xf0, 0x3c, 0x60, 0xc9,
@@ -289,23 +292,23 @@ func TestWriter(t *testing.T) {
 		}, pkt)
 	})
 
-	t.Run("audio only", func(t *testing.T) {
-		w := NewWriter(nil, testAudioTrack)
-
+	t.Run("aac", func(t *testing.T) {
 		var buf bytes.Buffer
-		w.SetByteWriter(&buf)
+		w := NewWriter(&buf, []*Track{aacTrack})
 
 		for _, sample := range testSamples {
 			if tsample, ok := sample.(audioSample); ok {
-				err := w.WriteAAC(
-					tsample.PTS-2*time.Second,
-					tsample.PTS,
-					tsample.AU)
+				err := w.WriteMPEG4Audio(
+					aacTrack,
+					durationGoToMPEGTS(tsample.PTS),
+					[][]byte{tsample.AU})
 				require.NoError(t, err)
 			}
 		}
 
-		dem := astits.NewDemuxer(context.Background(), bytes.NewReader(buf.Bytes()),
+		dem := astits.NewDemuxer(
+			context.Background(),
+			bytes.NewReader(buf.Bytes()),
 			astits.DemuxerOptPacketSize(188))
 
 		// PMT
@@ -346,10 +349,8 @@ func TestWriter(t *testing.T) {
 		require.Equal(t, &astits.Packet{
 			AdaptationField: &astits.PacketAdaptationField{
 				Length:                158,
-				StuffingLength:        151,
+				StuffingLength:        157,
 				RandomAccessIndicator: true,
-				HasPCR:                true,
-				PCR:                   &astits.ClockReference{Base: 90000},
 			},
 			Header: &astits.PacketHeader{
 				HasAdaptationField:        true,
@@ -359,7 +360,7 @@ func TestWriter(t *testing.T) {
 			},
 			Payload: []byte{
 				0x00, 0x00, 0x01, 0xc0, 0x00, 0x13, 0x80, 0x80,
-				0x05, 0x21, 0x00, 0x13, 0x56, 0xa1, 0xff, 0xf1,
+				0x05, 0x21, 0x00, 0x11, 0x3d, 0x61, 0xff, 0xf1,
 				0x50, 0x80, 0x01, 0x7f, 0xfc, 0x01, 0x02, 0x03,
 				0x04,
 			},

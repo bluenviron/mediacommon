@@ -1,6 +1,7 @@
 package mpegts
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/asticode/go-astits"
@@ -12,6 +13,8 @@ const (
 	h265Identifier = 'H'<<24 | 'E'<<16 | 'V'<<8 | 'C'
 	opusIdentifier = 'O'<<24 | 'p'<<16 | 'u'<<8 | 's'
 )
+
+var errUnsupportedTrack = errors.New("unsupported track")
 
 func findMPEG4AudioConfig(dem *astits.Demuxer, pid uint16) (*mpeg4audio.Config, error) {
 	for {
@@ -50,7 +53,7 @@ func findOpusRegistration(descriptors []*astits.Descriptor) bool {
 	return false
 }
 
-func findOpusChannels(descriptors []*astits.Descriptor) int {
+func findOpusChannelCount(descriptors []*astits.Descriptor) int {
 	for _, sd := range descriptors {
 		if sd.Extension != nil && sd.Extension.Tag == 0x80 &&
 			sd.Extension.Unknown != nil && len(*sd.Extension.Unknown) >= 1 {
@@ -65,73 +68,56 @@ func findOpusCodec(descriptors []*astits.Descriptor) *CodecOpus {
 		return nil
 	}
 
-	channels := findOpusChannels(descriptors)
-	if channels <= 0 {
+	channelCount := findOpusChannelCount(descriptors)
+	if channelCount <= 0 {
 		return nil
 	}
 
 	return &CodecOpus{
-		Channels: channels,
+		ChannelCount: channelCount,
 	}
 }
 
 // Track is a MPEG-TS track.
 type Track struct {
-	ES    *astits.PMTElementaryStream
+	PID   uint16
 	Codec Codec
 }
 
-// FindTracks finds the tracks in a MPEG-TS stream.
-func FindTracks(dem *astits.Demuxer) ([]*Track, error) {
-	var tracks []*Track
+func (t *Track) marshal() (*astits.PMTElementaryStream, error) {
+	return t.Codec.marshal(t.PID)
+}
 
-	for {
-		data, err := dem.NextData()
+func (t *Track) unmarshal(dem *astits.Demuxer, es *astits.PMTElementaryStream) error {
+	t.PID = es.ElementaryPID
+
+	switch es.StreamType {
+	case astits.StreamTypeH264Video:
+		t.Codec = &CodecH264{}
+		return nil
+
+	case astits.StreamTypeH265Video:
+		t.Codec = &CodecH265{}
+		return nil
+
+	case astits.StreamTypeAACAudio:
+		conf, err := findMPEG4AudioConfig(dem, es.ElementaryPID)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		if data.PMT != nil {
-			for _, es := range data.PMT.ElementaryStreams {
-				track := &Track{
-					ES: es,
-				}
+		t.Codec = &CodecMPEG4Audio{
+			Config: *conf,
+		}
+		return nil
 
-				switch es.StreamType {
-				case astits.StreamTypeH264Video:
-					track.Codec = &CodecH264{}
-					tracks = append(tracks, track)
-
-				case astits.StreamTypeH265Video:
-					track.Codec = &CodecH265{}
-					tracks = append(tracks, track)
-
-				case astits.StreamTypeAACAudio:
-					conf, err := findMPEG4AudioConfig(dem, es.ElementaryPID)
-					if err != nil {
-						return nil, err
-					}
-
-					track.Codec = &CodecMPEG4Audio{
-						Config: *conf,
-					}
-					tracks = append(tracks, track)
-
-				case astits.StreamTypePrivateData:
-					codec := findOpusCodec(es.ElementaryStreamDescriptors)
-					if codec != nil {
-						track.Codec = codec
-						tracks = append(tracks, track)
-					}
-				}
-			}
-			break
+	case astits.StreamTypePrivateData:
+		codec := findOpusCodec(es.ElementaryStreamDescriptors)
+		if codec != nil {
+			t.Codec = codec
+			return nil
 		}
 	}
 
-	if tracks == nil {
-		return nil, fmt.Errorf("no tracks found")
-	}
-
-	return tracks, nil
+	return errUnsupportedTrack
 }

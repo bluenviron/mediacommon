@@ -10,6 +10,14 @@ const (
 	clockRate         = 90000
 )
 
+// avoid an int64 overflow and preserve resolution by splitting division into two parts:
+// first add the integer part, then the decimal part.
+func multiplyAndDivide(v, m, d time.Duration) time.Duration {
+	secs := v / d
+	dec := v % d
+	return (secs*m + dec*m/d)
+}
+
 // TimeDecoder is a MPEG-TS timestamp decoder.
 type TimeDecoder struct {
 	overall time.Duration
@@ -37,9 +45,5 @@ func (d *TimeDecoder) Decode(ts int64) time.Duration {
 		d.overall += time.Duration(diff)
 	}
 
-	// avoid an int64 overflow and preserve resolution by splitting division into two parts:
-	// first add the integer part, then the decimal part.
-	secs := d.overall / clockRate
-	dec := d.overall % clockRate
-	return secs*time.Second + dec*time.Second/clockRate
+	return multiplyAndDivide(d.overall, time.Second, clockRate)
 }

@@ -9,9 +9,9 @@ import (
 
 func TestDTSExtractor(t *testing.T) {
 	type sequenceSample struct {
-		nalus [][]byte
-		pts   time.Duration
-		dts   time.Duration
+		au  [][]byte
+		pts time.Duration
+		dts time.Duration
 	}
 
 	for _, ca := range []struct {
@@ -49,7 +49,7 @@ func TestDTSExtractor(t *testing.T) {
 		t.Run(ca.name, func(t *testing.T) {
 			ex := NewDTSExtractor()
 			for _, sample := range ca.sequence {
-				dts, err := ex.Extract(sample.nalus, sample.pts)
+				dts, err := ex.Extract(sample.au, sample.pts)
 				require.NoError(t, err)
 				require.Equal(t, sample.dts, dts)
 			}
