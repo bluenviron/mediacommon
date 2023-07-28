@@ -108,8 +108,8 @@ func TestWriter(t *testing.T) {
 			case videoSample:
 				err := w.WriteH26x(
 					h264Track,
-					durationGoToMPEGTS(tsample.DTS),
 					durationGoToMPEGTS(tsample.PTS),
+					durationGoToMPEGTS(tsample.DTS),
 					h264.IDRPresent(tsample.AU),
 					tsample.AU)
 				require.NoError(t, err)
@@ -220,8 +220,8 @@ func TestWriter(t *testing.T) {
 			if tsample, ok := sample.(videoSample); ok {
 				err := w.WriteH26x(
 					h264Track,
-					durationGoToMPEGTS(tsample.DTS),
 					durationGoToMPEGTS(tsample.PTS),
+					durationGoToMPEGTS(tsample.DTS),
 					h264.IDRPresent(tsample.AU),
 					tsample.AU)
 				require.NoError(t, err)

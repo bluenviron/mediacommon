@@ -58,8 +58,8 @@ func NewWriter(
 // WriteH26x writes a H26x access unit.
 func (w *Writer) WriteH26x(
 	track *Track,
-	dts int64,
 	pts int64,
+	dts int64,
 	idrPresent bool,
 	au [][]byte,
 ) error {
