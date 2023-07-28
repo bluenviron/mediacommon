@@ -11,11 +11,14 @@ import (
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
 )
 
-type onDataH26xFunc func(pts int64, dts int64, au [][]byte) error
+// ReaderOnDataH26xFunc is the prototype of the callback passed to OnDataH26x.
+type ReaderOnDataH26xFunc func(pts int64, dts int64, au [][]byte) error
 
-type onDataMPEG4AudioFunc func(pts int64, dts int64, aus [][]byte) error
+// ReaderOnDataMPEG4AudioFunc is the prototype of the callback passed to OnDataMPEG4Audio.
+type ReaderOnDataMPEG4AudioFunc func(pts int64, dts int64, aus [][]byte) error
 
-type onDataOpusFunc func(pts int64, dts int64, packets [][]byte) error
+// ReaderOnDataOpusFunc is the prototype of the callback passed to OnDataOpus.
+type ReaderOnDataOpusFunc func(pts int64, dts int64, packets [][]byte) error
 
 func findPMT(dem *astits.Demuxer) (*astits.PMTData, error) {
 	for {
@@ -89,19 +92,19 @@ func (r *Reader) Tracks() []*Track {
 }
 
 // OnDataH26x sets a callback that is called when data from an H26x track is received.
-func (r *Reader) OnDataH26x(track *Track, onData onDataH26xFunc) {
+func (r *Reader) OnDataH26x(track *Track, cb ReaderOnDataH26xFunc) {
 	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
 		au, err := h264.AnnexBUnmarshal(data)
 		if err != nil {
 			return err
 		}
 
-		return onData(pts, dts, au)
+		return cb(pts, dts, au)
 	}
 }
 
-// OnDataMPEG4Audio sets a callback that is called when data from an AAC track is received.
-func (r *Reader) OnDataMPEG4Audio(track *Track, onData onDataMPEG4AudioFunc) {
+// OnDataMPEG4Audio sets a callback that is called when data from an MPEG-4 Audio track is received.
+func (r *Reader) OnDataMPEG4Audio(track *Track, cb ReaderOnDataMPEG4AudioFunc) {
 	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
 		var pkts mpeg4audio.ADTSPackets
 		err := pkts.Unmarshal(data)
@@ -114,12 +117,12 @@ func (r *Reader) OnDataMPEG4Audio(track *Track, onData onDataMPEG4AudioFunc) {
 			aus[i] = pkt.AU
 		}
 
-		return onData(pts, dts, aus)
+		return cb(pts, dts, aus)
 	}
 }
 
 // OnDataOpus sets a callback that is called when data from an Opus track is received.
-func (r *Reader) OnDataOpus(track *Track, onData onDataOpusFunc) {
+func (r *Reader) OnDataOpus(track *Track, cb ReaderOnDataOpusFunc) {
 	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
 		pos := 0
 		var packets [][]byte
@@ -139,7 +142,7 @@ func (r *Reader) OnDataOpus(track *Track, onData onDataOpusFunc) {
 			}
 		}
 
-		return onData(pts, dts, packets)
+		return cb(pts, dts, packets)
 	}
 }
 
