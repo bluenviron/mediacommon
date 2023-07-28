@@ -148,3 +148,59 @@ func (w *Writer) WriteMPEG4Audio(
 	})
 	return err
 }
+
+// WriteOpus writes Opus packets.
+func (w *Writer) WriteOpus(
+	track *Track,
+	pts int64,
+	packets [][]byte,
+) error {
+	n := 0
+	for _, packet := range packets {
+		au := opusAccessUnit{
+			ControlHeader: opusControlHeader{
+				PayloadSize: len(packet),
+			},
+			Packet: packet,
+		}
+		n += au.marshalSize()
+	}
+
+	enc := make([]byte, n)
+	n = 0
+	for _, packet := range packets {
+		au := opusAccessUnit{
+			ControlHeader: opusControlHeader{
+				PayloadSize: len(packet),
+			},
+			Packet: packet,
+		}
+		mn, err := au.marshalTo(enc[n:])
+		if err != nil {
+			return err
+		}
+		n += mn
+	}
+
+	af := &astits.PacketAdaptationField{
+		RandomAccessIndicator: true,
+	}
+
+	_, err := w.mux.WriteData(&astits.MuxerData{
+		PID:             track.PID,
+		AdaptationField: af,
+		PES: &astits.PESData{
+			Header: &astits.PESHeader{
+				OptionalHeader: &astits.PESOptionalHeader{
+					MarkerBits:      2,
+					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+					PTS:             &astits.ClockReference{Base: pts},
+				},
+				PacketLength: uint16(len(enc) + 8),
+				StreamID:     streamIDAudio,
+			},
+			Data: enc,
+		},
+	})
+	return err
+}
