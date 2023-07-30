@@ -11,6 +11,9 @@ import (
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
 )
 
+// ReaderOnDecodeErrorFunc is the prototype of the callback passed to OnDecodeError.
+type ReaderOnDecodeErrorFunc func(err error)
+
 // ReaderOnDataH26xFunc is the prototype of the callback passed to OnDataH26x.
 type ReaderOnDataH26xFunc func(pts int64, dts int64, au [][]byte) error
 
@@ -35,9 +38,10 @@ func findPMT(dem *astits.Demuxer) (*astits.PMTData, error) {
 
 // Reader is a MPEG-TS reader.
 type Reader struct {
-	tracks []*Track
-	dem    *astits.Demuxer
-	onData map[uint16]func(int64, int64, []byte) error
+	tracks        []*Track
+	dem           *astits.Demuxer
+	onDecodeError ReaderOnDecodeErrorFunc
+	onData        map[uint16]func(int64, int64, []byte) error
 }
 
 // NewReader allocates a Reader.
@@ -80,9 +84,10 @@ func NewReader(br io.Reader) (*Reader, error) {
 		astits.DemuxerOptPacketSize(188))
 
 	return &Reader{
-		tracks: tracks,
-		dem:    dem,
-		onData: make(map[uint16]func(int64, int64, []byte) error),
+		tracks:        tracks,
+		dem:           dem,
+		onDecodeError: func(error) {},
+		onData:        make(map[uint16]func(int64, int64, []byte) error),
 	}, nil
 }
 
@@ -91,12 +96,18 @@ func (r *Reader) Tracks() []*Track {
 	return r.tracks
 }
 
+// OnDecodeError sets a callback that is called when a non-fatal decode error occurs.
+func (r *Reader) OnDecodeError(cb ReaderOnDecodeErrorFunc) {
+	r.onDecodeError = cb
+}
+
 // OnDataH26x sets a callback that is called when data from an H26x track is received.
 func (r *Reader) OnDataH26x(track *Track, cb ReaderOnDataH26xFunc) {
 	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
 		au, err := h264.AnnexBUnmarshal(data)
 		if err != nil {
-			return err
+			r.onDecodeError(err)
+			return nil
 		}
 
 		return cb(pts, dts, au)
@@ -109,7 +120,8 @@ func (r *Reader) OnDataMPEG4Audio(track *Track, cb ReaderOnDataMPEG4AudioFunc) {
 		var pkts mpeg4audio.ADTSPackets
 		err := pkts.Unmarshal(data)
 		if err != nil {
-			return err
+			r.onDecodeError(err)
+			return nil
 		}
 
 		aus := make([][]byte, len(pkts))
@@ -131,7 +143,8 @@ func (r *Reader) OnDataOpus(track *Track, cb ReaderOnDataOpusFunc) {
 			var au opusAccessUnit
 			n, err := au.unmarshal(data[pos:])
 			if err != nil {
-				return err
+				r.onDecodeError(err)
+				return nil
 			}
 			pos += n
 
