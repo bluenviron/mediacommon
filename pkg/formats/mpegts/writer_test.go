@@ -132,7 +132,7 @@ func TestWriter(t *testing.T) {
 		pkt, err := dem.NextPacket()
 		require.NoError(t, err)
 		require.Equal(t, &astits.Packet{
-			Header: &astits.PacketHeader{
+			Header: astits.PacketHeader{
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
 				PID:                       0,
@@ -148,7 +148,7 @@ func TestWriter(t *testing.T) {
 		pkt, err = dem.NextPacket()
 		require.NoError(t, err)
 		require.Equal(t, &astits.Packet{
-			Header: &astits.PacketHeader{
+			Header: astits.PacketHeader{
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
 				PID:                       4096,
@@ -170,7 +170,7 @@ func TestWriter(t *testing.T) {
 				StuffingLength:        129,
 				RandomAccessIndicator: true,
 			},
-			Header: &astits.PacketHeader{
+			Header: astits.PacketHeader{
 				HasAdaptationField:        true,
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
@@ -197,7 +197,7 @@ func TestWriter(t *testing.T) {
 				StuffingLength:        157,
 				RandomAccessIndicator: true,
 			},
-			Header: &astits.PacketHeader{
+			Header: astits.PacketHeader{
 				HasAdaptationField:        true,
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
@@ -237,7 +237,7 @@ func TestWriter(t *testing.T) {
 		pkt, err := dem.NextPacket()
 		require.NoError(t, err)
 		require.Equal(t, &astits.Packet{
-			Header: &astits.PacketHeader{
+			Header: astits.PacketHeader{
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
 				PID:                       0,
@@ -253,7 +253,7 @@ func TestWriter(t *testing.T) {
 		pkt, err = dem.NextPacket()
 		require.NoError(t, err)
 		require.Equal(t, &astits.Packet{
-			Header: &astits.PacketHeader{
+			Header: astits.PacketHeader{
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
 				PID:                       4096,
@@ -274,7 +274,7 @@ func TestWriter(t *testing.T) {
 				StuffingLength:        129,
 				RandomAccessIndicator: true,
 			},
-			Header: &astits.PacketHeader{
+			Header: astits.PacketHeader{
 				HasAdaptationField:        true,
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
@@ -316,7 +316,7 @@ func TestWriter(t *testing.T) {
 		pkt, err := dem.NextPacket()
 		require.NoError(t, err)
 		require.Equal(t, &astits.Packet{
-			Header: &astits.PacketHeader{
+			Header: astits.PacketHeader{
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
 				PID:                       0,
@@ -332,7 +332,7 @@ func TestWriter(t *testing.T) {
 		pkt, err = dem.NextPacket()
 		require.NoError(t, err)
 		require.Equal(t, &astits.Packet{
-			Header: &astits.PacketHeader{
+			Header: astits.PacketHeader{
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
 				PID:                       4096,
@@ -353,7 +353,7 @@ func TestWriter(t *testing.T) {
 				StuffingLength:        157,
 				RandomAccessIndicator: true,
 			},
-			Header: &astits.PacketHeader{
+			Header: astits.PacketHeader{
 				HasAdaptationField:        true,
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
@@ -397,7 +397,7 @@ func TestWriter(t *testing.T) {
 		pkt, err := dem.NextPacket()
 		require.NoError(t, err)
 		require.Equal(t, &astits.Packet{
-			Header: &astits.PacketHeader{
+			Header: astits.PacketHeader{
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
 				PID:                       0,
@@ -433,7 +433,7 @@ func TestWriter(t *testing.T) {
 		pkt, err = dem.NextPacket()
 		require.NoError(t, err)
 		require.Equal(t, &astits.Packet{
-			Header: &astits.PacketHeader{
+			Header: astits.PacketHeader{
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
 				PID:                       4096,
@@ -474,7 +474,7 @@ func TestWriter(t *testing.T) {
 				StuffingLength:        160,
 				RandomAccessIndicator: true,
 			},
-			Header: &astits.PacketHeader{
+			Header: astits.PacketHeader{
 				HasAdaptationField:        true,
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
@@ -491,7 +491,7 @@ func TestWriter(t *testing.T) {
 		pkt, err = dem.NextPacket()
 		require.NoError(t, err)
 		require.Equal(t, &astits.Packet{
-			Header: &astits.PacketHeader{
+			Header: astits.PacketHeader{
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
 				PID:                       0,
@@ -528,7 +528,7 @@ func TestWriter(t *testing.T) {
 		pkt, err = dem.NextPacket()
 		require.NoError(t, err)
 		require.Equal(t, &astits.Packet{
-			Header: &astits.PacketHeader{
+			Header: astits.PacketHeader{
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
 				PID:                       4096,
@@ -570,7 +570,7 @@ func TestWriter(t *testing.T) {
 				StuffingLength:        164,
 				RandomAccessIndicator: true,
 			},
-			Header: &astits.PacketHeader{
+			Header: astits.PacketHeader{
 				HasAdaptationField:        true,
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
