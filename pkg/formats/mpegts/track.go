@@ -92,6 +92,10 @@ func (t *Track) unmarshal(dem *astits.Demuxer, es *astits.PMTElementaryStream) e
 	t.PID = es.ElementaryPID
 
 	switch es.StreamType {
+	case astits.StreamTypeMPEG1Audio:
+		t.Codec = &CodecMPEG1Audio{}
+		return nil
+
 	case astits.StreamTypeH264Video:
 		t.Codec = &CodecH264{}
 		return nil

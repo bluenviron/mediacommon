@@ -102,53 +102,6 @@ func (w *Writer) WriteH26x(
 	return err
 }
 
-// WriteMPEG4Audio writes MPEG-4 Audio access units.
-func (w *Writer) WriteMPEG4Audio(
-	track *Track,
-	pts int64,
-	aus [][]byte,
-) error {
-	aacCodec := track.Codec.(*CodecMPEG4Audio)
-
-	pkts := make(mpeg4audio.ADTSPackets, len(aus))
-
-	for i, au := range aus {
-		pkts[i] = &mpeg4audio.ADTSPacket{
-			Type:         aacCodec.Config.Type,
-			SampleRate:   aacCodec.SampleRate,
-			ChannelCount: aacCodec.Config.ChannelCount,
-			AU:           au,
-		}
-	}
-
-	enc, err := pkts.Marshal()
-	if err != nil {
-		return err
-	}
-
-	af := &astits.PacketAdaptationField{
-		RandomAccessIndicator: true,
-	}
-
-	_, err = w.mux.WriteData(&astits.MuxerData{
-		PID:             track.PID,
-		AdaptationField: af,
-		PES: &astits.PESData{
-			Header: &astits.PESHeader{
-				OptionalHeader: &astits.PESOptionalHeader{
-					MarkerBits:      2,
-					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
-					PTS:             &astits.ClockReference{Base: pts},
-				},
-				PacketLength: uint16(len(enc) + 8),
-				StreamID:     streamIDAudio,
-			},
-			Data: enc,
-		},
-	})
-	return err
-}
-
 // WriteOpus writes Opus packets.
 func (w *Writer) WriteOpus(
 	track *Track,
@@ -182,13 +135,94 @@ func (w *Writer) WriteOpus(
 		n += mn
 	}
 
-	af := &astits.PacketAdaptationField{
-		RandomAccessIndicator: true,
+	_, err := w.mux.WriteData(&astits.MuxerData{
+		PID: track.PID,
+		AdaptationField: &astits.PacketAdaptationField{
+			RandomAccessIndicator: true,
+		},
+		PES: &astits.PESData{
+			Header: &astits.PESHeader{
+				OptionalHeader: &astits.PESOptionalHeader{
+					MarkerBits:      2,
+					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+					PTS:             &astits.ClockReference{Base: pts},
+				},
+				PacketLength: uint16(len(enc) + 8),
+				StreamID:     streamIDAudio,
+			},
+			Data: enc,
+		},
+	})
+	return err
+}
+
+// WriteMPEG4Audio writes MPEG-4 Audio access units.
+func (w *Writer) WriteMPEG4Audio(
+	track *Track,
+	pts int64,
+	aus [][]byte,
+) error {
+	aacCodec := track.Codec.(*CodecMPEG4Audio)
+
+	pkts := make(mpeg4audio.ADTSPackets, len(aus))
+
+	for i, au := range aus {
+		pkts[i] = &mpeg4audio.ADTSPacket{
+			Type:         aacCodec.Config.Type,
+			SampleRate:   aacCodec.SampleRate,
+			ChannelCount: aacCodec.Config.ChannelCount,
+			AU:           au,
+		}
+	}
+
+	enc, err := pkts.Marshal()
+	if err != nil {
+		return err
+	}
+
+	_, err = w.mux.WriteData(&astits.MuxerData{
+		PID: track.PID,
+		AdaptationField: &astits.PacketAdaptationField{
+			RandomAccessIndicator: true,
+		},
+		PES: &astits.PESData{
+			Header: &astits.PESHeader{
+				OptionalHeader: &astits.PESOptionalHeader{
+					MarkerBits:      2,
+					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+					PTS:             &astits.ClockReference{Base: pts},
+				},
+				PacketLength: uint16(len(enc) + 8),
+				StreamID:     streamIDAudio,
+			},
+			Data: enc,
+		},
+	})
+	return err
+}
+
+// WriteMPEG1Audio writes MPEG-1 Audio packets.
+func (w *Writer) WriteMPEG1Audio(
+	track *Track,
+	pts int64,
+	frames [][]byte,
+) error {
+	n := 0
+	for _, frame := range frames {
+		n += len(frame)
+	}
+
+	enc := make([]byte, n)
+	n = 0
+	for _, frame := range frames {
+		n += len(frame)
 	}
 
 	_, err := w.mux.WriteData(&astits.MuxerData{
-		PID:             track.PID,
-		AdaptationField: af,
+		PID: track.PID,
+		AdaptationField: &astits.PacketAdaptationField{
+			RandomAccessIndicator: true,
+		},
 		PES: &astits.PESData{
 			Header: &astits.PESHeader{
 				OptionalHeader: &astits.PESOptionalHeader{

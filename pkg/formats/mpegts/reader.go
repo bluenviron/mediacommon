@@ -8,6 +8,7 @@ import (
 	"github.com/asticode/go-astits"
 
 	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
+	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg2audio"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
 )
 
@@ -17,11 +18,14 @@ type ReaderOnDecodeErrorFunc func(err error)
 // ReaderOnDataH26xFunc is the prototype of the callback passed to OnDataH26x.
 type ReaderOnDataH26xFunc func(pts int64, dts int64, au [][]byte) error
 
+// ReaderOnDataOpusFunc is the prototype of the callback passed to OnDataOpus.
+type ReaderOnDataOpusFunc func(pts int64, dts int64, packets [][]byte) error
+
 // ReaderOnDataMPEG4AudioFunc is the prototype of the callback passed to OnDataMPEG4Audio.
 type ReaderOnDataMPEG4AudioFunc func(pts int64, dts int64, aus [][]byte) error
 
-// ReaderOnDataOpusFunc is the prototype of the callback passed to OnDataOpus.
-type ReaderOnDataOpusFunc func(pts int64, dts int64, packets [][]byte) error
+// ReaderOnDataMPEG1AudioFunc is the prototype of the callback passed to OnDataMPEG1Audio.
+type ReaderOnDataMPEG1AudioFunc func(pts int64, dts int64, frames [][]byte) error
 
 func findPMT(dem *astits.Demuxer) (*astits.PMTData, error) {
 	for {
@@ -74,7 +78,7 @@ func NewReader(br io.Reader) (*Reader, error) {
 	}
 
 	if tracks == nil {
-		return nil, fmt.Errorf("no tracks found")
+		return nil, fmt.Errorf("no supported tracks found")
 	}
 
 	// rewind demuxer
@@ -114,25 +118,6 @@ func (r *Reader) OnDataH26x(track *Track, cb ReaderOnDataH26xFunc) {
 	}
 }
 
-// OnDataMPEG4Audio sets a callback that is called when data from an MPEG-4 Audio track is received.
-func (r *Reader) OnDataMPEG4Audio(track *Track, cb ReaderOnDataMPEG4AudioFunc) {
-	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
-		var pkts mpeg4audio.ADTSPackets
-		err := pkts.Unmarshal(data)
-		if err != nil {
-			r.onDecodeError(err)
-			return nil
-		}
-
-		aus := make([][]byte, len(pkts))
-		for i, pkt := range pkts {
-			aus[i] = pkt.AU
-		}
-
-		return cb(pts, dts, aus)
-	}
-}
-
 // OnDataOpus sets a callback that is called when data from an Opus track is received.
 func (r *Reader) OnDataOpus(track *Track, cb ReaderOnDataOpusFunc) {
 	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
@@ -156,6 +141,54 @@ func (r *Reader) OnDataOpus(track *Track, cb ReaderOnDataOpusFunc) {
 		}
 
 		return cb(pts, dts, packets)
+	}
+}
+
+// OnDataMPEG4Audio sets a callback that is called when data from an MPEG-4 Audio track is received.
+func (r *Reader) OnDataMPEG4Audio(track *Track, cb ReaderOnDataMPEG4AudioFunc) {
+	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
+		var pkts mpeg4audio.ADTSPackets
+		err := pkts.Unmarshal(data)
+		if err != nil {
+			r.onDecodeError(err)
+			return nil
+		}
+
+		aus := make([][]byte, len(pkts))
+		for i, pkt := range pkts {
+			aus[i] = pkt.AU
+		}
+
+		return cb(pts, dts, aus)
+	}
+}
+
+// OnDataMPEG1Audio sets a callback that is called when data from an MPEG-1 Audio track is received.
+func (r *Reader) OnDataMPEG1Audio(track *Track, cb ReaderOnDataMPEG1AudioFunc) {
+	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
+		var frames [][]byte
+
+		for len(data) > 0 {
+			var h mpeg2audio.FrameHeader
+			err := h.Unmarshal(data)
+			if err != nil {
+				r.onDecodeError(err)
+				return nil
+			}
+
+			fl := h.FrameLen()
+			if len(data) < fl {
+				r.onDecodeError(fmt.Errorf("buffer is too short"))
+				return nil
+			}
+
+			var frame []byte
+			frame, data = data[:fl], data[fl:]
+
+			frames = append(frames, frame)
+		}
+
+		return cb(pts, dts, frames)
 	}
 }
 
