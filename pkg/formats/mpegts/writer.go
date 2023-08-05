@@ -25,7 +25,8 @@ func leadingTrack(tracks []*Track) *Track {
 
 // Writer is a MPEG-TS writer.
 type Writer struct {
-	mux *astits.Muxer
+	nextPID uint16
+	mux     *astits.Muxer
 }
 
 // NewWriter allocates a Writer.
@@ -33,13 +34,19 @@ func NewWriter(
 	bw io.Writer,
 	tracks []*Track,
 ) *Writer {
-	w := &Writer{}
+	w := &Writer{
+		nextPID: 256,
+	}
 
 	w.mux = astits.NewMuxer(
 		context.Background(),
 		bw)
 
 	for _, track := range tracks {
+		if track.PID == 0 {
+			track.PID = w.nextPID
+			w.nextPID++
+		}
 		es, _ := track.marshal()
 		w.mux.AddElementaryStream(*es)
 	}
