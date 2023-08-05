@@ -3,7 +3,7 @@ module github.com/bluenviron/mediacommon
 go 1.18
 
 require (
-	github.com/asticode/go-astits v1.11.1-0.20230727094110-0df190a2dd87
+	github.com/asticode/go-astits v1.12.0
 	github.com/stretchr/testify v1.8.4
 )
 
