@@ -147,8 +147,7 @@ func (w *Writer) WriteOpus(
 					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
 					PTS:             &astits.ClockReference{Base: pts},
 				},
-				PacketLength: uint16(len(enc) + 8),
-				StreamID:     streamIDAudio,
+				StreamID: streamIDAudio,
 			},
 			Data: enc,
 		},
@@ -192,8 +191,7 @@ func (w *Writer) WriteMPEG4Audio(
 					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
 					PTS:             &astits.ClockReference{Base: pts},
 				},
-				PacketLength: uint16(len(enc) + 8),
-				StreamID:     streamIDAudio,
+				StreamID: streamIDAudio,
 			},
 			Data: enc,
 		},
@@ -215,7 +213,7 @@ func (w *Writer) WriteMPEG1Audio(
 	enc := make([]byte, n)
 	n = 0
 	for _, frame := range frames {
-		n += len(frame)
+		n += copy(enc[n:], frame)
 	}
 
 	_, err := w.mux.WriteData(&astits.MuxerData{
@@ -230,8 +228,7 @@ func (w *Writer) WriteMPEG1Audio(
 					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
 					PTS:             &astits.ClockReference{Base: pts},
 				},
-				PacketLength: uint16(len(enc) + 8),
-				StreamID:     streamIDAudio,
+				StreamID: streamIDAudio,
 			},
 			Data: enc,
 		},
