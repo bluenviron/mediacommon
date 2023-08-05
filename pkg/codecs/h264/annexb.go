@@ -70,6 +70,7 @@ outer:
 	start = initZeroCount + 1
 	zeroCount = 0
 	delimStart := 0
+	auSize := 0
 
 	for i := start; i < bl; i++ {
 		switch byts[i] {
@@ -82,15 +83,18 @@ outer:
 		case 1:
 			if zeroCount == 2 || zeroCount == 3 {
 				l := delimStart - start
+
 				if l == 0 {
 					return nil, fmt.Errorf("invalid NALU")
 				}
-				if l > MaxNALUSize {
-					return nil, fmt.Errorf("NALU size (%d) is too big, maximum is %d", l, MaxNALUSize)
+
+				if (auSize + l) > MaxAccessUnitSize {
+					return nil, fmt.Errorf("access unit size (%d) is too big, maximum is %d", l, MaxAccessUnitSize)
 				}
 
 				ret[pos] = byts[start:delimStart]
 				pos++
+				auSize += l
 				start = i + 1
 			}
 			zeroCount = 0
@@ -101,11 +105,13 @@ outer:
 	}
 
 	l := bl - start
+
 	if l == 0 {
 		return nil, fmt.Errorf("invalid NALU")
 	}
-	if l > MaxNALUSize {
-		return nil, fmt.Errorf("NALU size (%d) is too big, maximum is %d", l, MaxNALUSize)
+
+	if (auSize + l) > MaxAccessUnitSize {
+		return nil, fmt.Errorf("access unit size (%d) is too big, maximum is %d", l, MaxAccessUnitSize)
 	}
 
 	ret[pos] = byts[start:bl]

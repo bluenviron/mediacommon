@@ -2,9 +2,9 @@
 package h264
 
 const (
-	// MaxNALUSize is the maximum size of a NALU.
-	// With a 50 Mbps 2160p60 H264 video, the maximum NALU size does not seem to exceed 4 MiB.
-	MaxNALUSize = 4 * 1024 * 1024
+	// MaxAccessUnitSize is the maximum size of an access unit.
+	// With a 50 Mbps 2160p60 H264 video, the maximum size does not seem to exceed 4 MiB.
+	MaxAccessUnitSize = 4 * 1024 * 1024
 
 	// MaxNALUsPerAccessUnit is the maximum number of NALUs per access unit.
 	MaxNALUsPerAccessUnit = 20
