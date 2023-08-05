@@ -81,3 +81,13 @@ func TestWriter(t *testing.T) {
 		})
 	}
 }
+
+func TestWriterAutomaticPID(t *testing.T) {
+	track := &Track{
+		Codec: &CodecH265{},
+	}
+
+	var buf bytes.Buffer
+	NewWriter(&buf, []*Track{track})
+	require.NotEqual(t, 0, track.PID)
+}
