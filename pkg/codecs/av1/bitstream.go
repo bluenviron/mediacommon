@@ -54,3 +54,42 @@ func BitstreamUnmarshal(bs []byte, removeSizeField bool) ([][]byte, error) {
 
 	return ret, nil
 }
+
+// BitstreamMarshal encodes OBUs into a bitstream.
+// Specification: https://aomediacodec.github.io/av1-spec/#low-overhead-bitstream-format
+func BitstreamMarshal(obus [][]byte) ([]byte, error) {
+	n := 0
+
+	for _, obu := range obus {
+		n += len(obu)
+
+		var h OBUHeader
+		err := h.Unmarshal(obu)
+		if err != nil {
+			return nil, err
+		}
+
+		if !h.HasSize {
+			size := len(obu) - 1
+			n += LEB128MarshalSize(uint(size))
+		}
+	}
+
+	buf := make([]byte, n)
+	n = 0
+
+	for _, obu := range obus {
+		var h OBUHeader
+		h.Unmarshal(obu)
+
+		if !h.HasSize {
+			buf[n] = obu[0] | 0b00000010
+			n++
+			size := len(obu) - 1
+			n += LEB128MarshalTo(uint(size), buf[n:])
+			n += copy(buf[n:], obu[1:])
+		}
+	}
+
+	return buf, nil
+}

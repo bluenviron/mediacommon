@@ -21,7 +21,9 @@ Definitions and functions shared between [gortsplib](https://github.com/bluenvir
 * ISO 13818-3, Generic Coding of Moving Pictures and Associated Audio: Audio
 * ISO 14496-3, Coding of audio-visual objects, part 3, Audio
 * [AV1 Bitstream & Decoding Process](https://aomediacodec.github.io/av1-spec/av1-spec.pdf)
+* [AV1 Codec ISO Media File Format Binding](https://aomediacodec.github.io/av1-isobmff)
 * [RFC6716, Definition of the Opus Audio Codec](https://datatracker.ietf.org/doc/html/rfc6716)
+* [Opus in MP4/ISOBMFF](https://opus-codec.org/docs/opus_in_isobmff.html)
 
 ## Related projects
 
