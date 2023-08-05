@@ -8,7 +8,7 @@ import (
 	"github.com/asticode/go-astits"
 
 	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
-	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg2audio"
+	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg1audio"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
 )
 
@@ -184,7 +184,7 @@ func (r *Reader) OnDataMPEG1Audio(track *Track, cb ReaderOnDataMPEG1AudioFunc) {
 		var frames [][]byte
 
 		for len(data) > 0 {
-			var h mpeg2audio.FrameHeader
+			var h mpeg1audio.FrameHeader
 			err := h.Unmarshal(data)
 			if err != nil {
 				r.onDecodeError(err)

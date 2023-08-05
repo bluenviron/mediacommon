@@ -1,4 +1,4 @@
-package mpeg2audio
+package mpeg1audio
 
 import (
 	"testing"
