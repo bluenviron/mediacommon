@@ -42,8 +42,10 @@ func TestLEB128Unmarshal(t *testing.T) {
 func TestLEB128Marshal(t *testing.T) {
 	for _, ca := range casesLEB128 {
 		t.Run(ca.name, func(t *testing.T) {
-			enc := LEB128Marshal(ca.dec)
+			enc := make([]byte, LEB128MarshalSize(ca.dec))
+			n := LEB128MarshalTo(ca.dec, enc)
 			require.Equal(t, ca.enc, enc)
+			require.Equal(t, len(ca.enc), n)
 		})
 	}
 }
