@@ -19,13 +19,13 @@ type ReaderOnDecodeErrorFunc func(err error)
 type ReaderOnDataH26xFunc func(pts int64, dts int64, au [][]byte) error
 
 // ReaderOnDataOpusFunc is the prototype of the callback passed to OnDataOpus.
-type ReaderOnDataOpusFunc func(pts int64, dts int64, packets [][]byte) error
+type ReaderOnDataOpusFunc func(pts int64, packets [][]byte) error
 
 // ReaderOnDataMPEG4AudioFunc is the prototype of the callback passed to OnDataMPEG4Audio.
-type ReaderOnDataMPEG4AudioFunc func(pts int64, dts int64, aus [][]byte) error
+type ReaderOnDataMPEG4AudioFunc func(pts int64, aus [][]byte) error
 
 // ReaderOnDataMPEG1AudioFunc is the prototype of the callback passed to OnDataMPEG1Audio.
-type ReaderOnDataMPEG1AudioFunc func(pts int64, dts int64, frames [][]byte) error
+type ReaderOnDataMPEG1AudioFunc func(pts int64, frames [][]byte) error
 
 func findPMT(dem *astits.Demuxer) (*astits.PMTData, error) {
 	for {
@@ -121,6 +121,11 @@ func (r *Reader) OnDataH26x(track *Track, cb ReaderOnDataH26xFunc) {
 // OnDataOpus sets a callback that is called when data from an Opus track is received.
 func (r *Reader) OnDataOpus(track *Track, cb ReaderOnDataOpusFunc) {
 	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
+		if pts != dts {
+			r.onDecodeError(fmt.Errorf("PTS is not equal to DTS"))
+			return nil
+		}
+
 		pos := 0
 		var packets [][]byte
 
@@ -140,13 +145,18 @@ func (r *Reader) OnDataOpus(track *Track, cb ReaderOnDataOpusFunc) {
 			}
 		}
 
-		return cb(pts, dts, packets)
+		return cb(pts, packets)
 	}
 }
 
 // OnDataMPEG4Audio sets a callback that is called when data from an MPEG-4 Audio track is received.
 func (r *Reader) OnDataMPEG4Audio(track *Track, cb ReaderOnDataMPEG4AudioFunc) {
 	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
+		if pts != dts {
+			r.onDecodeError(fmt.Errorf("PTS is not equal to DTS"))
+			return nil
+		}
+
 		var pkts mpeg4audio.ADTSPackets
 		err := pkts.Unmarshal(data)
 		if err != nil {
@@ -159,13 +169,18 @@ func (r *Reader) OnDataMPEG4Audio(track *Track, cb ReaderOnDataMPEG4AudioFunc) {
 			aus[i] = pkt.AU
 		}
 
-		return cb(pts, dts, aus)
+		return cb(pts, aus)
 	}
 }
 
 // OnDataMPEG1Audio sets a callback that is called when data from an MPEG-1 Audio track is received.
 func (r *Reader) OnDataMPEG1Audio(track *Track, cb ReaderOnDataMPEG1AudioFunc) {
 	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
+		if pts != dts {
+			r.onDecodeError(fmt.Errorf("PTS is not equal to DTS"))
+			return nil
+		}
+
 		var frames [][]byte
 
 		for len(data) > 0 {
@@ -188,7 +203,7 @@ func (r *Reader) OnDataMPEG1Audio(track *Track, cb ReaderOnDataMPEG1AudioFunc) {
 			frames = append(frames, frame)
 		}
 
-		return cb(pts, dts, frames)
+		return cb(pts, frames)
 	}
 }
 
