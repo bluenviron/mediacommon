@@ -26,7 +26,7 @@ func AVCCUnmarshal(buf []byte) ([][]byte, error) {
 		}
 
 		if (auSize + l) > MaxAccessUnitSize {
-			return nil, fmt.Errorf("access unit size (%d) is too big, maximum is %d", l, MaxAccessUnitSize)
+			return nil, fmt.Errorf("access unit size (%d) is too big, maximum is %d", auSize+l, MaxAccessUnitSize)
 		}
 
 		if (naluCount + 1) > MaxNALUsPerAccessUnit {

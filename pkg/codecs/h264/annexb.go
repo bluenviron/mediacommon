@@ -89,7 +89,7 @@ outer:
 				}
 
 				if (auSize + l) > MaxAccessUnitSize {
-					return nil, fmt.Errorf("access unit size (%d) is too big, maximum is %d", l, MaxAccessUnitSize)
+					return nil, fmt.Errorf("access unit size (%d) is too big, maximum is %d", auSize+l, MaxAccessUnitSize)
 				}
 
 				ret[pos] = byts[start:delimStart]
@@ -111,7 +111,7 @@ outer:
 	}
 
 	if (auSize + l) > MaxAccessUnitSize {
-		return nil, fmt.Errorf("access unit size (%d) is too big, maximum is %d", l, MaxAccessUnitSize)
+		return nil, fmt.Errorf("access unit size (%d) is too big, maximum is %d", auSize+l, MaxAccessUnitSize)
 	}
 
 	ret[pos] = byts[start:bl]

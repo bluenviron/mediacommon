@@ -77,7 +77,7 @@ func (ps *ADTSPackets) Unmarshal(buf []byte) error {
 		}
 
 		if frameLen > MaxAccessUnitSize {
-			return fmt.Errorf("AU size (%d) is too big, maximum is %d", frameLen, MaxAccessUnitSize)
+			return fmt.Errorf("access unit size (%d) is too big, maximum is %d", frameLen, MaxAccessUnitSize)
 		}
 
 		frameCount := buf[pos+6] & 0x03
