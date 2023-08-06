@@ -33,6 +33,90 @@ func findSequenceHeader(bs []byte) ([]byte, error) {
 	return nil, fmt.Errorf("sequence header not found")
 }
 
+func findH265Params(params []mp4.HEVCNaluArray) ([]byte, []byte, []byte, error) {
+	var vps []byte
+	var sps []byte
+	var pps []byte
+
+	for _, arr := range params {
+		switch h265.NALUType(arr.NaluType) {
+		case h265.NALUType_VPS_NUT, h265.NALUType_SPS_NUT, h265.NALUType_PPS_NUT:
+			if arr.NumNalus != 1 {
+				return nil, nil, nil, fmt.Errorf("multiple VPS/SPS/PPS are not supported")
+			}
+		}
+
+		switch h265.NALUType(arr.NaluType) {
+		case h265.NALUType_VPS_NUT:
+			vps = arr.Nalus[0].NALUnit
+
+		case h265.NALUType_SPS_NUT:
+			sps = arr.Nalus[0].NALUnit
+
+		case h265.NALUType_PPS_NUT:
+			pps = arr.Nalus[0].NALUnit
+		}
+	}
+
+	if vps == nil {
+		return nil, nil, nil, fmt.Errorf("VPS not provided")
+	}
+
+	if sps == nil {
+		return nil, nil, nil, fmt.Errorf("SPS not provided")
+	}
+
+	if pps == nil {
+		return nil, nil, nil, fmt.Errorf("PPS not provided")
+	}
+
+	return vps, sps, pps, nil
+}
+
+func findH264Params(avcc *mp4.AVCDecoderConfiguration) ([]byte, []byte, error) {
+	if len(avcc.SequenceParameterSets) > 1 {
+		return nil, nil, fmt.Errorf("multiple SPS are not supported")
+	}
+
+	var sps []byte
+	if len(avcc.SequenceParameterSets) == 1 {
+		sps = avcc.SequenceParameterSets[0].NALUnit
+	}
+
+	if len(avcc.PictureParameterSets) > 1 {
+		return nil, nil, fmt.Errorf("multiple PPS are not supported")
+	}
+
+	var pps []byte
+	if len(avcc.PictureParameterSets) == 1 {
+		pps = avcc.PictureParameterSets[0].NALUnit
+	}
+
+	return sps, pps, nil
+}
+
+func findMPEG4AudioConfig(descriptors []mp4.Descriptor) (*mpeg4audio.Config, error) {
+	encodedConf := func() []byte {
+		for _, desc := range descriptors {
+			if desc.Tag == mp4.DecSpecificInfoTag {
+				return desc.Data
+			}
+		}
+		return nil
+	}()
+	if encodedConf == nil {
+		return nil, fmt.Errorf("unable to find MPEG-4 Audio configuration")
+	}
+
+	var c mpeg4audio.Config
+	err := c.Unmarshal(encodedConf)
+	if err != nil {
+		return nil, fmt.Errorf("invalid MPEG-4 Audio configuration: %s", err)
+	}
+
+	return &c, nil
+}
+
 // Init is a fMP4 initialization block.
 type Init struct {
 	Tracks []*InitTrack
@@ -140,40 +224,9 @@ func (i *Init) Unmarshal(byts []byte) error {
 			}
 			hvcc := box.(*mp4.HvcC)
 
-			var vps []byte
-			var sps []byte
-			var pps []byte
-
-			for _, arr := range hvcc.NaluArrays {
-				switch h265.NALUType(arr.NaluType) {
-				case h265.NALUType_VPS_NUT, h265.NALUType_SPS_NUT, h265.NALUType_PPS_NUT:
-					if arr.NumNalus != 1 {
-						return nil, fmt.Errorf("multiple VPS/SPS/PPS are not supported")
-					}
-				}
-
-				switch h265.NALUType(arr.NaluType) {
-				case h265.NALUType_VPS_NUT:
-					vps = arr.Nalus[0].NALUnit
-
-				case h265.NALUType_SPS_NUT:
-					sps = arr.Nalus[0].NALUnit
-
-				case h265.NALUType_PPS_NUT:
-					pps = arr.Nalus[0].NALUnit
-				}
-			}
-
-			if vps == nil {
-				return nil, fmt.Errorf("VPS not provided")
-			}
-
-			if sps == nil {
-				return nil, fmt.Errorf("SPS not provided")
-			}
-
-			if pps == nil {
-				return nil, fmt.Errorf("PPS not provided")
+			vps, sps, pps, err := findH265Params(hvcc.NaluArrays)
+			if err != nil {
+				return nil, err
 			}
 
 			curTrack.Codec = &CodecH265{
@@ -200,22 +253,9 @@ func (i *Init) Unmarshal(byts []byte) error {
 			}
 			avcc := box.(*mp4.AVCDecoderConfiguration)
 
-			if len(avcc.SequenceParameterSets) > 1 {
-				return nil, fmt.Errorf("multiple SPS are not supported")
-			}
-
-			var sps []byte
-			if len(avcc.SequenceParameterSets) == 1 {
-				sps = avcc.SequenceParameterSets[0].NALUnit
-			}
-
-			if len(avcc.PictureParameterSets) > 1 {
-				return nil, fmt.Errorf("multiple PPS are not supported")
-			}
-
-			var pps []byte
-			if len(avcc.PictureParameterSets) == 1 {
-				pps = avcc.PictureParameterSets[0].NALUnit
+			sps, pps, err := findH264Params(avcc)
+			if err != nil {
+				return nil, err
 			}
 
 			curTrack.Codec = &CodecH264{
@@ -241,26 +281,13 @@ func (i *Init) Unmarshal(byts []byte) error {
 			}
 			esds := box.(*mp4.Esds)
 
-			encodedConf := func() []byte {
-				for _, desc := range esds.Descriptors {
-					if desc.Tag == mp4.DecSpecificInfoTag {
-						return desc.Data
-					}
-				}
-				return nil
-			}()
-			if encodedConf == nil {
-				return nil, fmt.Errorf("unable to find MPEG-4 Audio configuration")
-			}
-
-			var c mpeg4audio.Config
-			err = c.Unmarshal(encodedConf)
+			config, err := findMPEG4AudioConfig(esds.Descriptors)
 			if err != nil {
-				return nil, fmt.Errorf("invalid MPEG-4 Audio configuration: %s", err)
+				return nil, err
 			}
 
 			curTrack.Codec = &CodecMPEG4Audio{
-				Config: c,
+				Config: *config,
 			}
 			state = waitingTrak
 
