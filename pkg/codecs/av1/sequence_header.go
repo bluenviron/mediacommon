@@ -463,11 +463,11 @@ func (h *SequenceHeader) Unmarshal(buf []byte) error {
 }
 
 // Width returns the video width.
-func (h *SequenceHeader) Width() int {
+func (h SequenceHeader) Width() int {
 	return int(h.MaxFrameWidthMinus1 + 1)
 }
 
 // Height returns the video height.
-func (h *SequenceHeader) Height() int {
+func (h SequenceHeader) Height() int {
 	return int(h.MaxFrameHeightMinus1 + 1)
 }

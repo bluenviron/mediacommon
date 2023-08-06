@@ -132,6 +132,7 @@ func (i *Init) Unmarshal(byts []byte) error {
 		waitingMdhd
 		waitingCodec
 		waitingAv1C
+		waitingVpcC
 		waitingHvcC
 		waitingAvcC
 		waitingEsds
@@ -180,32 +181,70 @@ func (i *Init) Unmarshal(byts []byte) error {
 			curTrack.TimeScale = mdhd.Timescale
 			state = waitingCodec
 
-		case "av01":
+		case "avc1":
 			if state != waitingCodec {
-				return nil, fmt.Errorf("unexpected box 'av01'")
+				return nil, fmt.Errorf("unexpected box 'avc1'")
 			}
-			state = waitingAv1C
+			state = waitingAvcC
 
-		case "av1C":
-			if state != waitingAv1C {
-				return nil, fmt.Errorf("unexpected box 'av1C'")
+		case "avcC":
+			if state != waitingAvcC {
+				return nil, fmt.Errorf("unexpected box 'avcC'")
 			}
 
 			box, _, err := h.ReadPayload()
 			if err != nil {
 				return nil, err
 			}
-			av1c := box.(*Av1C)
+			avcc := box.(*mp4.AVCDecoderConfiguration)
 
-			sequenceHeader, err := findSequenceHeader(av1c.ConfigOBUs)
+			sps, pps, err := findH264Params(avcc)
 			if err != nil {
 				return nil, err
 			}
 
-			curTrack.Codec = &CodecAV1{
-				SequenceHeader: sequenceHeader,
+			curTrack.Codec = &CodecH264{
+				SPS: sps,
+				PPS: pps,
 			}
 			state = waitingTrak
+
+		case "vp09":
+			if state != waitingCodec {
+				return nil, fmt.Errorf("unexpected box 'vp09'")
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			vp09 := box.(*mp4.VisualSampleEntry)
+
+			curTrack.Codec = &CodecVP9{
+				Width:  int(vp09.Width),
+				Height: int(vp09.Height),
+			}
+			state = waitingVpcC
+
+		case "vpcC":
+			if state != waitingVpcC {
+				return nil, fmt.Errorf("unexpected box 'vpcC'")
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			vpcc := box.(*VpcC)
+
+			curTrack.Codec.(*CodecVP9).Profile = vpcc.Profile
+			curTrack.Codec.(*CodecVP9).BitDepth = vpcc.BitDepth
+			curTrack.Codec.(*CodecVP9).ChromaSubsampling = vpcc.ChromaSubsampling
+			curTrack.Codec.(*CodecVP9).ColorRange = vpcc.VideoFullRangeFlag != 0
+			state = waitingTrak
+
+		case "vp08": // VP8, not supported yet
+			return nil, nil
 
 		case "hev1", "hvc1":
 			if state != waitingCodec {
@@ -236,31 +275,52 @@ func (i *Init) Unmarshal(byts []byte) error {
 			}
 			state = waitingTrak
 
-		case "avc1":
+		case "av01":
 			if state != waitingCodec {
-				return nil, fmt.Errorf("unexpected box 'avc1'")
+				return nil, fmt.Errorf("unexpected box 'av01'")
 			}
-			state = waitingAvcC
+			state = waitingAv1C
 
-		case "avcC":
-			if state != waitingAvcC {
-				return nil, fmt.Errorf("unexpected box 'avcC'")
+		case "av1C":
+			if state != waitingAv1C {
+				return nil, fmt.Errorf("unexpected box 'av1C'")
 			}
 
 			box, _, err := h.ReadPayload()
 			if err != nil {
 				return nil, err
 			}
-			avcc := box.(*mp4.AVCDecoderConfiguration)
+			av1c := box.(*Av1C)
 
-			sps, pps, err := findH264Params(avcc)
+			sequenceHeader, err := findSequenceHeader(av1c.ConfigOBUs)
 			if err != nil {
 				return nil, err
 			}
 
-			curTrack.Codec = &CodecH264{
-				SPS: sps,
-				PPS: pps,
+			curTrack.Codec = &CodecAV1{
+				SequenceHeader: sequenceHeader,
+			}
+			state = waitingTrak
+
+		case "Opus":
+			if state != waitingCodec {
+				return nil, fmt.Errorf("unexpected box 'Opus'")
+			}
+			state = waitingDOps
+
+		case "dOps":
+			if state != waitingDOps {
+				return nil, fmt.Errorf("unexpected box 'dOps'")
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			dops := box.(*DOps)
+
+			curTrack.Codec = &CodecOpus{
+				ChannelCount: int(dops.OutputChannelCount),
 			}
 			state = waitingTrak
 
@@ -288,28 +348,6 @@ func (i *Init) Unmarshal(byts []byte) error {
 
 			curTrack.Codec = &CodecMPEG4Audio{
 				Config: *config,
-			}
-			state = waitingTrak
-
-		case "Opus":
-			if state != waitingCodec {
-				return nil, fmt.Errorf("unexpected box 'Opus'")
-			}
-			state = waitingDOps
-
-		case "dOps":
-			if state != waitingDOps {
-				return nil, fmt.Errorf("unexpected box 'dOps'")
-			}
-
-			box, _, err := h.ReadPayload()
-			if err != nil {
-				return nil, err
-			}
-			dops := box.(*DOps)
-
-			curTrack.Codec = &CodecOpus{
-				ChannelCount: int(dops.OutputChannelCount),
 			}
 			state = waitingTrak
 
