@@ -2,10 +2,13 @@ package mpegts
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/asticode/go-astits"
+
 	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
+	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg1audio"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
 )
 
@@ -212,6 +215,20 @@ func (w *Writer) WriteMPEG1Audio(
 	pts int64,
 	frames [][]byte,
 ) error {
+	if !track.mp3Checked {
+		var h mpeg1audio.FrameHeader
+		err := h.Unmarshal(frames[0])
+		if err != nil {
+			return err
+		}
+
+		if h.MPEG2 {
+			return fmt.Errorf("Only MPEG-1 audio is supported")
+		}
+
+		track.mp3Checked = true
+	}
+
 	n := 0
 	for _, frame := range frames {
 		n += len(frame)

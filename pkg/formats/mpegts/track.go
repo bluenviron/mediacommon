@@ -82,6 +82,8 @@ func findOpusCodec(descriptors []*astits.Descriptor) *CodecOpus {
 type Track struct {
 	PID   uint16
 	Codec Codec
+
+	mp3Checked bool // Writer-only
 }
 
 func (t *Track) marshal() (*astits.PMTElementaryStream, error) {
