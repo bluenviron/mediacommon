@@ -2,5 +2,7 @@ package fmp4
 
 // Codec is a fMP4 codec.
 type Codec interface {
-	isVideo() bool
+	IsVideo() bool
+
+	isCodec()
 }

@@ -7,6 +7,9 @@ type CodecH265 struct {
 	VPS []byte
 }
 
-func (CodecH265) isVideo() bool {
+// IsVideo implements Codec.
+func (CodecH265) IsVideo() bool {
 	return true
 }
+
+func (CodecH265) isCodec() {}

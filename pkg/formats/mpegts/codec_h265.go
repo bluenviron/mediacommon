@@ -15,6 +15,7 @@ func (c CodecH265) marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 	}, nil
 }
 
-func (CodecH265) isVideo() bool {
+// IsVideo implements Codec.
+func (CodecH265) IsVideo() bool {
 	return true
 }

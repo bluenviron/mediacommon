@@ -6,6 +6,9 @@ type CodecH264 struct {
 	PPS []byte
 }
 
-func (CodecH264) isVideo() bool {
+// IsVideo implements Codec.
+func (CodecH264) IsVideo() bool {
 	return true
 }
+
+func (CodecH264) isCodec() {}

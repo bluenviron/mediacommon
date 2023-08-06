@@ -19,7 +19,7 @@ const (
 
 func leadingTrack(tracks []*Track) *Track {
 	for _, track := range tracks {
-		if track.Codec.isVideo() {
+		if track.Codec.IsVideo() {
 			return track
 		}
 	}

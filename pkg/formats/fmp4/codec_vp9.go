@@ -10,6 +10,9 @@ type CodecVP9 struct {
 	ColorRange        bool
 }
 
-func (CodecVP9) isVideo() bool {
+// IsVideo implements Codec.
+func (CodecVP9) IsVideo() bool {
 	return true
 }
+
+func (CodecVP9) isCodec() {}
