@@ -37,7 +37,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 				   - url
 			   - stbl
 				 - stsd
-				  - av01 (AV1)
+				   - av01 (AV1)
 					 - av1C
 					 - btrt
 				   - hev1 (H265)
@@ -46,10 +46,13 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 				   - avc1 (H264)
 					 - avcC
 					 - btrt
-				- Opus (Opus)
+				   - Opus (Opus)
 					 - dOps
 					 - btrt
 				   - mp4a (MPEG-4 audio)
+					 - esds
+					 - btrt
+				   - mp4a (MPEG-1 audio)
 					 - esds
 					 - btrt
 				 - stts
