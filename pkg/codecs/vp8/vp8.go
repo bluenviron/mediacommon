@@ -1,5 +1,5 @@
-// Package vp9 contains utilities to work with the VP9 codec.
-package vp9
+// Package vp8 contains utilities to work with the VP8 codec.
+package vp8
 
 const (
 	// MaxFrameSize is the maximum size of a frame.
