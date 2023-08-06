@@ -33,6 +33,7 @@ func (c CodecOpus) marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 	}, nil
 }
 
-func (CodecOpus) isVideo() bool {
+// IsVideo implements Codec.
+func (CodecOpus) IsVideo() bool {
 	return false
 }

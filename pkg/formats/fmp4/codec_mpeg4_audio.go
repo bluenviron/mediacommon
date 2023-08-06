@@ -9,6 +9,9 @@ type CodecMPEG4Audio struct {
 	mpeg4audio.Config
 }
 
-func (CodecMPEG4Audio) isVideo() bool {
+// IsVideo implements Codec.
+func (CodecMPEG4Audio) IsVideo() bool {
 	return false
 }
+
+func (CodecMPEG4Audio) isCodec() {}

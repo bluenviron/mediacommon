@@ -112,7 +112,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		height = h264SPS.Height()
 	}
 
-	if track.Codec.isVideo() {
+	if track.Codec.IsVideo() {
 		_, err = w.writeBox(&mp4.Tkhd{ // <tkhd/>
 			FullBox: mp4.FullBox{
 				Flags: [3]byte{0, 0, 3},
@@ -153,7 +153,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		return err
 	}
 
-	if track.Codec.isVideo() {
+	if track.Codec.IsVideo() {
 		_, err = w.writeBox(&mp4.Hdlr{ // <hdlr/>
 			HandlerType: [4]byte{'v', 'i', 'd', 'e'},
 			Name:        "VideoHandler",
@@ -176,7 +176,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		return err
 	}
 
-	if track.Codec.isVideo() {
+	if track.Codec.IsVideo() {
 		_, err = w.writeBox(&mp4.Vmhd{ // <vmhd/>
 			FullBox: mp4.FullBox{
 				Flags: [3]byte{0, 0, 1},
@@ -513,7 +513,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		}
 	}
 
-	if track.Codec.isVideo() {
+	if track.Codec.IsVideo() {
 		_, err = w.writeBox(&mp4.Btrt{ // <btrt/>
 			MaxBitrate: 1000000,
 			AvgBitrate: 1000000,

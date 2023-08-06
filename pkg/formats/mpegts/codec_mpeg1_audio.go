@@ -15,6 +15,7 @@ func (c CodecMPEG1Audio) marshal(pid uint16) (*astits.PMTElementaryStream, error
 	}, nil
 }
 
-func (CodecMPEG1Audio) isVideo() bool {
+// IsVideo implements Codec.
+func (CodecMPEG1Audio) IsVideo() bool {
 	return true
 }
