@@ -40,6 +40,9 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 				   - av01 (AV1)
 					 - av1C
 					 - btrt
+				   - vp09 (VP9)
+					 - vpcC
+					 - btrt
 				   - hev1 (H265)
 					 - hvcC
 					 - btrt
@@ -84,6 +87,10 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		width = av1SequenceHeader.Width()
 		height = av1SequenceHeader.Height()
 
+	case *CodecVP9:
+		width = codec.Width
+		height = codec.Height
+
 	case *CodecH265:
 		h265SPS = &h265.SPS{}
 		err = h265SPS.Unmarshal(codec.SPS)
@@ -105,8 +112,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		height = h264SPS.Height()
 	}
 
-	switch track.Codec.(type) {
-	case *CodecAV1, *CodecH265, *CodecH264:
+	if track.Codec.isVideo() {
 		_, err = w.writeBox(&mp4.Tkhd{ // <tkhd/>
 			FullBox: mp4.FullBox{
 				Flags: [3]byte{0, 0, 3},
@@ -119,8 +125,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		if err != nil {
 			return err
 		}
-
-	case *CodecOpus, *CodecMPEG4Audio:
+	} else {
 		_, err = w.writeBox(&mp4.Tkhd{ // <tkhd/>
 			FullBox: mp4.FullBox{
 				Flags: [3]byte{0, 0, 3},
@@ -148,8 +153,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		return err
 	}
 
-	switch track.Codec.(type) {
-	case *CodecAV1, *CodecH265, *CodecH264:
+	if track.Codec.isVideo() {
 		_, err = w.writeBox(&mp4.Hdlr{ // <hdlr/>
 			HandlerType: [4]byte{'v', 'i', 'd', 'e'},
 			Name:        "VideoHandler",
@@ -157,8 +161,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		if err != nil {
 			return err
 		}
-
-	case *CodecOpus, *CodecMPEG4Audio:
+	} else {
 		_, err = w.writeBox(&mp4.Hdlr{ // <hdlr/>
 			HandlerType: [4]byte{'s', 'o', 'u', 'n'},
 			Name:        "SoundHandler",
@@ -173,8 +176,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		return err
 	}
 
-	switch track.Codec.(type) {
-	case *CodecAV1, *CodecH265, *CodecH264:
+	if track.Codec.isVideo() {
 		_, err = w.writeBox(&mp4.Vmhd{ // <vmhd/>
 			FullBox: mp4.FullBox{
 				Flags: [3]byte{0, 0, 1},
@@ -183,10 +185,8 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		if err != nil {
 			return err
 		}
-
-	case *CodecOpus, *CodecMPEG4Audio:
-		_, err = w.writeBox(&mp4.Smhd{ // <smhd/>
-		})
+	} else {
+		_, err = w.writeBox(&mp4.Smhd{}) // <smhd/>
 		if err != nil {
 			return err
 		}
@@ -279,15 +279,36 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 			return err
 		}
 
-		_, err = w.writeBox(&mp4.Btrt{ // <btrt/>
-			MaxBitrate: 1000000,
-			AvgBitrate: 1000000,
+	case *CodecVP9:
+		_, err = w.writeBoxStart(&mp4.VisualSampleEntry{ // <vp09>
+			SampleEntry: mp4.SampleEntry{
+				AnyTypeBox: mp4.AnyTypeBox{
+					Type: BoxTypeVp09(),
+				},
+				DataReferenceIndex: 1,
+			},
+			Width:           uint16(width),
+			Height:          uint16(height),
+			Horizresolution: 4718592,
+			Vertresolution:  4718592,
+			FrameCount:      1,
+			Depth:           24,
+			PreDefined3:     -1,
 		})
 		if err != nil {
 			return err
 		}
 
-		err = w.writeBoxEnd() // </av01>
+		_, err = w.writeBox(&VpcC{ // <vpcC/>
+			FullBox: mp4.FullBox{
+				Version: 1,
+			},
+			Profile:            codec.Profile,
+			Level:              10, // level 1
+			BitDepth:           codec.BitDepth,
+			ChromaSubsampling:  codec.ChromaSubsampling,
+			VideoFullRangeFlag: boolToUint8(codec.ColorRange),
+		})
 		if err != nil {
 			return err
 		}
@@ -363,19 +384,6 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 			return err
 		}
 
-		_, err = w.writeBox(&mp4.Btrt{ // <btrt/>
-			MaxBitrate: 1000000,
-			AvgBitrate: 1000000,
-		})
-		if err != nil {
-			return err
-		}
-
-		err = w.writeBoxEnd() // </hev1>
-		if err != nil {
-			return err
-		}
-
 	case *CodecH264:
 		_, err = w.writeBoxStart(&mp4.VisualSampleEntry{ // <avc1>
 			SampleEntry: mp4.SampleEntry{
@@ -424,19 +432,6 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 			return err
 		}
 
-		_, err = w.writeBox(&mp4.Btrt{ // <btrt/>
-			MaxBitrate: 1000000,
-			AvgBitrate: 1000000,
-		})
-		if err != nil {
-			return err
-		}
-
-		err = w.writeBoxEnd() // </avc1>
-		if err != nil {
-			return err
-		}
-
 	case *CodecOpus:
 		_, err = w.writeBoxStart(&mp4.AudioSampleEntry{ // <Opus>
 			SampleEntry: mp4.SampleEntry{
@@ -458,19 +453,6 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 			PreSkip:            312,
 			InputSampleRate:    48000,
 		})
-		if err != nil {
-			return err
-		}
-
-		_, err = w.writeBox(&mp4.Btrt{ // <btrt/>
-			MaxBitrate: 128825,
-			AvgBitrate: 128825,
-		})
-		if err != nil {
-			return err
-		}
-
-		err = w.writeBoxEnd() // </Opus>
 		if err != nil {
 			return err
 		}
@@ -529,7 +511,17 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		if err != nil {
 			return err
 		}
+	}
 
+	if track.Codec.isVideo() {
+		_, err = w.writeBox(&mp4.Btrt{ // <btrt/>
+			MaxBitrate: 1000000,
+			AvgBitrate: 1000000,
+		})
+		if err != nil {
+			return err
+		}
+	} else {
 		_, err = w.writeBox(&mp4.Btrt{ // <btrt/>
 			MaxBitrate: 128825,
 			AvgBitrate: 128825,
@@ -537,11 +529,11 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		if err != nil {
 			return err
 		}
+	}
 
-		err = w.writeBoxEnd() // </mp4a>
-		if err != nil {
-			return err
-		}
+	err = w.writeBoxEnd() // </*>
+	if err != nil {
+		return err
 	}
 
 	err = w.writeBoxEnd() // </stsd>

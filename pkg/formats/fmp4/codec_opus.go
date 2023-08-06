@@ -5,4 +5,6 @@ type CodecOpus struct {
 	ChannelCount int
 }
 
-func (CodecOpus) isCodec() {}
+func (CodecOpus) isVideo() bool {
+	return false
+}

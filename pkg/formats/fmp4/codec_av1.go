@@ -5,4 +5,6 @@ type CodecAV1 struct {
 	SequenceHeader []byte
 }
 
-func (CodecAV1) isCodec() {}
+func (CodecAV1) isVideo() bool {
+	return true
+}

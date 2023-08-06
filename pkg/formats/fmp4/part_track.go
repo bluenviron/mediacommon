@@ -42,13 +42,6 @@ func NewPartSampleH26x(ptsOffset int32, randomAccessPresent bool, au [][]byte) (
 	}, nil
 }
 
-// NewPartSampleAudio creates a sample with audio data.
-func NewPartSampleAudio(au []byte) *PartSample {
-	return &PartSample{
-		Payload: au,
-	}
-}
-
 // GetAV1 gets AV1 data from the sample.
 func (ps PartSample) GetAV1() ([][]byte, error) {
 	obus, err := av1.BitstreamUnmarshal(ps.Payload, true)
@@ -67,11 +60,6 @@ func (ps PartSample) GetH26x() ([][]byte, error) {
 	}
 
 	return au, nil
-}
-
-// GetAudio gets audio data from the sample.
-func (ps PartSample) GetAudio() []byte {
-	return ps.Payload
 }
 
 // PartTrack is a track of Part.
