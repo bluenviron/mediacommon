@@ -290,7 +290,7 @@ func (i *Init) Unmarshal(byts []byte) error {
 			if err != nil {
 				return nil, err
 			}
-			av1c := box.(*Av1C)
+			av1c := box.(*mp4.Av1C)
 
 			sequenceHeader, err := av1FindSequenceHeader(av1c.ConfigOBUs)
 			if err != nil {
@@ -317,7 +317,7 @@ func (i *Init) Unmarshal(byts []byte) error {
 			if err != nil {
 				return nil, err
 			}
-			dops := box.(*DOps)
+			dops := box.(*mp4.DOps)
 
 			curTrack.Codec = &CodecOpus{
 				ChannelCount: int(dops.OutputChannelCount),
