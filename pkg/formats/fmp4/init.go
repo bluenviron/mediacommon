@@ -12,13 +12,13 @@ import (
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
 )
 
-func findSequenceHeader(bs []byte) ([]byte, error) {
-	obus, err := av1.BitstreamUnmarshal(bs, true)
+func av1FindSequenceHeader(bs []byte) ([]byte, error) {
+	tu, err := av1.BitstreamUnmarshal(bs, true)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, obu := range obus {
+	for _, obu := range tu {
 		var h av1.OBUHeader
 		err := h.Unmarshal(obu)
 		if err != nil {
@@ -33,7 +33,7 @@ func findSequenceHeader(bs []byte) ([]byte, error) {
 	return nil, fmt.Errorf("sequence header not found")
 }
 
-func findH265Params(params []mp4.HEVCNaluArray) ([]byte, []byte, []byte, error) {
+func h265FindParams(params []mp4.HEVCNaluArray) ([]byte, []byte, []byte, error) {
 	var vps []byte
 	var sps []byte
 	var pps []byte
@@ -73,7 +73,7 @@ func findH265Params(params []mp4.HEVCNaluArray) ([]byte, []byte, []byte, error) 
 	return vps, sps, pps, nil
 }
 
-func findH264Params(avcc *mp4.AVCDecoderConfiguration) ([]byte, []byte, error) {
+func h264FindParams(avcc *mp4.AVCDecoderConfiguration) ([]byte, []byte, error) {
 	if len(avcc.SequenceParameterSets) > 1 {
 		return nil, nil, fmt.Errorf("multiple SPS are not supported")
 	}
@@ -95,7 +95,7 @@ func findH264Params(avcc *mp4.AVCDecoderConfiguration) ([]byte, []byte, error) {
 	return sps, pps, nil
 }
 
-func findMPEG4AudioConfig(descriptors []mp4.Descriptor) (*mpeg4audio.Config, error) {
+func mpeg4AudioFindConfig(descriptors []mp4.Descriptor) (*mpeg4audio.Config, error) {
 	encodedConf := func() []byte {
 		for _, desc := range descriptors {
 			if desc.Tag == mp4.DecSpecificInfoTag {
@@ -198,7 +198,7 @@ func (i *Init) Unmarshal(byts []byte) error {
 			}
 			avcc := box.(*mp4.AVCDecoderConfiguration)
 
-			sps, pps, err := findH264Params(avcc)
+			sps, pps, err := h264FindParams(avcc)
 			if err != nil {
 				return nil, err
 			}
@@ -263,7 +263,7 @@ func (i *Init) Unmarshal(byts []byte) error {
 			}
 			hvcc := box.(*mp4.HvcC)
 
-			vps, sps, pps, err := findH265Params(hvcc.NaluArrays)
+			vps, sps, pps, err := h265FindParams(hvcc.NaluArrays)
 			if err != nil {
 				return nil, err
 			}
@@ -292,7 +292,7 @@ func (i *Init) Unmarshal(byts []byte) error {
 			}
 			av1c := box.(*Av1C)
 
-			sequenceHeader, err := findSequenceHeader(av1c.ConfigOBUs)
+			sequenceHeader, err := av1FindSequenceHeader(av1c.ConfigOBUs)
 			if err != nil {
 				return nil, err
 			}
@@ -341,7 +341,7 @@ func (i *Init) Unmarshal(byts []byte) error {
 			}
 			esds := box.(*mp4.Esds)
 
-			config, err := findMPEG4AudioConfig(esds.Descriptors)
+			config, err := mpeg4AudioFindConfig(esds.Descriptors)
 			if err != nil {
 				return nil, err
 			}

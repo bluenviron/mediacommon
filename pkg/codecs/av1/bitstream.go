@@ -11,7 +11,7 @@ func obuRemoveSize(h *OBUHeader, sizeN int, ob []byte) []byte {
 	return newOBU
 }
 
-// BitstreamUnmarshal extracts OBUs from a bitstream.
+// BitstreamUnmarshal extracts a temporal unit from a bitstream.
 // Optionally, it also removes the size field from OBUs.
 // Specification: https://aomediacodec.github.io/av1-spec/#low-overhead-bitstream-format
 func BitstreamUnmarshal(bs []byte, removeSizeField bool) ([][]byte, error) {
@@ -55,12 +55,12 @@ func BitstreamUnmarshal(bs []byte, removeSizeField bool) ([][]byte, error) {
 	return ret, nil
 }
 
-// BitstreamMarshal encodes OBUs into a bitstream.
+// BitstreamMarshal encodes a temporal unit into a bitstream.
 // Specification: https://aomediacodec.github.io/av1-spec/#low-overhead-bitstream-format
-func BitstreamMarshal(obus [][]byte) ([]byte, error) {
+func BitstreamMarshal(tu [][]byte) ([]byte, error) {
 	n := 0
 
-	for _, obu := range obus {
+	for _, obu := range tu {
 		n += len(obu)
 
 		var h OBUHeader
@@ -78,7 +78,7 @@ func BitstreamMarshal(obus [][]byte) ([]byte, error) {
 	buf := make([]byte, n)
 	n = 0
 
-	for _, obu := range obus {
+	for _, obu := range tu {
 		var h OBUHeader
 		h.Unmarshal(obu)
 

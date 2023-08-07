@@ -16,8 +16,8 @@ type PartSample struct {
 }
 
 // NewPartSampleAV1 creates a sample with AV1 data.
-func NewPartSampleAV1(sequenceHeaderPresent bool, obus [][]byte) (*PartSample, error) {
-	bs, err := av1.BitstreamMarshal(obus)
+func NewPartSampleAV1(sequenceHeaderPresent bool, tu [][]byte) (*PartSample, error) {
+	bs, err := av1.BitstreamMarshal(tu)
 	if err != nil {
 		return nil, err
 	}
@@ -44,12 +44,12 @@ func NewPartSampleH26x(ptsOffset int32, randomAccessPresent bool, au [][]byte) (
 
 // GetAV1 gets AV1 data from the sample.
 func (ps PartSample) GetAV1() ([][]byte, error) {
-	obus, err := av1.BitstreamUnmarshal(ps.Payload, true)
+	tu, err := av1.BitstreamUnmarshal(ps.Payload, true)
 	if err != nil {
 		return nil, err
 	}
 
-	return obus, nil
+	return tu, nil
 }
 
 // GetH26x gets H26x data from the sample.

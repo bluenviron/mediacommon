@@ -4,14 +4,6 @@ import (
 	"fmt"
 )
 
-// OBUType is an OBU type.
-type OBUType uint8
-
-// OBU types.
-const (
-	OBUTypeSequenceHeader OBUType = 1
-)
-
 // OBUHeader is a OBU header.
 // Specification: https://aomediacodec.github.io/av1-spec/#obu-header-syntax
 type OBUHeader struct {

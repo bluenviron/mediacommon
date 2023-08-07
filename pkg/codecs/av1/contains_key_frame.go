@@ -1,13 +1,17 @@
 package av1
 
-// ContainsKeyFrame checks whether OBUs contain a key frame.
-func ContainsKeyFrame(obus [][]byte) (bool, error) {
-	if len(obus) == 0 {
-		return false, nil
+import (
+	"fmt"
+)
+
+// ContainsKeyFrame checks whether a temporal unit contain a key frame.
+func ContainsKeyFrame(tu [][]byte) (bool, error) {
+	if len(tu) == 0 {
+		return false, fmt.Errorf("temporal unit is empty")
 	}
 
 	var h OBUHeader
-	err := h.Unmarshal(obus[0])
+	err := h.Unmarshal(tu[0])
 	if err != nil {
 		return false, err
 	}
