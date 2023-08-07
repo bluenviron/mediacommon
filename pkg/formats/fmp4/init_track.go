@@ -240,7 +240,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		_, err = w.writeBoxStart(&mp4.VisualSampleEntry{ // <av01>
 			SampleEntry: mp4.SampleEntry{
 				AnyTypeBox: mp4.AnyTypeBox{
-					Type: BoxTypeAv01(),
+					Type: mp4.BoxTypeAv01(),
 				},
 				DataReferenceIndex: 1,
 			},
@@ -261,7 +261,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 			return err
 		}
 
-		_, err = w.writeBox(&Av1C{ // <av1C/>
+		_, err = w.writeBox(&mp4.Av1C{ // <av1C/>
 			Marker:               1,
 			Version:              1,
 			SeqProfile:           av1SequenceHeader.SeqProfile,
@@ -436,7 +436,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		_, err = w.writeBoxStart(&mp4.AudioSampleEntry{ // <Opus>
 			SampleEntry: mp4.SampleEntry{
 				AnyTypeBox: mp4.AnyTypeBox{
-					Type: BoxTypeOpus(),
+					Type: mp4.BoxTypeOpus(),
 				},
 				DataReferenceIndex: 1,
 			},
@@ -448,7 +448,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 			return err
 		}
 
-		_, err = w.writeBox(&DOps{ // <dOps/>
+		_, err = w.writeBox(&mp4.DOps{ // <dOps/>
 			OutputChannelCount: uint8(codec.ChannelCount),
 			PreSkip:            312,
 			InputSampleRate:    48000,
