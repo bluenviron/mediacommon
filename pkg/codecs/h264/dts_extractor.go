@@ -92,7 +92,7 @@ func NewDTSExtractor() *DTSExtractor {
 	}
 }
 
-func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Duration, error) {
+func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Duration, bool, error) {
 	idrPresent := false
 
 	for _, nalu := range au {
@@ -103,7 +103,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 				var spsp SPS
 				err := spsp.Unmarshal(nalu)
 				if err != nil {
-					return 0, fmt.Errorf("invalid SPS: %v", err)
+					return 0, false, fmt.Errorf("invalid SPS: %v", err)
 				}
 				d.sps = nalu
 				d.spsp = &spsp
@@ -119,40 +119,39 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 	}
 
 	if d.spsp == nil {
-		return 0, fmt.Errorf("SPS not received yet")
+		return 0, false, fmt.Errorf("SPS not received yet")
 	}
 
 	if d.spsp.PicOrderCntType == 2 {
-		return pts, nil
+		return pts, false, nil
 	}
 
 	if d.spsp.PicOrderCntType == 1 {
-		return 0, fmt.Errorf("pic_order_cnt_type = 1 is not supported yet")
+		return 0, false, fmt.Errorf("pic_order_cnt_type = 1 is not supported yet")
 	}
 
 	if idrPresent {
 		d.expectedPOC = 0
-	} else {
-		d.expectedPOC += uint32(d.pocIncrement)
-		d.expectedPOC &= ((1 << (d.spsp.Log2MaxPicOrderCntLsbMinus4 + 4)) - 1)
+		d.pauseDTS = 0
+
+		if !d.prevDTSFilled || d.reorderedFrames == 0 {
+			return pts, false, nil
+		}
+
+		return d.prevDTS + (pts-d.prevDTS)/time.Duration(d.reorderedFrames+1), false, nil
 	}
+
+	d.expectedPOC += uint32(d.pocIncrement)
+	d.expectedPOC &= ((1 << (d.spsp.Log2MaxPicOrderCntLsbMinus4 + 4)) - 1)
 
 	if d.pauseDTS > 0 {
 		d.pauseDTS--
-		return d.prevDTS + 1*time.Millisecond, nil
-	}
-
-	if idrPresent {
-		if !d.prevDTSFilled || d.reorderedFrames == 0 {
-			return pts, nil
-		}
-
-		return d.prevDTS + (pts-d.prevDTS)/time.Duration(d.reorderedFrames+1), nil
+		return d.prevDTS + 1*time.Millisecond, true, nil
 	}
 
 	poc, err := findPictureOrderCount(au, d.spsp)
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
 
 	if d.pocIncrement == 2 && (poc%2) != 0 {
@@ -163,32 +162,46 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 	pocDiff := int(getPictureOrderCountDiff(poc, d.expectedPOC, d.spsp)) + d.reorderedFrames*d.pocIncrement
 
 	if pocDiff < 0 {
-		return 0, fmt.Errorf("invalid POC")
+		if pocDiff < -20 {
+			return 0, false, fmt.Errorf("POC difference between frames is too big (%d)", pocDiff)
+		}
+
+		// this happens when there are B-frames immediately following an IDR frame
+		d.reorderedFrames -= pocDiff
+		d.pauseDTS = -pocDiff
+		return d.prevDTS + 1*time.Millisecond, true, nil
 	}
 
 	if pocDiff == 0 {
-		return pts, nil
+		return pts, false, nil
 	}
 
-	reorderedFrames := (pocDiff - d.reorderedFrames*d.pocIncrement) / d.pocIncrement
+	if pocDiff > 20 {
+		return 0, false, fmt.Errorf("POC difference between frames is too big (%d)", pocDiff)
+	}
+
+	reorderedFrames := (pocDiff)/d.pocIncrement - d.reorderedFrames
 	if reorderedFrames > d.reorderedFrames {
+		// reordered frames detected, add them to the count and pause DTS
 		d.pauseDTS = (reorderedFrames - d.reorderedFrames - 1)
 		d.reorderedFrames = reorderedFrames
-		return d.prevDTS + 1*time.Millisecond, nil
+		return d.prevDTS + 1*time.Millisecond, false, nil
 	}
 
-	return d.prevDTS + (pts-d.prevDTS)*time.Duration(d.pocIncrement)/time.Duration(pocDiff+d.pocIncrement), nil
+	return d.prevDTS + (pts-d.prevDTS)*time.Duration(d.pocIncrement)/time.Duration(pocDiff+d.pocIncrement), false, nil
 }
 
-// Extract extracts the DTS of a access unit.
+// Extract extracts the DTS of an access unit.
 func (d *DTSExtractor) Extract(au [][]byte, pts time.Duration) (time.Duration, error) {
-	dts, err := d.extractInner(au, pts)
+	dts, skipChecks, err := d.extractInner(au, pts)
 	if err != nil {
 		return 0, err
 	}
 
-	if dts > pts {
-		return 0, fmt.Errorf("DTS is greater than PTS")
+	if !skipChecks {
+		if dts > pts {
+			return 0, fmt.Errorf("DTS is greater than PTS")
+		}
 	}
 
 	if d.prevDTSFilled && dts <= d.prevDTS {

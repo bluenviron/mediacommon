@@ -8,7 +8,7 @@ import (
 )
 
 func TestDTSExtractor(t *testing.T) {
-	type sequenceSample struct {
+	type sample struct {
 		au  [][]byte
 		dts time.Duration
 		pts time.Duration
@@ -16,11 +16,11 @@ func TestDTSExtractor(t *testing.T) {
 
 	for _, ca := range []struct {
 		name     string
-		sequence []sequenceSample
+		sequence []sample
 	}{
 		{
 			"with timing info",
-			[]sequenceSample{
+			[]sample{
 				{
 					[][]byte{
 						{ // SPS
@@ -84,7 +84,7 @@ func TestDTSExtractor(t *testing.T) {
 		},
 		{
 			"no timing info",
-			[]sequenceSample{
+			[]sample{
 				{
 					[][]byte{
 						{ // SPS
@@ -164,7 +164,7 @@ func TestDTSExtractor(t *testing.T) {
 		},
 		{
 			"poc increment = 1",
-			[]sequenceSample{
+			[]sample{
 				{
 					[][]byte{
 						{ // SPS
@@ -194,6 +194,48 @@ func TestDTSExtractor(t *testing.T) {
 					[][]byte{{0x61, 0xe0, 0x60, 0x00, 0x79, 0x37}},
 					181 * time.Millisecond,
 					181 * time.Millisecond,
+				},
+			},
+		},
+		{
+			"B-frames after IDR (OBS 29.1.3 QuickSync on Windows)",
+			[]sample{
+				{
+					[][]byte{
+						{ // SPS
+							0x27, 0x64, 0x00, 0x2a, 0xac, 0x2d, 0x90, 0x07,
+							0x80, 0x22, 0x7e, 0x5c, 0x05, 0xa8, 0x08, 0x08,
+							0x0a, 0x00, 0x00, 0x03, 0x00, 0x02, 0x00, 0x00,
+							0x03, 0x00, 0xf1, 0xd0, 0x80, 0x04, 0xc4, 0x80,
+							0x00, 0x09, 0x89, 0x68, 0xde, 0xf7, 0xc1, 0xda,
+							0x1c, 0x31, 0x92,
+						},
+						{ // IDR
+							0x65, 0x88, 0x80, 0x14, 0x3, 0xff, 0xde, 0x8, 0xe4, 0x74,
+						},
+					},
+					1916 * time.Millisecond,
+					1916 * time.Millisecond,
+				},
+				{ // b-frame
+					[][]byte{{0x41, 0x9e, 0x3, 0xe4, 0x3f, 0x0, 0x0, 0x3, 0x0, 0x0}},
+					1917 * time.Millisecond,
+					1883 * time.Millisecond,
+				},
+				{ // b-frame
+					[][]byte{{0x1, 0x9e, 0x5, 0xd4, 0x7f, 0x0, 0x0, 0x3, 0x0, 0x0}},
+					1918 * time.Millisecond,
+					1867 * time.Millisecond,
+				},
+				{ // p-frame
+					[][]byte{{0x1, 0x9e, 0x5, 0xf4, 0x7f, 0x0, 0x0, 0x3, 0x0, 0x0}},
+					1919 * time.Millisecond,
+					1899 * time.Millisecond,
+				},
+				{ // p-frame
+					[][]byte{{0x1, 0x9e, 0x5, 0xf4, 0x7f, 0x0, 0x0, 0x3, 0x0, 0x0}},
+					1920 * time.Millisecond,
+					1983 * time.Millisecond,
 				},
 			},
 		},
