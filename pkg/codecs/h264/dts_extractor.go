@@ -147,8 +147,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 			return pts, nil
 		}
 
-		pocDiff := d.reorderedFrames * d.pocIncrement
-		return d.prevDTS + (pts-d.prevDTS)*time.Duration(d.pocIncrement)/time.Duration(pocDiff+d.pocIncrement), nil
+		return d.prevDTS + (pts-d.prevDTS)/time.Duration(d.reorderedFrames+1), nil
 	}
 
 	poc, err := findPictureOrderCount(au, d.spsp)
