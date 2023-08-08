@@ -64,16 +64,13 @@ func findPictureOrderCount(au [][]byte, sps *SPS) (uint32, error) {
 	return 0, fmt.Errorf("POC not found")
 }
 
-func getPictureOrderCountDiff(poc1 uint32, poc2 uint32, sps *SPS) int32 {
-	diff := int32(poc1) - int32(poc2)
-	switch {
-	case diff < -((1 << (sps.Log2MaxPicOrderCntLsbMinus4 + 3)) - 1):
-		diff += (1 << (sps.Log2MaxPicOrderCntLsbMinus4 + 4))
-
-	case diff > ((1 << (sps.Log2MaxPicOrderCntLsbMinus4 + 3)) - 1):
-		diff -= (1 << (sps.Log2MaxPicOrderCntLsbMinus4 + 4))
+func getPictureOrderCountDiff(a uint32, b uint32, sps *SPS) int32 {
+	max := uint32(1 << (sps.Log2MaxPicOrderCntLsbMinus4 + 4))
+	d := (a - b) & (max - 1)
+	if d > (max / 2) {
+		return int32(d) - int32(max)
 	}
-	return diff
+	return int32(d)
 }
 
 // DTSExtractor allows to extract DTS from PTS.
