@@ -54,6 +54,6 @@ func TestBitstreamMarshal(t *testing.T) {
 
 func FuzzBitstreamUnmarshal(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
-		BitstreamUnmarshal(b, true)
+		BitstreamUnmarshal(b, true) //nolint:errcheck
 	})
 }

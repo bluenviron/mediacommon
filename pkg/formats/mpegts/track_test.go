@@ -315,7 +315,7 @@ func TestTrackMarshal(t *testing.T) {
 
 			var buf bytes.Buffer
 			mux := astits.NewMuxer(context.Background(), &buf)
-			mux.AddElementaryStream(*es)
+			mux.AddElementaryStream(*es) //nolint:errcheck
 			mux.SetPCRPID(ca.track.PID)
 			_, err = mux.WriteTables()
 			require.NoError(t, err)
@@ -381,7 +381,8 @@ func FuzzTrackUnmarshal(f *testing.F) {
 		var buf bytes.Buffer
 		mux := astits.NewMuxer(context.Background(), &buf)
 
-		mux.WritePacket(&astits.Packet{ // PMT
+		// PMT
+		mux.WritePacket(&astits.Packet{ //nolint:errcheck
 			Header: astits.PacketHeader{
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
@@ -394,7 +395,8 @@ func FuzzTrackUnmarshal(f *testing.F) {
 			}, bytes.Repeat([]byte{0xff}, 167)...),
 		})
 
-		mux.WritePacket(&astits.Packet{ // PAT
+		// PAT
+		mux.WritePacket(&astits.Packet{ //nolint:errcheck
 			Header: astits.PacketHeader{
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
@@ -403,7 +405,8 @@ func FuzzTrackUnmarshal(f *testing.F) {
 			Payload: append(a, bytes.Repeat([]byte{0xff}, 184-len(a))...),
 		})
 
-		mux.WritePacket(&astits.Packet{ // PES
+		// PES
+		mux.WritePacket(&astits.Packet{ //nolint:errcheck
 			AdaptationField: &astits.PacketAdaptationField{
 				Length:                130,
 				StuffingLength:        129,
@@ -426,7 +429,7 @@ func FuzzTrackUnmarshal(f *testing.F) {
 		pmt, err := findPMT(dem)
 		if err == nil {
 			var track Track
-			track.unmarshal(dem, pmt.ElementaryStreams[0])
+			track.unmarshal(dem, pmt.ElementaryStreams[0]) //nolint:errcheck
 		}
 	})
 }

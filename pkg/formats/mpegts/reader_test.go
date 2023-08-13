@@ -672,7 +672,7 @@ func FuzzReader(f *testing.F) {
 		mux := astits.NewMuxer(context.Background(), &buf)
 
 		// PMT
-		mux.WritePacket(&astits.Packet{
+		mux.WritePacket(&astits.Packet{ //nolint:errcheck
 			Header: astits.PacketHeader{
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
@@ -686,7 +686,7 @@ func FuzzReader(f *testing.F) {
 		})
 
 		// PAT
-		mux.WritePacket(&astits.Packet{
+		mux.WritePacket(&astits.Packet{ //nolint:errcheck
 			Header: astits.PacketHeader{
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
@@ -701,7 +701,7 @@ func FuzzReader(f *testing.F) {
 		})
 
 		// AAC config
-		mux.WritePacket(&astits.Packet{
+		mux.WritePacket(&astits.Packet{ //nolint:errcheck
 			AdaptationField: &astits.PacketAdaptationField{
 				Length:                158,
 				StuffingLength:        157,
@@ -727,7 +727,7 @@ func FuzzReader(f *testing.F) {
 		}
 
 		// PES
-		mux.WritePacket(&astits.Packet{
+		mux.WritePacket(&astits.Packet{ //nolint:errcheck
 			AdaptationField: &astits.PacketAdaptationField{
 				Length:                130,
 				StuffingLength:        129,
@@ -747,8 +747,8 @@ func FuzzReader(f *testing.F) {
 			Payload: b,
 		})
 
-		r.Read()
-		r.Read()
-		r.Read()
+		r.Read() //nolint:errcheck
+		r.Read() //nolint:errcheck
+		r.Read() //nolint:errcheck
 	})
 }

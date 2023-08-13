@@ -96,7 +96,7 @@ func TestAnnexBMarshal(t *testing.T) {
 
 func BenchmarkAnnexBUnmarshal(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		AnnexBUnmarshal([]byte{
+		AnnexBUnmarshal([]byte{ //nolint:errcheck
 			0x00, 0x00, 0x00, 0x01,
 			0x01, 0x02, 0x03, 0x04,
 			0x00, 0x00, 0x00, 0x01,
@@ -119,6 +119,6 @@ func BenchmarkAnnexBUnmarshal(b *testing.B) {
 
 func FuzzAnnexBUnmarshal(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
-		AnnexBUnmarshal(b)
+		AnnexBUnmarshal(b) //nolint:errcheck
 	})
 }

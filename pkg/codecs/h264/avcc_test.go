@@ -61,6 +61,6 @@ func TestAVCCMarshal(t *testing.T) {
 
 func FuzzAVCCUnmarshal(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
-		AVCCUnmarshal(b)
+		AVCCUnmarshal(b) //nolint:errcheck
 	})
 }
