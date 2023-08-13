@@ -51,7 +51,11 @@ func NewWriter(
 			w.nextPID++
 		}
 		es, _ := track.marshal()
-		w.mux.AddElementaryStream(*es)
+
+		err := w.mux.AddElementaryStream(*es)
+		if err != nil {
+			panic(err) // TODO: return error instead of panicking
+		}
 	}
 
 	w.mux.SetPCRPID(leadingTrack(tracks).PID)

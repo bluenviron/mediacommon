@@ -76,6 +76,6 @@ func FuzzDTSExtractor(f *testing.F) {
 		if len(b) < 1 {
 			return
 		}
-		ex.Extract([][]byte{sps, pps, b}, time.Duration(p))
+		ex.Extract([][]byte{sps, pps, b}, time.Duration(p)) //nolint:errcheck
 	})
 }

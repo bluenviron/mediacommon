@@ -439,7 +439,7 @@ func TestSPSUnmarshal(t *testing.T) {
 func BenchmarkSPSUnmarshal(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		var sps SPS
-		sps.Unmarshal([]byte{
+		sps.Unmarshal([]byte{ //nolint:errcheck
 			103, 77, 0, 41, 154, 100, 3, 192,
 			17, 63, 46, 2, 220, 4, 4, 5,
 			0, 0, 3, 3, 232, 0, 0, 195,
@@ -454,6 +454,6 @@ func BenchmarkSPSUnmarshal(b *testing.B) {
 func FuzzSPSUnmarshal(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
 		var sps SPS
-		sps.Unmarshal(b)
+		sps.Unmarshal(b) //nolint:errcheck
 	})
 }

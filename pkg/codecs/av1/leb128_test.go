@@ -52,6 +52,6 @@ func TestLEB128Marshal(t *testing.T) {
 
 func FuzzLEB128Unmarshal(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
-		LEB128Unmarshal(b)
+		LEB128Unmarshal(b) //nolint:errcheck
 	})
 }

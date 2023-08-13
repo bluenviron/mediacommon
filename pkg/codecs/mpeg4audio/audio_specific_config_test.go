@@ -144,6 +144,6 @@ func TestAudioSpecificConfigMarshalErrors(t *testing.T) {
 func FuzzAudioSpecificConfigUnmarshal(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
 		var conf AudioSpecificConfig
-		conf.Unmarshal(b)
+		conf.Unmarshal(b) //nolint:errcheck
 	})
 }

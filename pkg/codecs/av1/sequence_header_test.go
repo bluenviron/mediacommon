@@ -101,6 +101,6 @@ func TestSequenceHeaderUnmarshal(t *testing.T) {
 func FuzzSequenceHeaderUnmarshal(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
 		var sh SequenceHeader
-		sh.Unmarshal(b)
+		sh.Unmarshal(b) //nolint:errcheck
 	})
 }

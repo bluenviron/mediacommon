@@ -36,6 +36,6 @@ func TestDefineRestartIntervalUnmarshal(t *testing.T) {
 func FuzzDefineRestartIntervalUnmarshal(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
 		var h DefineRestartInterval
-		h.Unmarshal(b)
+		h.Unmarshal(b) //nolint:errcheck
 	})
 }

@@ -36,6 +36,6 @@ func TestOBUHeaderUnmarshal(t *testing.T) {
 func FuzzOBUHeaderUnmarshal(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
 		var h OBUHeader
-		h.Unmarshal(b)
+		h.Unmarshal(b) //nolint:errcheck
 	})
 }

@@ -44,6 +44,6 @@ func TestStartOfScanMarshal(t *testing.T) {
 func FuzzStartOfScanUnmarshal(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
 		var h StartOfScan
-		h.Unmarshal(b)
+		h.Unmarshal(b) //nolint:errcheck
 	})
 }

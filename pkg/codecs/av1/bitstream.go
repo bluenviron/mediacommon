@@ -80,7 +80,7 @@ func BitstreamMarshal(tu [][]byte) ([]byte, error) {
 
 	for _, obu := range tu {
 		var h OBUHeader
-		h.Unmarshal(obu)
+		h.Unmarshal(obu) //nolint:errcheck
 
 		if !h.HasSize {
 			buf[n] = obu[0] | 0b00000010
