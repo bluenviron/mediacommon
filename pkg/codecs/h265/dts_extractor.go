@@ -112,31 +112,13 @@ func getPictureOrderCount(buf []byte, sps *SPS, pps *PPS) (uint32, uint32, error
 	return uint32(picOrderCntLsb), dtsPOC, nil
 }
 
-func findPictureOrderCount(au [][]byte, sps *SPS, pps *PPS) (uint32, uint32, error) {
-	for _, nalu := range au {
-		typ := NALUType((nalu[0] >> 1) & 0b111111)
-		switch typ {
-		case NALUType_TRAIL_N, NALUType_TRAIL_R, NALUType_CRA_NUT, NALUType_RASL_N, NALUType_RASL_R:
-			poc, dtsPOC, err := getPictureOrderCount(nalu, sps, pps)
-			if err != nil {
-				return 0, 0, err
-			}
-			return poc, dtsPOC, nil
-		}
+func getPictureOrderCountDiff(a uint32, b uint32, sps *SPS) int32 {
+	max := uint32(1 << (sps.Log2MaxPicOrderCntLsbMinus4 + 4))
+	d := (a - b) & (max - 1)
+	if d > (max / 2) {
+		return int32(d) - int32(max)
 	}
-	return 0, 0, fmt.Errorf("POC not found")
-}
-
-func getPictureOrderCountDiff(poc1 uint32, poc2 uint32, sps *SPS) int32 {
-	diff := int32(poc1) - int32(poc2)
-	switch {
-	case diff < -((1 << (sps.Log2MaxPicOrderCntLsbMinus4 + 3)) - 1):
-		diff += (1 << (sps.Log2MaxPicOrderCntLsbMinus4 + 4))
-
-	case diff > ((1 << (sps.Log2MaxPicOrderCntLsbMinus4 + 3)) - 1):
-		diff -= (1 << (sps.Log2MaxPicOrderCntLsbMinus4 + 4))
-	}
-	return diff
+	return int32(d)
 }
 
 // DTSExtractor allows to extract DTS from PTS.
@@ -153,7 +135,8 @@ func NewDTSExtractor() *DTSExtractor {
 }
 
 func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Duration, error) {
-	idrPresent := false
+	var idr []byte
+	var nonIDR []byte
 
 	for _, nalu := range au {
 		typ := NALUType((nalu[0] >> 1) & 0b111111)
@@ -176,7 +159,10 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 			d.ppsp = &ppsp
 
 		case NALUType_IDR_W_RADL, NALUType_IDR_N_LP:
-			idrPresent = true
+			idr = nalu
+
+		case NALUType_TRAIL_N, NALUType_TRAIL_R, NALUType_CRA_NUT, NALUType_RASL_N, NALUType_RASL_R:
+			nonIDR = nalu
 		}
 	}
 
@@ -199,16 +185,21 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 	var poc uint32
 	var dtsPOC uint32
 
-	if idrPresent {
+	switch {
+	case idr != nil:
 		poc = 0
 		dtsPOC = poc - 2
 		dtsPOC &= ((1 << (d.spsp.Log2MaxPicOrderCntLsbMinus4 + 4)) - 1)
-	} else {
+
+	case nonIDR != nil:
 		var err error
-		poc, dtsPOC, err = findPictureOrderCount(au, d.spsp, d.ppsp)
+		poc, dtsPOC, err = getPictureOrderCount(nonIDR, d.spsp, d.ppsp)
 		if err != nil {
 			return 0, err
 		}
+
+	default:
+		return 0, fmt.Errorf("access unit doesn't contain an IDR or non-IDR NALU")
 	}
 
 	pocDiff := getPictureOrderCountDiff(poc, dtsPOC, d.spsp)
