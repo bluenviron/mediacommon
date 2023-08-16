@@ -283,7 +283,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		_, err = w.writeBoxStart(&mp4.VisualSampleEntry{ // <vp09>
 			SampleEntry: mp4.SampleEntry{
 				AnyTypeBox: mp4.AnyTypeBox{
-					Type: BoxTypeVp09(),
+					Type: mp4.BoxTypeVp09(),
 				},
 				DataReferenceIndex: 1,
 			},
@@ -299,7 +299,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 			return err
 		}
 
-		_, err = w.writeBox(&VpcC{ // <vpcC/>
+		_, err = w.writeBox(&mp4.VpcC{ // <vpcC/>
 			FullBox: mp4.FullBox{
 				Version: 1,
 			},

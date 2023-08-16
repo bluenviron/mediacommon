@@ -235,7 +235,7 @@ func (i *Init) Unmarshal(byts []byte) error {
 			if err != nil {
 				return nil, err
 			}
-			vpcc := box.(*VpcC)
+			vpcc := box.(*mp4.VpcC)
 
 			curTrack.Codec.(*CodecVP9).Profile = vpcc.Profile
 			curTrack.Codec.(*CodecVP9).BitDepth = vpcc.BitDepth
