@@ -8,6 +8,10 @@ import (
 	"github.com/bluenviron/mediacommon/pkg/bits"
 )
 
+const (
+	maxReorderedFrames = 10
+)
+
 func getPictureOrderCount(buf []byte, sps *SPS) (uint32, error) {
 	if len(buf) < 6 {
 		return 0, fmt.Errorf("not enough bits")
@@ -150,36 +154,37 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 			d.expectedPOC /= 2
 		}
 
-		pocDiff := int(getPictureOrderCountDiff(poc, d.expectedPOC, d.spsp)) + d.reorderedFrames*d.pocIncrement
+		pocDiff := int(getPictureOrderCountDiff(poc, d.expectedPOC, d.spsp)) / d.pocIncrement
+		limit := -(d.reorderedFrames + 1)
 
-		if pocDiff < 0 {
-			if pocDiff < -20 {
-				return 0, false, fmt.Errorf("POC difference between frames is too big (%d)", pocDiff)
+		// this happens when there are B-frames immediately following an IDR frame
+		if pocDiff < limit {
+			increase := limit - pocDiff
+			if (d.reorderedFrames + increase) > maxReorderedFrames {
+				return 0, false, fmt.Errorf("too many reordered frames (%d)", d.reorderedFrames+increase)
 			}
 
-			// this happens when there are B-frames immediately following an IDR frame
-			d.reorderedFrames -= pocDiff
-			d.pauseDTS = -pocDiff
+			d.reorderedFrames += increase
+			d.pauseDTS = increase
 			return d.prevDTS + 1*time.Millisecond, true, nil
 		}
 
-		if pocDiff == 0 {
+		if pocDiff == limit {
 			return pts, false, nil
 		}
 
-		if pocDiff > 20 {
-			return 0, false, fmt.Errorf("POC difference between frames is too big (%d)", pocDiff)
-		}
+		if pocDiff > d.reorderedFrames {
+			increase := pocDiff - d.reorderedFrames
+			if (d.reorderedFrames + increase) > maxReorderedFrames {
+				return 0, false, fmt.Errorf("too many reordered frames (%d)", d.reorderedFrames+increase)
+			}
 
-		reorderedFrames := (pocDiff)/d.pocIncrement - d.reorderedFrames
-		if reorderedFrames > d.reorderedFrames {
-			// reordered frames detected, add them to the count and pause DTS
-			d.pauseDTS = (reorderedFrames - d.reorderedFrames - 1)
-			d.reorderedFrames = reorderedFrames
+			d.reorderedFrames += increase
+			d.pauseDTS = increase - 1
 			return d.prevDTS + 1*time.Millisecond, false, nil
 		}
 
-		return d.prevDTS + (pts-d.prevDTS)*time.Duration(d.pocIncrement)/time.Duration(pocDiff+d.pocIncrement), false, nil
+		return d.prevDTS + (pts-d.prevDTS)/time.Duration(pocDiff+d.reorderedFrames+1), false, nil
 
 	default:
 		return 0, false, fmt.Errorf("access unit doesn't contain an IDR or non-IDR NALU")
@@ -193,10 +198,8 @@ func (d *DTSExtractor) Extract(au [][]byte, pts time.Duration) (time.Duration, e
 		return 0, err
 	}
 
-	if !skipChecks {
-		if dts > pts {
-			return 0, fmt.Errorf("DTS is greater than PTS")
-		}
+	if !skipChecks && dts > pts {
+		return 0, fmt.Errorf("DTS is greater than PTS")
 	}
 
 	if d.prevDTSFilled && dts <= d.prevDTS {
