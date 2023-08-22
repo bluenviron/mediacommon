@@ -7,5 +7,5 @@ const (
 	MaxAccessUnitSize = 8 * 1024 * 1024
 
 	// MaxNALUsPerAccessUnit is the maximum number of NALUs per access unit.
-	MaxNALUsPerAccessUnit = 20
+	MaxNALUsPerAccessUnit = 21
 )
