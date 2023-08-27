@@ -221,7 +221,8 @@ func (r *Reader) Read() error {
 	if data.PES.Header.OptionalHeader == nil ||
 		data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorNoPTSOrDTS ||
 		data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorIsForbidden {
-		return fmt.Errorf("PTS is missing")
+		r.onDecodeError(fmt.Errorf("PTS is missing"))
+		return nil
 	}
 
 	pts := data.PES.Header.OptionalHeader.PTS.Base
