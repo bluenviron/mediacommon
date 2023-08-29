@@ -25,7 +25,7 @@ func TestSPSUnmarshal(t *testing.T) {
 			SPS{
 				ProfileIdc:                     100,
 				LevelIdc:                       12,
-				ChromeFormatIdc:                1,
+				ChromaFormatIdc:                1,
 				Log2MaxFrameNumMinus4:          6,
 				PicOrderCntType:                2,
 				MaxNumRefFrames:                1,
@@ -57,7 +57,7 @@ func TestSPSUnmarshal(t *testing.T) {
 			SPS{
 				ProfileIdc:                  100,
 				LevelIdc:                    31,
-				ChromeFormatIdc:             1,
+				ChromaFormatIdc:             1,
 				Log2MaxPicOrderCntLsbMinus4: 2,
 				MaxNumRefFrames:             4,
 				PicWidthInMbsMinus1:         79,
@@ -122,7 +122,7 @@ func TestSPSUnmarshal(t *testing.T) {
 				},
 			},
 			1920,
-			1080,
+			1084,
 			30,
 		},
 		{
@@ -136,7 +136,7 @@ func TestSPSUnmarshal(t *testing.T) {
 			SPS{
 				ProfileIdc:                  100,
 				LevelIdc:                    40,
-				ChromeFormatIdc:             1,
+				ChromaFormatIdc:             1,
 				Log2MaxPicOrderCntLsbMinus4: 2,
 				MaxNumRefFrames:             4,
 				PicWidthInMbsMinus1:         119,
@@ -175,7 +175,7 @@ func TestSPSUnmarshal(t *testing.T) {
 			SPS{
 				ProfileIdc:                  100,
 				LevelIdc:                    41,
-				ChromeFormatIdc:             1,
+				ChromaFormatIdc:             1,
 				Log2MaxFrameNumMinus4:       8,
 				Log2MaxPicOrderCntLsbMinus4: 5,
 				MaxNumRefFrames:             4,
@@ -206,7 +206,7 @@ func TestSPSUnmarshal(t *testing.T) {
 				},
 			},
 			1920,
-			1084,
+			1080,
 			25,
 		},
 		{
@@ -215,7 +215,7 @@ func TestSPSUnmarshal(t *testing.T) {
 			SPS{
 				ProfileIdc:                  100,
 				LevelIdc:                    32,
-				ChromeFormatIdc:             1,
+				ChromaFormatIdc:             1,
 				Log2MaxPicOrderCntLsbMinus4: 4,
 				MaxNumRefFrames:             1,
 				PicWidthInMbsMinus1:         79,
@@ -245,7 +245,7 @@ func TestSPSUnmarshal(t *testing.T) {
 			SPS{
 				ProfileIdc:      100,
 				LevelIdc:        50,
-				ChromeFormatIdc: 1,
+				ChromaFormatIdc: 1,
 				ScalingList4x4: [][]int32{
 					{
 						16, 16, 16, 16, 16, 16, 16, 16,
@@ -314,7 +314,7 @@ func TestSPSUnmarshal(t *testing.T) {
 			SPS{
 				ProfileIdc:                  100,
 				LevelIdc:                    42,
-				ChromeFormatIdc:             1,
+				ChromaFormatIdc:             1,
 				Log2MaxFrameNumMinus4:       4,
 				Log2MaxPicOrderCntLsbMinus4: 4,
 				MaxNumRefFrames:             2,
@@ -420,7 +420,62 @@ func TestSPSUnmarshal(t *testing.T) {
 				},
 			},
 			1920,
-			1080,
+			1084,
+			25,
+		},
+		{
+			"1920x1080 mbs_only_flag = 0",
+			[]byte{
+				0x67, 0x4d, 0x40, 0x28, 0xab, 0x60, 0x3c, 0x02,
+				0x23, 0xef, 0x01, 0x10, 0x00, 0x00, 0x03, 0x00,
+				0x10, 0x00, 0x00, 0x03, 0x03, 0x2e, 0x94, 0x00,
+				0x35, 0x64, 0x06, 0xb2, 0x85, 0x08, 0x0e, 0xe2,
+				0xc5, 0x22, 0xc0,
+			},
+			SPS{
+				ProfileIdc:                  77,
+				ConstraintSet1Flag:          true,
+				LevelIdc:                    40,
+				Log2MaxFrameNumMinus4:       1,
+				Log2MaxPicOrderCntLsbMinus4: 2,
+				MaxNumRefFrames:             2,
+				PicWidthInMbsMinus1:         119,
+				PicHeightInMapUnitsMinus1:   33,
+				Direct8x8InferenceFlag:      true,
+				FrameCropping: &SPS_FrameCropping{
+					BottomOffset: 2,
+				},
+				VUI: &SPS_VUI{
+					AspectRatioInfoPresentFlag: true,
+					AspectRatioIdc:             1,
+					TimingInfo: &SPS_TimingInfo{
+						NumUnitsInTick:     1,
+						TimeScale:          50,
+						FixedFrameRateFlag: true,
+					},
+					NalHRD: &SPS_HRD{
+						BitRateScale:                       4,
+						CpbSizeScale:                       10,
+						BitRateValueMinus1:                 []uint32{3416},
+						CpbSizeValueMinus1:                 []uint32{213},
+						CbrFlag:                            []bool{false},
+						InitialCpbRemovalDelayLengthMinus1: 20,
+						CpbRemovalDelayLengthMinus1:        5,
+						DpbOutputDelayLengthMinus1:         1,
+					},
+					PicStructPresentFlag: true,
+					BitstreamRestriction: &SPS_BitstreamRestriction{
+						MotionVectorsOverPicBoundariesFlag: true,
+						MaxBytesPerPicDenom:                2,
+						Log2MaxMvLengthHorizontal:          10,
+						Log2MaxMvLengthVertical:            9,
+						MaxNumReorderFrames:                1,
+						MaxDecFrameBuffering:               4,
+					},
+				},
+			},
+			1920,
+			1084,
 			25,
 		},
 	} {
