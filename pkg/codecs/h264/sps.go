@@ -407,7 +407,7 @@ type SPS struct {
 	ID                 uint32
 
 	// only for selected ProfileIdcs
-	ChromeFormatIdc                 uint32
+	ChromaFormatIdc                 uint32
 	SeparateColourPlaneFlag         bool
 	BitDepthLumaMinus8              uint32
 	BitDepthChromaMinus8            uint32
@@ -473,12 +473,12 @@ func (s *SPS) Unmarshal(buf []byte) error {
 
 	switch s.ProfileIdc {
 	case 100, 110, 122, 244, 44, 83, 86, 118, 128, 138, 139, 134, 135:
-		s.ChromeFormatIdc, err = bits.ReadGolombUnsigned(buf, &pos)
+		s.ChromaFormatIdc, err = bits.ReadGolombUnsigned(buf, &pos)
 		if err != nil {
 			return err
 		}
 
-		if s.ChromeFormatIdc == 3 {
+		if s.ChromaFormatIdc == 3 {
 			s.SeparateColourPlaneFlag, err = bits.ReadFlag(buf, &pos)
 			if err != nil {
 				return err
@@ -509,7 +509,7 @@ func (s *SPS) Unmarshal(buf []byte) error {
 
 		if seqScalingMatrixPresentFlag {
 			var lim int
-			if s.ChromeFormatIdc != 3 {
+			if s.ChromaFormatIdc != 3 {
 				lim = 8
 			} else {
 				lim = 12
@@ -546,7 +546,7 @@ func (s *SPS) Unmarshal(buf []byte) error {
 		}
 
 	default:
-		s.ChromeFormatIdc = 0
+		s.ChromaFormatIdc = 0
 		s.SeparateColourPlaneFlag = false
 		s.BitDepthLumaMinus8 = 0
 		s.BitDepthChromaMinus8 = 0
@@ -697,26 +697,84 @@ func (s *SPS) Unmarshal(buf []byte) error {
 
 // Width returns the video width.
 func (s SPS) Width() int {
-	if s.FrameCropping != nil {
-		return int(((s.PicWidthInMbsMinus1 + 1) * 16) - (s.FrameCropping.LeftOffset+s.FrameCropping.RightOffset)*2)
+	var subWidthC uint32
+	switch {
+	case s.ChromaFormatIdc == 1 && !s.SeparateColourPlaneFlag:
+		subWidthC = 2
+
+	case s.ChromaFormatIdc == 2 && !s.SeparateColourPlaneFlag:
+		subWidthC = 2
+
+	case s.ChromaFormatIdc == 3 && !s.SeparateColourPlaneFlag:
+		subWidthC = 1
 	}
 
-	return int((s.PicWidthInMbsMinus1 + 1) * 16)
+	var chromaArrayType uint32
+	if !s.SeparateColourPlaneFlag {
+		chromaArrayType = s.ChromaFormatIdc
+	} else {
+		chromaArrayType = 0
+	}
+
+	var cropUnitX uint32
+	if chromaArrayType == 0 {
+		cropUnitX = 0
+	} else {
+		cropUnitX = subWidthC
+	}
+
+	picWidthInSamplesL := ((s.PicWidthInMbsMinus1 + 1) * 16)
+
+	if s.FrameCropping != nil {
+		return int(picWidthInSamplesL - cropUnitX*(s.FrameCropping.LeftOffset+s.FrameCropping.RightOffset))
+	}
+
+	return int(picWidthInSamplesL)
 }
 
 // Height returns the video height.
 func (s SPS) Height() int {
-	f := uint32(0)
-	if s.FrameMbsOnlyFlag {
-		f = 1
+	var subHeightC uint32
+	switch {
+	case s.ChromaFormatIdc == 1 && !s.SeparateColourPlaneFlag:
+		subHeightC = 2
+
+	case s.ChromaFormatIdc == 2 && !s.SeparateColourPlaneFlag:
+		subHeightC = 1
+
+	case s.ChromaFormatIdc == 3 && !s.SeparateColourPlaneFlag:
+		subHeightC = 1
 	}
+
+	var frameMbsOnlyFlagUint32 uint32
+	if s.FrameMbsOnlyFlag {
+		frameMbsOnlyFlagUint32 = 1
+	}
+
+	var chromaArrayType uint32
+	if !s.SeparateColourPlaneFlag {
+		chromaArrayType = s.ChromaFormatIdc
+	} else {
+		chromaArrayType = 0
+	}
+
+	var cropUnitY uint32
+	if chromaArrayType == 0 {
+		cropUnitY = 2 - frameMbsOnlyFlagUint32
+	} else {
+		cropUnitY = subHeightC * (2 - frameMbsOnlyFlagUint32)
+	}
+
+	frameHeightInMbs := (2 - frameMbsOnlyFlagUint32) * (s.PicHeightInMapUnitsMinus1 + 1)
 
 	if s.FrameCropping != nil {
-		return int(((2 - f) * (s.PicHeightInMapUnitsMinus1 + 1) * 16) -
-			(s.FrameCropping.TopOffset+s.FrameCropping.BottomOffset)*2)
+		return int(16*frameHeightInMbs - cropUnitY*(s.FrameCropping.TopOffset+s.FrameCropping.BottomOffset))
 	}
 
-	return int((2 - f) * (s.PicHeightInMapUnitsMinus1 + 1) * 16)
+	picHeightInMbs := frameHeightInMbs // / (1 + s.FieldPicFlag)
+	picHeightInSamplesL := picHeightInMbs * 16
+
+	return int(picHeightInSamplesL)
 }
 
 // FPS returns the frames per second of the video.

@@ -42,10 +42,6 @@ func getPictureOrderCount(buf []byte, sps *SPS) (uint32, error) {
 		return 0, err
 	}
 
-	if !sps.FrameMbsOnlyFlag {
-		return 0, fmt.Errorf("frame_mbs_only_flag = 0 is not supported")
-	}
-
 	picOrderCntLsb, err := bits.ReadBits(buf, &pos, int(sps.Log2MaxPicOrderCntLsbMinus4+4))
 	if err != nil {
 		return 0, err
@@ -116,7 +112,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 		return 0, false, fmt.Errorf("SPS not received yet")
 	}
 
-	if d.spsp.PicOrderCntType == 2 {
+	if d.spsp.PicOrderCntType == 2 || !d.spsp.FrameMbsOnlyFlag {
 		return pts, false, nil
 	}
 
