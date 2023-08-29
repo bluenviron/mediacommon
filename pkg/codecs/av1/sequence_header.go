@@ -217,6 +217,7 @@ type SequenceHeader struct {
 	SeqForceScreenContentTools     SequenceHeader_SeqForceScreenContentTools
 	SeqChooseIntegerMv             bool
 	SeqForceIntegerMv              SequenceHeader_SeqForceIntegerMv
+	OrderHintBitsMinus1            uint8
 	EnableSuperRes                 bool
 	EnableCdef                     bool
 	EnableRestoration              bool
@@ -447,6 +448,14 @@ func (h *SequenceHeader) Unmarshal(buf []byte) error {
 			}
 		} else {
 			h.SeqForceIntegerMv = SequenceHeader_SeqForceIntegerMv_SELECT_INTEGER_MV
+		}
+
+		if h.EnableOrderHint {
+			tmp, err := bits.ReadBits(buf, &pos, 3)
+			if err != nil {
+				return err
+			}
+			h.OrderHintBitsMinus1 = uint8(tmp)
 		}
 	}
 
