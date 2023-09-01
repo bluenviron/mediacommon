@@ -18,6 +18,9 @@ type ReaderOnDecodeErrorFunc func(err error)
 // ReaderOnDataH26xFunc is the prototype of the callback passed to OnDataH26x.
 type ReaderOnDataH26xFunc func(pts int64, dts int64, au [][]byte) error
 
+// ReaderOnDataMPEG4VideoFunc is the prototype of the callback passed to OnDataMPEG4Video.
+type ReaderOnDataMPEG4VideoFunc func(pts int64, frame []byte) error
+
 // ReaderOnDataOpusFunc is the prototype of the callback passed to OnDataOpus.
 type ReaderOnDataOpusFunc func(pts int64, packets [][]byte) error
 
@@ -115,6 +118,18 @@ func (r *Reader) OnDataH26x(track *Track, cb ReaderOnDataH26xFunc) {
 		}
 
 		return cb(pts, dts, au)
+	}
+}
+
+// OnDataMPEG4Video sets a callback that is called when data from an MPEG-4 Video track is received.
+func (r *Reader) OnDataMPEG4Video(track *Track, cb ReaderOnDataMPEG4VideoFunc) {
+	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
+		if pts != dts {
+			r.onDecodeError(fmt.Errorf("PTS is not equal to DTS"))
+			return nil
+		}
+
+		return cb(pts, data)
 	}
 }
 

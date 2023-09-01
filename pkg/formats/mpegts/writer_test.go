@@ -40,6 +40,10 @@ func TestWriter(t *testing.T) {
 					err := w.WriteH26x(ca.track, sample.pts, sample.dts, h264.IDRPresent(sample.data), sample.data)
 					require.NoError(t, err)
 
+				case *CodecMPEG4Video:
+					err := w.WriteMPEG4Video(ca.track, sample.pts, sample.data[0])
+					require.NoError(t, err)
+
 				case *CodecOpus:
 					err := w.WriteOpus(ca.track, sample.pts, sample.data)
 					require.NoError(t, err)
@@ -51,6 +55,9 @@ func TestWriter(t *testing.T) {
 				case *CodecMPEG1Audio:
 					err := w.WriteMPEG1Audio(ca.track, sample.pts, sample.data)
 					require.NoError(t, err)
+
+				default:
+					t.Errorf("unexpected")
 				}
 			}
 

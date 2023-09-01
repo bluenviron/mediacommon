@@ -1,6 +1,7 @@
 package mpegts
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg1audio"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
+	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4video"
 )
 
 const (
@@ -111,6 +113,40 @@ func (w *Writer) WriteH26x(
 				StreamID:       streamIDVideo,
 			},
 			Data: enc,
+		},
+	})
+	return err
+}
+
+// WriteMPEG4Video writes a MPEG-4 Video frame.
+func (w *Writer) WriteMPEG4Video(
+	track *Track,
+	pts int64,
+	frame []byte,
+) error {
+	var af *astits.PacketAdaptationField
+
+	if bytes.Contains(frame, []byte{0, 0, 1, byte(mpeg4video.GroupOfVOPStartCode)}) {
+		af = &astits.PacketAdaptationField{}
+		af.RandomAccessIndicator = true
+	}
+
+	oh := &astits.PESOptionalHeader{
+		MarkerBits: 2,
+	}
+
+	oh.PTSDTSIndicator = astits.PTSDTSIndicatorOnlyPTS
+	oh.PTS = &astits.ClockReference{Base: pts}
+
+	_, err := w.mux.WriteData(&astits.MuxerData{
+		PID:             track.PID,
+		AdaptationField: af,
+		PES: &astits.PESData{
+			Header: &astits.PESHeader{
+				OptionalHeader: oh,
+				StreamID:       streamIDVideo,
+			},
+			Data: frame,
 		},
 	})
 	return err

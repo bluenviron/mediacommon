@@ -234,6 +234,64 @@ var casesReadWriter = []struct {
 		},
 	},
 	{
+		"mpeg-4 video",
+		&Track{
+			PID:   257,
+			Codec: &CodecMPEG4Video{},
+		},
+		[]sample{
+			{
+				0,
+				0,
+				[][]byte{{0, 0, 1, 0xb3}},
+			},
+		},
+		[]*astits.Packet{
+			{ // PMT
+				Header: astits.PacketHeader{
+					HasPayload:                true,
+					PayloadUnitStartIndicator: true,
+					PID:                       0,
+				},
+				Payload: append([]byte{
+					0x00, 0x00, 0xb0, 0x0d, 0x00, 0x00, 0xc1, 0x00,
+					0x00, 0x00, 0x01, 0xf0, 0x00, 0x71, 0x10, 0xd8,
+					0x78,
+				}, bytes.Repeat([]byte{0xff}, 167)...),
+			},
+			{ // PAT
+				Header: astits.PacketHeader{
+					HasPayload:                true,
+					PayloadUnitStartIndicator: true,
+					PID:                       4096,
+				},
+				Payload: append([]byte{
+					0x00, 0x02, 0xb0, 0x12, 0x00, 0x01, 0xc1, 0x00,
+					0x00, 0xe1, 0x01, 0xf0, 0x00, 0x10, 0xe1, 0x01,
+					0xf0, 0x00, 0xd5, 0x3a, 0x92, 0x8a,
+				}, bytes.Repeat([]byte{0xff}, 162)...),
+			},
+			{ // PES
+				AdaptationField: &astits.PacketAdaptationField{
+					Length:                165,
+					StuffingLength:        164,
+					RandomAccessIndicator: true,
+				},
+				Header: astits.PacketHeader{
+					HasAdaptationField:        true,
+					HasPayload:                true,
+					PayloadUnitStartIndicator: true,
+					PID:                       257,
+				},
+				Payload: []byte{
+					0x00, 0x00, 0x01, 0xe0, 0x00, 0x00, 0x80, 0x80,
+					0x05, 0x21, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00,
+					0x01, 0xb3,
+				},
+			},
+		},
+	},
+	{
 		"opus",
 		&Track{
 			PID: 257,
@@ -616,6 +674,14 @@ func TestReader(t *testing.T) {
 					return nil
 				})
 
+			case *CodecMPEG4Video:
+				r.OnDataMPEG4Video(ca.track, func(pts int64, frame []byte) error {
+					require.Equal(t, ca.samples[i].pts, pts)
+					require.Equal(t, ca.samples[i].data[0], frame)
+					i++
+					return nil
+				})
+
 			case *CodecOpus:
 				r.OnDataOpus(ca.track, func(pts int64, packets [][]byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
@@ -639,6 +705,9 @@ func TestReader(t *testing.T) {
 					i++
 					return nil
 				})
+
+			default:
+				t.Errorf("unexpected")
 			}
 
 			for {
