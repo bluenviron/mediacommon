@@ -561,13 +561,15 @@ type SPS struct {
 
 // Unmarshal decodes a SPS from bytes.
 func (s *SPS) Unmarshal(buf []byte) error {
-	buf = h264.EmulationPreventionRemove(buf)
-
 	if len(buf) < 2 {
 		return fmt.Errorf("not enough bits")
 	}
 
-	buf = buf[2:]
+	if NALUType((buf[0]>>1)&0b111111) != NALUType_SPS_NUT {
+		return fmt.Errorf("not a SPS")
+	}
+
+	buf = h264.EmulationPreventionRemove(buf[2:])
 	pos := 0
 
 	err := bits.HasSpace(buf, pos, 8)

@@ -447,22 +447,30 @@ type SPS struct {
 
 // Unmarshal decodes a SPS from bytes.
 func (s *SPS) Unmarshal(buf []byte) error {
-	buf = EmulationPreventionRemove(buf)
-
-	if len(buf) < 4 {
+	if len(buf) < 1 {
 		return fmt.Errorf("not enough bits")
 	}
 
-	s.ProfileIdc = buf[1]
-	s.ConstraintSet0Flag = (buf[2] >> 7) == 1
-	s.ConstraintSet1Flag = (buf[2] >> 6 & 0x01) == 1
-	s.ConstraintSet2Flag = (buf[2] >> 5 & 0x01) == 1
-	s.ConstraintSet3Flag = (buf[2] >> 4 & 0x01) == 1
-	s.ConstraintSet4Flag = (buf[2] >> 3 & 0x01) == 1
-	s.ConstraintSet5Flag = (buf[2] >> 2 & 0x01) == 1
-	s.LevelIdc = buf[3]
+	if NALUType(buf[0]&0x1F) != NALUTypeSPS {
+		return fmt.Errorf("not a SPS")
+	}
 
-	buf = buf[4:]
+	buf = EmulationPreventionRemove(buf[1:])
+
+	if len(buf) < 3 {
+		return fmt.Errorf("not enough bits")
+	}
+
+	s.ProfileIdc = buf[0]
+	s.ConstraintSet0Flag = (buf[1] >> 7) == 1
+	s.ConstraintSet1Flag = (buf[1] >> 6 & 0x01) == 1
+	s.ConstraintSet2Flag = (buf[1] >> 5 & 0x01) == 1
+	s.ConstraintSet3Flag = (buf[1] >> 4 & 0x01) == 1
+	s.ConstraintSet4Flag = (buf[1] >> 3 & 0x01) == 1
+	s.ConstraintSet5Flag = (buf[1] >> 2 & 0x01) == 1
+	s.LevelIdc = buf[2]
+
+	buf = buf[3:]
 	pos := 0
 
 	var err error

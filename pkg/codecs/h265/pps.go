@@ -23,9 +23,11 @@ func (p *PPS) Unmarshal(buf []byte) error {
 		return fmt.Errorf("not enough bits")
 	}
 
-	buf = h264.EmulationPreventionRemove(buf)
+	if NALUType((buf[0]>>1)&0b111111) != NALUType_PPS_NUT {
+		return fmt.Errorf("not a PPS")
+	}
 
-	buf = buf[2:]
+	buf = h264.EmulationPreventionRemove(buf[2:])
 	pos := 0
 
 	var err error
