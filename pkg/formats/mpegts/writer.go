@@ -17,21 +17,40 @@ import (
 const (
 	streamIDVideo = 224
 	streamIDAudio = 192
+
+	// PCR is needed to read H265 tracks with VLC+VDPAU hardware encoder
+	// (and is probably needed by other combinations too)
+	dtsPCRDiff = (90000 / 10)
 )
 
-func leadingTrack(tracks []*Track) *Track {
-	for _, track := range tracks {
-		if track.Codec.IsVideo() {
-			return track
+func opusMarshalSize(packets [][]byte) int {
+	n := 0
+	for _, packet := range packets {
+		au := opusAccessUnit{
+			ControlHeader: opusControlHeader{
+				PayloadSize: len(packet),
+			},
+			Packet: packet,
 		}
+		n += au.marshalSize()
 	}
-	return tracks[0]
+	return n
+}
+
+func mpeg1AudioMarshalSize(frames [][]byte) int {
+	n := 0
+	for _, frame := range frames {
+		n += len(frame)
+	}
+	return n
 }
 
 // Writer is a MPEG-TS writer.
 type Writer struct {
-	nextPID uint16
-	mux     *astits.Muxer
+	nextPID            uint16
+	mux                *astits.Muxer
+	pcrCounter         int
+	leadingTrackChosen bool
 }
 
 // NewWriter allocates a Writer.
@@ -60,8 +79,6 @@ func NewWriter(
 		}
 	}
 
-	w.mux.SetPCRPID(leadingTrack(tracks).PID)
-
 	// WriteTables() is not necessary
 	// since it's called automatically when WriteData() is called with
 	// * PID == PCRPID
@@ -76,9 +93,15 @@ func (w *Writer) WriteH26x(
 	track *Track,
 	pts int64,
 	dts int64,
-	idrPresent bool,
+	randomAccess bool,
 	au [][]byte,
 ) error {
+	if !w.leadingTrackChosen {
+		w.leadingTrackChosen = true
+		track.isLeading = true
+		w.mux.SetPCRPID(track.PID)
+	}
+
 	enc, err := h264.AnnexBMarshal(au)
 	if err != nil {
 		return err
@@ -86,9 +109,21 @@ func (w *Writer) WriteH26x(
 
 	var af *astits.PacketAdaptationField
 
-	if idrPresent {
+	if randomAccess {
 		af = &astits.PacketAdaptationField{}
 		af.RandomAccessIndicator = true
+	}
+
+	if track.isLeading {
+		if randomAccess || w.pcrCounter == 0 {
+			if af == nil {
+				af = &astits.PacketAdaptationField{}
+			}
+			af.HasPCR = true
+			af.PCR = &astits.ClockReference{Base: dts - dtsPCRDiff}
+			w.pcrCounter = 3
+		}
+		w.pcrCounter--
 	}
 
 	oh := &astits.PESOptionalHeader{
@@ -124,11 +159,31 @@ func (w *Writer) WriteMPEG4Video(
 	pts int64,
 	frame []byte,
 ) error {
+	if !w.leadingTrackChosen {
+		w.leadingTrackChosen = true
+		track.isLeading = true
+		w.mux.SetPCRPID(track.PID)
+	}
+
+	randomAccess := bytes.Contains(frame, []byte{0, 0, 1, byte(mpeg4video.GroupOfVOPStartCode)})
+
 	var af *astits.PacketAdaptationField
 
-	if bytes.Contains(frame, []byte{0, 0, 1, byte(mpeg4video.GroupOfVOPStartCode)}) {
+	if randomAccess {
 		af = &astits.PacketAdaptationField{}
 		af.RandomAccessIndicator = true
+	}
+
+	if track.isLeading {
+		if randomAccess || w.pcrCounter == 0 {
+			if af == nil {
+				af = &astits.PacketAdaptationField{}
+			}
+			af.HasPCR = true
+			af.PCR = &astits.ClockReference{Base: pts - dtsPCRDiff}
+			w.pcrCounter = 3
+		}
+		w.pcrCounter--
 	}
 
 	oh := &astits.PESOptionalHeader{
@@ -158,19 +213,27 @@ func (w *Writer) WriteOpus(
 	pts int64,
 	packets [][]byte,
 ) error {
-	n := 0
-	for _, packet := range packets {
-		au := opusAccessUnit{
-			ControlHeader: opusControlHeader{
-				PayloadSize: len(packet),
-			},
-			Packet: packet,
-		}
-		n += au.marshalSize()
+	if !w.leadingTrackChosen {
+		w.leadingTrackChosen = true
+		track.isLeading = true
+		w.mux.SetPCRPID(track.PID)
 	}
 
-	enc := make([]byte, n)
-	n = 0
+	af := &astits.PacketAdaptationField{
+		RandomAccessIndicator: true,
+	}
+
+	if track.isLeading {
+		if w.pcrCounter == 0 {
+			af.HasPCR = true
+			af.PCR = &astits.ClockReference{Base: pts - dtsPCRDiff}
+			w.pcrCounter = 3
+		}
+		w.pcrCounter--
+	}
+
+	enc := make([]byte, opusMarshalSize(packets))
+	n := 0
 	for _, packet := range packets {
 		au := opusAccessUnit{
 			ControlHeader: opusControlHeader{
@@ -186,10 +249,8 @@ func (w *Writer) WriteOpus(
 	}
 
 	_, err := w.mux.WriteData(&astits.MuxerData{
-		PID: track.PID,
-		AdaptationField: &astits.PacketAdaptationField{
-			RandomAccessIndicator: true,
-		},
+		PID:             track.PID,
+		AdaptationField: af,
 		PES: &astits.PESData{
 			Header: &astits.PESHeader{
 				OptionalHeader: &astits.PESOptionalHeader{
@@ -211,8 +272,26 @@ func (w *Writer) WriteMPEG4Audio(
 	pts int64,
 	aus [][]byte,
 ) error {
-	aacCodec := track.Codec.(*CodecMPEG4Audio)
+	if !w.leadingTrackChosen {
+		w.leadingTrackChosen = true
+		track.isLeading = true
+		w.mux.SetPCRPID(track.PID)
+	}
 
+	af := &astits.PacketAdaptationField{
+		RandomAccessIndicator: true,
+	}
+
+	if track.isLeading {
+		if w.pcrCounter == 0 {
+			af.HasPCR = true
+			af.PCR = &astits.ClockReference{Base: pts - dtsPCRDiff}
+			w.pcrCounter = 3
+		}
+		w.pcrCounter--
+	}
+
+	aacCodec := track.Codec.(*CodecMPEG4Audio)
 	pkts := make(mpeg4audio.ADTSPackets, len(aus))
 
 	for i, au := range aus {
@@ -230,10 +309,8 @@ func (w *Writer) WriteMPEG4Audio(
 	}
 
 	_, err = w.mux.WriteData(&astits.MuxerData{
-		PID: track.PID,
-		AdaptationField: &astits.PacketAdaptationField{
-			RandomAccessIndicator: true,
-		},
+		PID:             track.PID,
+		AdaptationField: af,
 		PES: &astits.PESData{
 			Header: &astits.PESHeader{
 				OptionalHeader: &astits.PESOptionalHeader{
@@ -255,6 +332,12 @@ func (w *Writer) WriteMPEG1Audio(
 	pts int64,
 	frames [][]byte,
 ) error {
+	if !w.leadingTrackChosen {
+		w.leadingTrackChosen = true
+		track.isLeading = true
+		w.mux.SetPCRPID(track.PID)
+	}
+
 	if !track.mp3Checked {
 		var h mpeg1audio.FrameHeader
 		err := h.Unmarshal(frames[0])
@@ -269,22 +352,28 @@ func (w *Writer) WriteMPEG1Audio(
 		track.mp3Checked = true
 	}
 
-	n := 0
-	for _, frame := range frames {
-		n += len(frame)
+	af := &astits.PacketAdaptationField{
+		RandomAccessIndicator: true,
 	}
 
-	enc := make([]byte, n)
-	n = 0
+	if track.isLeading {
+		if w.pcrCounter == 0 {
+			af.HasPCR = true
+			af.PCR = &astits.ClockReference{Base: pts - dtsPCRDiff}
+			w.pcrCounter = 3
+		}
+		w.pcrCounter--
+	}
+
+	enc := make([]byte, mpeg1AudioMarshalSize(frames))
+	n := 0
 	for _, frame := range frames {
 		n += copy(enc[n:], frame)
 	}
 
 	_, err := w.mux.WriteData(&astits.MuxerData{
-		PID: track.PID,
-		AdaptationField: &astits.PacketAdaptationField{
-			RandomAccessIndicator: true,
-		},
+		PID:             track.PID,
+		AdaptationField: af,
 		PES: &astits.PESData{
 			Header: &astits.PESHeader{
 				OptionalHeader: &astits.PESOptionalHeader{
