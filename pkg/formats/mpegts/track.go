@@ -83,6 +83,7 @@ type Track struct {
 	PID   uint16
 	Codec Codec
 
+	isLeading  bool // Writer-only
 	mp3Checked bool // Writer-only
 }
 
