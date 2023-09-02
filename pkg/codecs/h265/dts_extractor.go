@@ -8,9 +8,9 @@ import (
 	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
 )
 
-func getPictureOrderCount(buf []byte, sps *SPS, pps *PPS) (uint32, uint32, error) {
+func getPTSDTSDiff(buf []byte, sps *SPS, pps *PPS) (uint32, error) {
 	if len(buf) < 12 {
-		return 0, 0, fmt.Errorf("not enough bits")
+		return 0, fmt.Errorf("not enough bits")
 	}
 
 	buf = h264.EmulationPreventionRemove(buf[:12])
@@ -22,70 +22,70 @@ func getPictureOrderCount(buf []byte, sps *SPS, pps *PPS) (uint32, uint32, error
 
 	firstSliceSegmentInPicFlag, err := bits.ReadFlag(buf, &pos)
 	if err != nil {
-		return 0, 0, err
+		return 0, err
 	}
 
 	if !firstSliceSegmentInPicFlag {
-		return 0, 0, fmt.Errorf("first_slice_segment_in_pic_flag = 0 is not supported")
+		return 0, fmt.Errorf("first_slice_segment_in_pic_flag = 0 is not supported")
 	}
 
 	if typ >= NALUType_BLA_W_LP && typ <= NALUType_RSV_IRAP_VCL23 {
 		_, err := bits.ReadFlag(buf, &pos) // no_output_of_prior_pics_flag
 		if err != nil {
-			return 0, 0, err
+			return 0, err
 		}
 	}
 
 	_, err = bits.ReadGolombUnsigned(buf, &pos) // slice_pic_parameter_set_id
 	if err != nil {
-		return 0, 0, err
+		return 0, err
 	}
 
 	if pps.NumExtraSliceHeaderBits > 0 {
 		err := bits.HasSpace(buf, pos, int(pps.NumExtraSliceHeaderBits))
 		if err != nil {
-			return 0, 0, err
+			return 0, err
 		}
 		pos += int(pps.NumExtraSliceHeaderBits)
 	}
 
 	sliceType, err := bits.ReadGolombUnsigned(buf, &pos) // slice_type
 	if err != nil {
-		return 0, 0, err
+		return 0, err
 	}
 
 	if pps.OutputFlagPresentFlag {
 		_, err := bits.ReadFlag(buf, &pos) // pic_output_flag
 		if err != nil {
-			return 0, 0, err
+			return 0, err
 		}
 	}
 
 	if sps.SeparateColourPlaneFlag {
 		_, err := bits.ReadBits(buf, &pos, 2) // colour_plane_id
 		if err != nil {
-			return 0, 0, err
+			return 0, err
 		}
 	}
 
-	picOrderCntLsb, err := bits.ReadBits(buf, &pos, int(sps.Log2MaxPicOrderCntLsbMinus4+4))
+	_, err = bits.ReadBits(buf, &pos, int(sps.Log2MaxPicOrderCntLsbMinus4+4)) // pic_order_cnt_lsb
 	if err != nil {
-		return 0, 0, err
+		return 0, err
 	}
 
 	shortTermRefPicSetSpsFlag, err := bits.ReadFlag(buf, &pos)
 	if err != nil {
-		return 0, 0, err
+		return 0, err
 	}
 
 	if shortTermRefPicSetSpsFlag {
-		return 0, 0, fmt.Errorf("short_term_ref_pic_set_sps_flag = true is not supported")
+		return 0, fmt.Errorf("short_term_ref_pic_set_sps_flag = true is not supported")
 	}
 
 	var rps SPS_ShortTermRefPicSet
 	err = rps.unmarshal(buf, &pos, uint32(len(sps.ShortTermRefPicSets)), uint32(len(sps.ShortTermRefPicSets)), nil)
 	if err != nil {
-		return 0, 0, err
+		return 0, err
 	}
 
 	var v uint32
@@ -95,30 +95,18 @@ func getPictureOrderCount(buf []byte, sps *SPS, pps *PPS) (uint32, uint32, error
 			v = sps.MaxNumReorderPics[0] - uint32(len(rps.DeltaPocS1Minus1))
 		} else if typ == NALUType_TRAIL_R || typ == NALUType_RASL_R {
 			if len(rps.DeltaPocS0Minus1) == 0 {
-				return 0, 0, fmt.Errorf("invalid delta_poc_s0_minus1")
+				return 0, fmt.Errorf("invalid delta_poc_s0_minus1")
 			}
 			v = rps.DeltaPocS0Minus1[0] + sps.MaxNumReorderPics[0] - 1
 		}
 	} else { // I or P-frame
 		if len(rps.DeltaPocS0Minus1) == 0 {
-			return 0, 0, fmt.Errorf("invalid delta_poc_s0_minus1")
+			return 0, fmt.Errorf("invalid delta_poc_s0_minus1")
 		}
 		v = rps.DeltaPocS0Minus1[0] + sps.MaxNumReorderPics[0]
 	}
 
-	dtsPOC := uint32(picOrderCntLsb) - v
-	dtsPOC &= ((1 << (sps.Log2MaxPicOrderCntLsbMinus4 + 4)) - 1)
-
-	return uint32(picOrderCntLsb), dtsPOC, nil
-}
-
-func getPictureOrderCountDiff(a uint32, b uint32, sps *SPS) int32 {
-	max := uint32(1 << (sps.Log2MaxPicOrderCntLsbMinus4 + 4))
-	d := (a - b) & (max - 1)
-	if d > (max / 2) {
-		return int32(d) - int32(max)
-	}
-	return int32(d)
+	return v, nil
 }
 
 // DTSExtractor allows to extract DTS from PTS.
@@ -140,7 +128,6 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 
 	for _, nalu := range au {
 		typ := NALUType((nalu[0] >> 1) & 0b111111)
-
 		switch typ {
 		case NALUType_SPS_NUT:
 			var spsp SPS
@@ -182,18 +169,15 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 		return pts, nil
 	}
 
-	var poc uint32
-	var dtsPOC uint32
+	var samplesDiff uint32
 
 	switch {
 	case idr != nil:
-		poc = 0
-		dtsPOC = poc - 2
-		dtsPOC &= ((1 << (d.spsp.Log2MaxPicOrderCntLsbMinus4 + 4)) - 1)
+		samplesDiff = d.spsp.MaxNumReorderPics[0]
 
 	case nonIDR != nil:
 		var err error
-		poc, dtsPOC, err = getPictureOrderCount(nonIDR, d.spsp, d.ppsp)
+		samplesDiff, err = getPTSDTSDiff(nonIDR, d.spsp, d.ppsp)
 		if err != nil {
 			return 0, err
 		}
@@ -202,8 +186,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 		return 0, fmt.Errorf("access unit doesn't contain an IDR or non-IDR NALU")
 	}
 
-	pocDiff := getPictureOrderCountDiff(poc, dtsPOC, d.spsp)
-	timeDiff := time.Duration(pocDiff) * time.Second *
+	timeDiff := time.Duration(samplesDiff) * time.Second *
 		time.Duration(d.spsp.VUI.TimingInfo.NumUnitsInTick) / time.Duration(d.spsp.VUI.TimingInfo.TimeScale)
 	dts := pts - timeDiff
 
