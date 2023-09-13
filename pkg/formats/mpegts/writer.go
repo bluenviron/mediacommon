@@ -153,8 +153,8 @@ func (w *Writer) WriteH26x(
 	return err
 }
 
-// WriteMPEG4Video writes a MPEG-4 Video frame.
-func (w *Writer) WriteMPEG4Video(
+// WriteMPEGxVideo writes a MPEG-1/2/4 Video frame.
+func (w *Writer) WriteMPEGxVideo(
 	track *Track,
 	pts int64,
 	frame []byte,
@@ -165,6 +165,7 @@ func (w *Writer) WriteMPEG4Video(
 		w.mux.SetPCRPID(track.PID)
 	}
 
+	// valid for MPEG-1, MPEG-2 and MPEG-4
 	randomAccess := bytes.Contains(frame, []byte{0, 0, 1, byte(mpeg4video.GroupOfVOPStartCode)})
 
 	var af *astits.PacketAdaptationField

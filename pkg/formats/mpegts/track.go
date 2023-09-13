@@ -107,6 +107,10 @@ func (t *Track) unmarshal(dem *astits.Demuxer, es *astits.PMTElementaryStream) e
 		t.Codec = &CodecMPEG4Video{}
 		return nil
 
+	case astits.StreamTypeMPEG2Video, astits.StreamTypeMPEG1Video:
+		t.Codec = &CodecMPEG1Video{}
+		return nil
+
 	case astits.StreamTypeAACAudio:
 		conf, err := findMPEG4AudioConfig(dem, es.ElementaryPID)
 		if err != nil {

@@ -298,6 +298,66 @@ var casesReadWriter = []struct {
 		},
 	},
 	{
+		"mpeg-1 video",
+		&Track{
+			PID:   257,
+			Codec: &CodecMPEG1Video{},
+		},
+		[]sample{
+			{
+				30 * 90000,
+				30 * 90000,
+				[][]byte{{0, 0, 1, 0xb3, 1, 2, 3, 4}},
+			},
+		},
+		[]*astits.Packet{
+			{ // PMT
+				Header: astits.PacketHeader{
+					HasPayload:                true,
+					PayloadUnitStartIndicator: true,
+					PID:                       0,
+				},
+				Payload: append([]byte{
+					0x00, 0x00, 0xb0, 0x0d, 0x00, 0x00, 0xc1, 0x00,
+					0x00, 0x00, 0x01, 0xf0, 0x00, 0x71, 0x10, 0xd8,
+					0x78,
+				}, bytes.Repeat([]byte{0xff}, 167)...),
+			},
+			{ // PAT
+				Header: astits.PacketHeader{
+					HasPayload:                true,
+					PayloadUnitStartIndicator: true,
+					PID:                       4096,
+				},
+				Payload: append([]byte{
+					0x00, 0x02, 0xb0, 0x12, 0x00, 0x01, 0xc1, 0x00,
+					0x00, 0xe1, 0x01, 0xf0, 0x00, 0x02, 0xe1, 0x01,
+					0xf0, 0x00, 0xc4, 0xf2, 0x53, 0x9c,
+				}, bytes.Repeat([]byte{0xff}, 162)...),
+			},
+			{ // PES
+				AdaptationField: &astits.PacketAdaptationField{
+					Length:                161,
+					StuffingLength:        154,
+					RandomAccessIndicator: true,
+					HasPCR:                true,
+					PCR:                   &astits.ClockReference{Base: 2691000},
+				},
+				Header: astits.PacketHeader{
+					HasAdaptationField:        true,
+					HasPayload:                true,
+					PayloadUnitStartIndicator: true,
+					PID:                       257,
+				},
+				Payload: []byte{
+					0x00, 0x00, 0x01, 0xe0, 0x00, 0x00, 0x80, 0x80,
+					0x05, 0x21, 0x00, 0xa5, 0x65, 0xc1, 0x00, 0x00,
+					0x01, 0xb3, 0x01, 0x02, 0x03, 0x04,
+				},
+			},
+		},
+	},
+	{
 		"opus",
 		&Track{
 			PID: 257,
@@ -685,7 +745,15 @@ func TestReader(t *testing.T) {
 				})
 
 			case *CodecMPEG4Video:
-				r.OnDataMPEG4Video(ca.track, func(pts int64, frame []byte) error {
+				r.OnDataMPEGxVideo(ca.track, func(pts int64, frame []byte) error {
+					require.Equal(t, ca.samples[i].pts, pts)
+					require.Equal(t, ca.samples[i].data[0], frame)
+					i++
+					return nil
+				})
+
+			case *CodecMPEG1Video:
+				r.OnDataMPEGxVideo(ca.track, func(pts int64, frame []byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
 					require.Equal(t, ca.samples[i].data[0], frame)
 					i++
