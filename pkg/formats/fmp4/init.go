@@ -95,26 +95,22 @@ func h264FindParams(avcc *mp4.AVCDecoderConfiguration) ([]byte, []byte, error) {
 	return sps, pps, nil
 }
 
-func mpeg4AudioFindConfig(descriptors []mp4.Descriptor) (*mpeg4audio.Config, error) {
-	encodedConf := func() []byte {
-		for _, desc := range descriptors {
-			if desc.Tag == mp4.DecSpecificInfoTag {
-				return desc.Data
-			}
+func mpeg4AudioFindDecoderConf(descriptors []mp4.Descriptor) *mp4.DecoderConfigDescriptor {
+	for _, desc := range descriptors {
+		if desc.Tag == mp4.DecoderConfigDescrTag {
+			return desc.DecoderConfigDescriptor
 		}
-		return nil
-	}()
-	if encodedConf == nil {
-		return nil, fmt.Errorf("unable to find MPEG-4 Audio configuration")
 	}
+	return nil
+}
 
-	var c mpeg4audio.Config
-	err := c.Unmarshal(encodedConf)
-	if err != nil {
-		return nil, fmt.Errorf("invalid MPEG-4 Audio configuration: %s", err)
+func mpeg4AudioFindDecoderSpecificInfo(descriptors []mp4.Descriptor) []byte {
+	for _, desc := range descriptors {
+		if desc.Tag == mp4.DecSpecificInfoTag {
+			return desc.Data
+		}
 	}
-
-	return &c, nil
+	return nil
 }
 
 // Init is a fMP4 initialization block.
@@ -141,6 +137,10 @@ func (i *Init) Unmarshal(byts []byte) error {
 
 	state := waitingTrak
 	var curTrack *InitTrack
+	var width int
+	var height int
+	var sampleRate int
+	var channelCount int
 
 	_, err := mp4.ReadBoxStructure(bytes.NewReader(byts), func(h *mp4.ReadHandle) (interface{}, error) {
 		switch h.BoxInfo.Type.String() {
@@ -220,10 +220,8 @@ func (i *Init) Unmarshal(byts []byte) error {
 			}
 			vp09 := box.(*mp4.VisualSampleEntry)
 
-			curTrack.Codec = &CodecVP9{
-				Width:  int(vp09.Width),
-				Height: int(vp09.Height),
-			}
+			width = int(vp09.Width)
+			height = int(vp09.Height)
 			state = waitingVpcC
 
 		case "vpcC":
@@ -237,10 +235,14 @@ func (i *Init) Unmarshal(byts []byte) error {
 			}
 			vpcc := box.(*mp4.VpcC)
 
-			curTrack.Codec.(*CodecVP9).Profile = vpcc.Profile
-			curTrack.Codec.(*CodecVP9).BitDepth = vpcc.BitDepth
-			curTrack.Codec.(*CodecVP9).ChromaSubsampling = vpcc.ChromaSubsampling
-			curTrack.Codec.(*CodecVP9).ColorRange = vpcc.VideoFullRangeFlag != 0
+			curTrack.Codec = &CodecVP9{
+				Width:             width,
+				Height:            height,
+				Profile:           vpcc.Profile,
+				BitDepth:          vpcc.BitDepth,
+				ChromaSubsampling: vpcc.ChromaSubsampling,
+				ColorRange:        vpcc.VideoFullRangeFlag != 0,
+			}
 			state = waitingTrak
 
 		case "vp08": // VP8, not supported yet
@@ -328,6 +330,15 @@ func (i *Init) Unmarshal(byts []byte) error {
 			if state != waitingCodec {
 				return nil, fmt.Errorf("unexpected box 'mp4a'")
 			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			mp4a := box.(*mp4.AudioSampleEntry)
+
+			sampleRate = int(mp4a.SampleRate / 65536)
+			channelCount = int(mp4a.ChannelCount)
 			state = waitingEsds
 
 		case "esds":
@@ -341,27 +352,60 @@ func (i *Init) Unmarshal(byts []byte) error {
 			}
 			esds := box.(*mp4.Esds)
 
-			config, err := mpeg4AudioFindConfig(esds.Descriptors)
-			if err != nil {
-				return nil, err
+			conf := mpeg4AudioFindDecoderConf(esds.Descriptors)
+			if conf == nil {
+				return nil, fmt.Errorf("unable to find decoder config")
 			}
 
-			curTrack.Codec = &CodecMPEG4Audio{
-				Config: *config,
+			switch conf.ObjectTypeIndication {
+			case 64:
+				spec := mpeg4AudioFindDecoderSpecificInfo(esds.Descriptors)
+				if spec == nil {
+					return nil, fmt.Errorf("unable to find decoder specific info")
+				}
+
+				var c mpeg4audio.Config
+				err := c.Unmarshal(spec)
+				if err != nil {
+					return nil, fmt.Errorf("invalid MPEG-4 Audio configuration: %s", err)
+				}
+
+				curTrack.Codec = &CodecMPEG4Audio{
+					Config: c,
+				}
+
+			case 107:
+				curTrack.Codec = &CodecMPEG1Audio{
+					SampleRate:   sampleRate,
+					ChannelCount: channelCount,
+				}
+
+			default:
+				return nil, fmt.Errorf("unsupported object type indication: %d", conf.ObjectTypeIndication)
 			}
+
 			state = waitingTrak
 
 		case "ac-3": // ac-3, not supported yet
+			if state != waitingCodec {
+				return nil, fmt.Errorf("unexpected box 'ac-3'")
+			}
 			i.Tracks = i.Tracks[:len(i.Tracks)-1]
 			state = waitingTrak
 			return nil, nil
 
 		case "ec-3": // ec-3, not supported yet
+			if state != waitingCodec {
+				return nil, fmt.Errorf("unexpected box 'ec-3'")
+			}
 			i.Tracks = i.Tracks[:len(i.Tracks)-1]
 			state = waitingTrak
 			return nil, nil
 
 		case "c608", "c708": // closed captions, not supported yet
+			if state != waitingCodec {
+				return nil, fmt.Errorf("unexpected box 'c608'")
+			}
 			i.Tracks = i.Tracks[:len(i.Tracks)-1]
 			state = waitingTrak
 			return nil, nil

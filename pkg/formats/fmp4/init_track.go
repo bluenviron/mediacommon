@@ -490,9 +490,8 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 					Tag:  mp4.DecoderConfigDescrTag,
 					Size: 18 + uint32(len(enc)),
 					DecoderConfigDescriptor: &mp4.DecoderConfigDescriptor{
-						ObjectTypeIndication: 0x40,
-						StreamType:           0x05,
-						UpStream:             false,
+						ObjectTypeIndication: 64,
+						StreamType:           5,
 						Reserved:             true,
 						MaxBitrate:           128825,
 						AvgBitrate:           128825,
@@ -502,6 +501,53 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 					Tag:  mp4.DecSpecificInfoTag,
 					Size: uint32(len(enc)),
 					Data: enc,
+				},
+				{
+					Tag:  mp4.SLConfigDescrTag,
+					Size: 1,
+					Data: []byte{0x02},
+				},
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+	case *CodecMPEG1Audio:
+		_, err = w.writeBoxStart(&mp4.AudioSampleEntry{ // <mp4a>
+			SampleEntry: mp4.SampleEntry{
+				AnyTypeBox: mp4.AnyTypeBox{
+					Type: mp4.BoxTypeMp4a(),
+				},
+				DataReferenceIndex: 1,
+			},
+			ChannelCount: uint16(codec.ChannelCount),
+			SampleSize:   16,
+			SampleRate:   uint32(codec.SampleRate * 65536),
+		})
+		if err != nil {
+			return err
+		}
+
+		_, err = w.writeBox(&mp4.Esds{ // <esds/>
+			Descriptors: []mp4.Descriptor{
+				{
+					Tag:  mp4.ESDescrTag,
+					Size: 27,
+					ESDescriptor: &mp4.ESDescriptor{
+						ESID: uint16(track.ID),
+					},
+				},
+				{
+					Tag:  mp4.DecoderConfigDescrTag,
+					Size: 13,
+					DecoderConfigDescriptor: &mp4.DecoderConfigDescriptor{
+						ObjectTypeIndication: 107,
+						StreamType:           5,
+						Reserved:             true,
+						MaxBitrate:           128825,
+						AvgBitrate:           128825,
+					},
 				},
 				{
 					Tag:  mp4.SLConfigDescrTag,
