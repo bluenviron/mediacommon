@@ -41,11 +41,11 @@ func TestWriter(t *testing.T) {
 					require.NoError(t, err)
 
 				case *CodecMPEG4Video:
-					err := w.WriteMPEGxVideo(ca.track, sample.pts, sample.data[0])
+					err := w.WriteMPEG4Video(ca.track, sample.pts, sample.data[0])
 					require.NoError(t, err)
 
 				case *CodecMPEG1Video:
-					err := w.WriteMPEGxVideo(ca.track, sample.pts, sample.data[0])
+					err := w.WriteMPEG1Video(ca.track, sample.pts, sample.data[0])
 					require.NoError(t, err)
 
 				case *CodecOpus:
