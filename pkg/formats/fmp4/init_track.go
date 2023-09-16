@@ -112,6 +112,16 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 
 		width = h264SPS.Width()
 		height = h264SPS.Height()
+
+	case *CodecMPEG4Video:
+		// TODO: parse config and use real values
+		width = 800
+		height = 600
+
+	case *CodecMPEG1Video:
+		// TODO: parse config and use real values
+		width = 800
+		height = 600
 	}
 
 	if track.Codec.IsVideo() {
@@ -434,6 +444,118 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 			return err
 		}
 
+	case *CodecMPEG4Video: //nolint:dupl
+		_, err = w.writeBoxStart(&mp4.VisualSampleEntry{ // <mp4v>
+			SampleEntry: mp4.SampleEntry{
+				AnyTypeBox: mp4.AnyTypeBox{
+					Type: BoxTypeMp4v(),
+				},
+				DataReferenceIndex: 1,
+			},
+			Width:           uint16(width),
+			Height:          uint16(height),
+			Horizresolution: 4718592,
+			Vertresolution:  4718592,
+			FrameCount:      1,
+			Depth:           24,
+			PreDefined3:     -1,
+		})
+		if err != nil {
+			return err
+		}
+
+		_, err = w.writeBox(&mp4.Esds{ // <esds/>
+			Descriptors: []mp4.Descriptor{
+				{
+					Tag:  mp4.ESDescrTag,
+					Size: 32 + uint32(len(codec.Config)),
+					ESDescriptor: &mp4.ESDescriptor{
+						ESID: uint16(track.ID),
+					},
+				},
+				{
+					Tag:  mp4.DecoderConfigDescrTag,
+					Size: 18 + uint32(len(codec.Config)),
+					DecoderConfigDescriptor: &mp4.DecoderConfigDescriptor{
+						ObjectTypeIndication: objectTypeIndicationVisualISO14496part2,
+						StreamType:           streamTypeVisualStream,
+						Reserved:             true,
+						MaxBitrate:           1000000,
+						AvgBitrate:           1000000,
+					},
+				},
+				{
+					Tag:  mp4.DecSpecificInfoTag,
+					Size: uint32(len(codec.Config)),
+					Data: codec.Config,
+				},
+				{
+					Tag:  mp4.SLConfigDescrTag,
+					Size: 1,
+					Data: []byte{0x02},
+				},
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+	case *CodecMPEG1Video: //nolint:dupl
+		_, err = w.writeBoxStart(&mp4.VisualSampleEntry{ // <mp4v>
+			SampleEntry: mp4.SampleEntry{
+				AnyTypeBox: mp4.AnyTypeBox{
+					Type: BoxTypeMp4v(),
+				},
+				DataReferenceIndex: 1,
+			},
+			Width:           uint16(width),
+			Height:          uint16(height),
+			Horizresolution: 4718592,
+			Vertresolution:  4718592,
+			FrameCount:      1,
+			Depth:           24,
+			PreDefined3:     -1,
+		})
+		if err != nil {
+			return err
+		}
+
+		_, err = w.writeBox(&mp4.Esds{ // <esds/>
+			Descriptors: []mp4.Descriptor{
+				{
+					Tag:  mp4.ESDescrTag,
+					Size: 32 + uint32(len(codec.Config)),
+					ESDescriptor: &mp4.ESDescriptor{
+						ESID: uint16(track.ID),
+					},
+				},
+				{
+					Tag:  mp4.DecoderConfigDescrTag,
+					Size: 18 + uint32(len(codec.Config)),
+					DecoderConfigDescriptor: &mp4.DecoderConfigDescriptor{
+						ObjectTypeIndication: objectTypeIndicationVisualISO1318part2Main,
+						StreamType:           streamTypeVisualStream,
+						Reserved:             true,
+						MaxBitrate:           1000000,
+						AvgBitrate:           1000000,
+					},
+				},
+				{
+					Tag:  mp4.DecSpecificInfoTag,
+					Size: uint32(len(codec.Config)),
+					Data: codec.Config,
+				},
+				{
+					Tag:  mp4.SLConfigDescrTag,
+					Size: 1,
+					Data: []byte{0x02},
+				},
+			},
+		})
+		if err != nil {
+			return err
+		}
+
 	case *CodecOpus:
 		_, err = w.writeBoxStart(&mp4.AudioSampleEntry{ // <Opus>
 			SampleEntry: mp4.SampleEntry{
@@ -490,8 +612,8 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 					Tag:  mp4.DecoderConfigDescrTag,
 					Size: 18 + uint32(len(enc)),
 					DecoderConfigDescriptor: &mp4.DecoderConfigDescriptor{
-						ObjectTypeIndication: 64,
-						StreamType:           5,
+						ObjectTypeIndication: objectTypeIndicationAudioISO14496part3,
+						StreamType:           streamTypeAudioStream,
 						Reserved:             true,
 						MaxBitrate:           128825,
 						AvgBitrate:           128825,
@@ -542,8 +664,8 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 					Tag:  mp4.DecoderConfigDescrTag,
 					Size: 13,
 					DecoderConfigDescriptor: &mp4.DecoderConfigDescriptor{
-						ObjectTypeIndication: 107,
-						StreamType:           5,
+						ObjectTypeIndication: objectTypeIndicationAudioISO11172part3,
+						StreamType:           streamTypeAudioStream,
 						Reserved:             true,
 						MaxBitrate:           128825,
 						AvgBitrate:           128825,

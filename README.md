@@ -16,6 +16,7 @@ Definitions and functions shared between [gortsplib](https://github.com/bluenvir
 
 |name|area|
 |----|----|
+|ISO 13818-2, Generic Coding of Moving Pictures and Associated Audio information, Part 2, Video|MPEG-1/2 Video codec|
 |ISO 14496-2, Coding of audio-visual objects, Part 2, Visual|MPEG-4 Video codec|
 |[ITU-T Rec. T-871, JPEG File Interchange Format](https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-T.871-201105-I!!PDF-E&type=items)|JPEG codec|
 |[ITU-T Rec. H.264 (08/2021)](https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-H.264-202108-I!!PDF-E&type=items)|H264 codec|
@@ -25,11 +26,13 @@ Definitions and functions shared between [gortsplib](https://github.com/bluenvir
 |[AV1 Bitstream & Decoding Process](https://aomediacodec.github.io/av1-spec/av1-spec.pdf)|AV1 codec|
 |[AV1 Codec ISO Media File Format Binding](https://aomediacodec.github.io/av1-isobmff)|AV1 inside MP4|
 |ISO 11172-3, Coding of moving pictures and associated audio|MPEG-1/2 Audio codec|
-|ISO 13818-3, Generic Coding of Moving Pictures and Associated Audio, Audio|MPEG-1/2 Audio codec|
+|ISO 13818-3, Generic Coding of Moving Pictures and Associated Audio information, Part 3, Audio|MPEG-1/2 Audio codec|
 |ISO 14496-3, Coding of audio-visual objects, Part 3, Audio|MPEG-4 Audio codec|
 |[RFC6716, Definition of the Opus Audio Codec](https://datatracker.ietf.org/doc/html/rfc6716)|Opus codec|
 |[Opus in MP4/ISOBMFF](https://opus-codec.org/docs/opus_in_isobmff.html)|Opus inside MP4|
-|ISO 14496-12, Coding of audio-visual objects, Part 12, ISO base media file format|MP4 / ISOBMFF format|
+|ISO 14496-1, Coding of audio-visual objects, Part 1, Systems|MP4 format|
+|ISO 14496-12, Coding of audio-visual objects, Part 12, ISO base media file format|MP4 format|
+|ISO 14496-14, Coding of audio-visual objects, Part 14, MP4 file format|MP4 format|
 
 ## Related projects
 

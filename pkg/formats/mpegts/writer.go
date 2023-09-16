@@ -153,8 +153,8 @@ func (w *Writer) WriteH26x(
 	return err
 }
 
-// WriteMPEGxVideo writes a MPEG-1/2/4 Video frame.
-func (w *Writer) WriteMPEGxVideo(
+// WriteMPEG4Video writes a MPEG-4 Video frame.
+func (w *Writer) WriteMPEG4Video(
 	track *Track,
 	pts int64,
 	frame []byte,
@@ -165,8 +165,61 @@ func (w *Writer) WriteMPEGxVideo(
 		w.mux.SetPCRPID(track.PID)
 	}
 
-	// valid for MPEG-1, MPEG-2 and MPEG-4
 	randomAccess := bytes.Contains(frame, []byte{0, 0, 1, byte(mpeg4video.GroupOfVOPStartCode)})
+
+	var af *astits.PacketAdaptationField
+
+	if randomAccess {
+		af = &astits.PacketAdaptationField{}
+		af.RandomAccessIndicator = true
+	}
+
+	if track.isLeading {
+		if randomAccess || w.pcrCounter == 0 {
+			if af == nil {
+				af = &astits.PacketAdaptationField{}
+			}
+			af.HasPCR = true
+			af.PCR = &astits.ClockReference{Base: pts - dtsPCRDiff}
+			w.pcrCounter = 3
+		}
+		w.pcrCounter--
+	}
+
+	oh := &astits.PESOptionalHeader{
+		MarkerBits: 2,
+	}
+
+	oh.PTSDTSIndicator = astits.PTSDTSIndicatorOnlyPTS
+	oh.PTS = &astits.ClockReference{Base: pts}
+
+	_, err := w.mux.WriteData(&astits.MuxerData{
+		PID:             track.PID,
+		AdaptationField: af,
+		PES: &astits.PESData{
+			Header: &astits.PESHeader{
+				OptionalHeader: oh,
+				StreamID:       streamIDVideo,
+			},
+			Data: frame,
+		},
+	})
+	return err
+}
+
+// WriteMPEG1Video writes a MPEG-1/2 Video frame.
+func (w *Writer) WriteMPEG1Video(
+	track *Track,
+	pts int64,
+	frame []byte,
+) error {
+	if !w.leadingTrackChosen {
+		w.leadingTrackChosen = true
+		track.isLeading = true
+		w.mux.SetPCRPID(track.PID)
+	}
+
+	randomAccess := bytes.Contains(frame, []byte{0, 0, 1, 0xB8})
 
 	var af *astits.PacketAdaptationField
 
