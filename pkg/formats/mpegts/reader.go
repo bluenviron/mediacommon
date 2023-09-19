@@ -75,7 +75,7 @@ func NewReader(br io.Reader) (*Reader, error) {
 		var track Track
 		err := track.unmarshal(dem, es)
 		if err != nil {
-			if err == errUnsupportedTrack {
+			if err == errUnsupportedCodec {
 				continue
 			}
 			return nil, err
@@ -85,7 +85,7 @@ func NewReader(br io.Reader) (*Reader, error) {
 	}
 
 	if tracks == nil {
-		return nil, fmt.Errorf("no supported tracks found")
+		return nil, fmt.Errorf("no tracks with supported codecs found")
 	}
 
 	// rewind demuxer
