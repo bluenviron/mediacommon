@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/asticode/go-astits"
+	"github.com/bluenviron/mediacommon/pkg/codecs/ac3"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
 )
 
@@ -39,6 +40,33 @@ func findMPEG4AudioConfig(dem *astits.Demuxer, pid uint16) (*mpeg4audio.Config, 
 			SampleRate:   pkt.SampleRate,
 			ChannelCount: pkt.ChannelCount,
 		}, nil
+	}
+}
+
+func findAC3Parameters(dem *astits.Demuxer, pid uint16) (int, int, error) {
+	for {
+		data, err := dem.NextData()
+		if err != nil {
+			return 0, 0, err
+		}
+
+		if data.PES == nil || data.PID != pid {
+			continue
+		}
+
+		var syncInfo ac3.SyncInfo
+		err = syncInfo.Unmarshal(data.PES.Data)
+		if err != nil {
+			return 0, 0, fmt.Errorf("invalid AC-3 frame: %s", err)
+		}
+
+		var bsi ac3.BSI
+		err = bsi.Unmarshal(data.PES.Data[5:])
+		if err != nil {
+			return 0, 0, fmt.Errorf("invalid AC-3 frame: %s", err)
+		}
+
+		return syncInfo.SampleRate(), bsi.ChannelCount(), nil
 	}
 }
 
@@ -124,6 +152,18 @@ func (t *Track) unmarshal(dem *astits.Demuxer, es *astits.PMTElementaryStream) e
 
 	case astits.StreamTypeMPEG1Audio:
 		t.Codec = &CodecMPEG1Audio{}
+		return nil
+
+	case astits.StreamTypeAC3Audio:
+		sampleRate, channelCount, err := findAC3Parameters(dem, es.ElementaryPID)
+		if err != nil {
+			return err
+		}
+
+		t.Codec = &CodecAC3{
+			SampleRate:   sampleRate,
+			ChannelCount: channelCount,
+		}
 		return nil
 
 	case astits.StreamTypePrivateData:

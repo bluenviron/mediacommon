@@ -5,6 +5,6 @@ const (
 	// MaxAccessUnitSize is the maximum size of an access unit.
 	MaxAccessUnitSize = 5 * 1024
 
-	// SamplesPerAccessUnit is the number of samples contained by an access unit.
+	// SamplesPerAccessUnit is the number of samples contained inside an access unit.
 	SamplesPerAccessUnit = 1024
 )

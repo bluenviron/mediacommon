@@ -22,7 +22,7 @@ func (r *recordReader) Read(p []byte) (int, error) {
 		return 0, errors.New("max buffer size exceeded")
 	}
 
-	r.buf = append(r.buf, p...)
+	r.buf = append(r.buf, p[:n]...)
 	r.size += n
 	return n, err
 }

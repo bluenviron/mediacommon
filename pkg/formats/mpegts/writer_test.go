@@ -60,6 +60,10 @@ func TestWriter(t *testing.T) {
 					err := w.WriteMPEG1Audio(ca.track, sample.pts, sample.data)
 					require.NoError(t, err)
 
+				case *CodecAC3:
+					err := w.WriteAC3(ca.track, sample.pts, sample.data[0])
+					require.NoError(t, err)
+
 				default:
 					t.Errorf("unexpected")
 				}
