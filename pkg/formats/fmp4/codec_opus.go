@@ -1,6 +1,6 @@
 package fmp4
 
-// CodecOpus is a Opus codec.
+// CodecOpus is the Opus codec.
 type CodecOpus struct {
 	ChannelCount int
 }

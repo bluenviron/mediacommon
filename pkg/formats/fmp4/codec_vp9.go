@@ -1,6 +1,6 @@
 package fmp4
 
-// CodecVP9 is a VP9 codec.
+// CodecVP9 is the VP9 codec.
 type CodecVP9 struct {
 	Width             int
 	Height            int

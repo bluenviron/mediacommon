@@ -60,6 +60,9 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 				   - mp4a (MPEG-1 audio)
 					 - esds
 					 - btrt
+				   - ac-3 (AC-3)
+					 - dac3
+					 - btrt
 				 - stts
 				 - stsc
 				 - stsz
@@ -677,6 +680,39 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 					Data: []byte{0x02},
 				},
 			},
+		})
+		if err != nil {
+			return err
+		}
+
+	case *CodecAC3:
+		_, err = w.writeBoxStart(&mp4.AudioSampleEntry{ // <ac-3>
+			SampleEntry: mp4.SampleEntry{
+				AnyTypeBox: mp4.AnyTypeBox{
+					Type: BoxTypeAC3(),
+				},
+				DataReferenceIndex: 1,
+			},
+			ChannelCount: uint16(codec.ChannelCount),
+			SampleSize:   16,
+			SampleRate:   uint32(codec.SampleRate * 65536),
+		})
+		if err != nil {
+			return err
+		}
+
+		_, err = w.writeBox(&Dac3{ // <dac3/>
+			Fscod: codec.Fscod,
+			Bsid:  codec.Bsid,
+			Bsmod: codec.Bsmod,
+			Acmod: codec.Acmod,
+			LfeOn: func() uint8 {
+				if codec.LfeOn {
+					return 1
+				}
+				return 0
+			}(),
+			BitRateCode: codec.BitRateCode,
 		})
 		if err != nil {
 			return err

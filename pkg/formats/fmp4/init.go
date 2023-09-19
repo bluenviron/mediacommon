@@ -148,6 +148,7 @@ func (i *Init) Unmarshal(byts []byte) error {
 		waitingVideoEsds
 		waitingAudioEsds
 		waitingDOps
+		waitingDac3
 	)
 
 	state := waitingTrak
@@ -437,13 +438,43 @@ func (i *Init) Unmarshal(byts []byte) error {
 
 			state = waitingTrak
 
-		case "ac-3": // ac-3, not supported yet
+		case "ac-3":
 			if state != waitingCodec {
 				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 			}
-			i.Tracks = i.Tracks[:len(i.Tracks)-1]
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			ac3 := box.(*mp4.AudioSampleEntry)
+
+			sampleRate = int(ac3.SampleRate / 65536)
+			channelCount = int(ac3.ChannelCount)
+			state = waitingDac3
+
+		case "dac3":
+			if state != waitingDac3 {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			dac3 := box.(*Dac3)
+
+			curTrack.Codec = &CodecAC3{
+				SampleRate:   sampleRate,
+				ChannelCount: channelCount,
+				Fscod:        dac3.Fscod,
+				Bsid:         dac3.Bsid,
+				Bsmod:        dac3.Bsmod,
+				Acmod:        dac3.Acmod,
+				LfeOn:        dac3.LfeOn != 0,
+				BitRateCode:  dac3.BitRateCode,
+			}
 			state = waitingTrak
-			return nil, nil
 
 		case "ec-3": // ec-3, not supported yet
 			if state != waitingCodec {

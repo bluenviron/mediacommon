@@ -7,6 +7,7 @@ import (
 
 	"github.com/asticode/go-astits"
 
+	"github.com/bluenviron/mediacommon/pkg/codecs/ac3"
 	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg1audio"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
@@ -29,6 +30,9 @@ type ReaderOnDataMPEG4AudioFunc func(pts int64, aus [][]byte) error
 
 // ReaderOnDataMPEG1AudioFunc is the prototype of the callback passed to OnDataMPEG1Audio.
 type ReaderOnDataMPEG1AudioFunc func(pts int64, frames [][]byte) error
+
+// ReaderOnDataAC3Func is the prototype of the callback passed to OnDataAC3.
+type ReaderOnDataAC3Func func(pts int64, frame []byte) error
 
 func findPMT(dem *astits.Demuxer) (*astits.PMTData, error) {
 	for {
@@ -214,6 +218,31 @@ func (r *Reader) OnDataMPEG1Audio(track *Track, cb ReaderOnDataMPEG1AudioFunc) {
 		}
 
 		return cb(pts, frames)
+	}
+}
+
+// OnDataAC3 sets a callback that is called when data from an AC-3 track is received.
+func (r *Reader) OnDataAC3(track *Track, cb ReaderOnDataAC3Func) {
+	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
+		if pts != dts {
+			r.onDecodeError(fmt.Errorf("PTS is not equal to DTS"))
+			return nil
+		}
+
+		var syncInfo ac3.SyncInfo
+		err := syncInfo.Unmarshal(data)
+		if err != nil {
+			r.onDecodeError(err)
+			return nil
+		}
+		size := syncInfo.FrameSize()
+
+		if size != len(data) {
+			r.onDecodeError(fmt.Errorf("unexpected frame size: got %d, expected %d", len(data), size))
+			return nil
+		}
+
+		return cb(pts, data)
 	}
 }
 

@@ -1,6 +1,6 @@
 package fmp4
 
-// CodecH265 is a H265 codec.
+// CodecH265 is the H265 codec.
 type CodecH265 struct {
 	SPS []byte
 	PPS []byte

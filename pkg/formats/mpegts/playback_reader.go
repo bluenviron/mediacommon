@@ -10,12 +10,13 @@ type playbackReader struct {
 }
 
 func (r *playbackReader) Read(p []byte) (int, error) {
-	if len(r.buf) > 0 {
+	if r.buf != nil {
 		n := copy(p, r.buf)
-		r.buf = r.buf[n:]
 
-		if len(r.buf) == 0 { // release buf from memory
-			r.buf = nil
+		if len(r.buf) == n {
+			r.buf = nil // release buf from memory
+		} else {
+			r.buf = r.buf[n:]
 		}
 
 		return n, nil

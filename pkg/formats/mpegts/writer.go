@@ -442,3 +442,46 @@ func (w *Writer) WriteMPEG1Audio(
 	})
 	return err
 }
+
+// WriteAC3 writes a AC-3 frame.
+func (w *Writer) WriteAC3(
+	track *Track,
+	pts int64,
+	frame []byte,
+) error {
+	if !w.leadingTrackChosen {
+		w.leadingTrackChosen = true
+		track.isLeading = true
+		w.mux.SetPCRPID(track.PID)
+	}
+
+	af := &astits.PacketAdaptationField{
+		RandomAccessIndicator: true,
+	}
+
+	if track.isLeading {
+		if w.pcrCounter == 0 {
+			af.HasPCR = true
+			af.PCR = &astits.ClockReference{Base: pts - dtsPCRDiff}
+			w.pcrCounter = 3
+		}
+		w.pcrCounter--
+	}
+
+	_, err := w.mux.WriteData(&astits.MuxerData{
+		PID:             track.PID,
+		AdaptationField: af,
+		PES: &astits.PESData{
+			Header: &astits.PESHeader{
+				OptionalHeader: &astits.PESOptionalHeader{
+					MarkerBits:      2,
+					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+					PTS:             &astits.ClockReference{Base: pts},
+				},
+				StreamID: streamIDAudio,
+			},
+			Data: frame,
+		},
+	})
+	return err
+}

@@ -1,6 +1,6 @@
 package fmp4
 
-// CodecAV1 is a AV1 codec.
+// CodecAV1 is the AV1 codec.
 type CodecAV1 struct {
 	SequenceHeader []byte
 }
