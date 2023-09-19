@@ -15,7 +15,7 @@ const (
 	opusIdentifier = 'O'<<24 | 'p'<<16 | 'u'<<8 | 's'
 )
 
-var errUnsupportedTrack = errors.New("unsupported track")
+var errUnsupportedCodec = errors.New("unsupported codec")
 
 func findMPEG4AudioConfig(dem *astits.Demuxer, pid uint16) (*mpeg4audio.Config, error) {
 	for {
@@ -174,5 +174,5 @@ func (t *Track) unmarshal(dem *astits.Demuxer, es *astits.PMTElementaryStream) e
 		}
 	}
 
-	return errUnsupportedTrack
+	return errUnsupportedCodec
 }
