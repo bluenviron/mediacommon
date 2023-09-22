@@ -51,6 +51,9 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 				   - avc1 (H264)
 					 - avcC
 					 - btrt
+				   - mp4v (MPEG-4/2/1 video, MJPEG)
+					 - esds
+					 - btrt
 				   - Opus (Opus)
 					 - dOps
 					 - btrt
@@ -125,6 +128,10 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		// TODO: parse config and use real values
 		width = 800
 		height = 600
+
+	case *CodecMJPEG:
+		width = codec.Width
+		height = codec.Height
 	}
 
 	if track.Codec.IsVideo() {
@@ -547,6 +554,57 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 					Tag:  mp4.DecSpecificInfoTag,
 					Size: uint32(len(codec.Config)),
 					Data: codec.Config,
+				},
+				{
+					Tag:  mp4.SLConfigDescrTag,
+					Size: 1,
+					Data: []byte{0x02},
+				},
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+	case *CodecMJPEG: //nolint:dupl
+		_, err = w.writeBoxStart(&mp4.VisualSampleEntry{ // <mp4v>
+			SampleEntry: mp4.SampleEntry{
+				AnyTypeBox: mp4.AnyTypeBox{
+					Type: BoxTypeMp4v(),
+				},
+				DataReferenceIndex: 1,
+			},
+			Width:           uint16(width),
+			Height:          uint16(height),
+			Horizresolution: 4718592,
+			Vertresolution:  4718592,
+			FrameCount:      1,
+			Depth:           24,
+			PreDefined3:     -1,
+		})
+		if err != nil {
+			return err
+		}
+
+		_, err = w.writeBox(&mp4.Esds{ // <esds/>
+			Descriptors: []mp4.Descriptor{
+				{
+					Tag:  mp4.ESDescrTag,
+					Size: 27,
+					ESDescriptor: &mp4.ESDescriptor{
+						ESID: uint16(track.ID),
+					},
+				},
+				{
+					Tag:  mp4.DecoderConfigDescrTag,
+					Size: 13,
+					DecoderConfigDescriptor: &mp4.DecoderConfigDescriptor{
+						ObjectTypeIndication: objectTypeIndicationVisualISO10918part1,
+						StreamType:           streamTypeVisualStream,
+						Reserved:             true,
+						MaxBitrate:           1000000,
+						AvgBitrate:           1000000,
+					},
 				},
 				{
 					Tag:  mp4.SLConfigDescrTag,

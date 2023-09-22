@@ -18,6 +18,7 @@ const (
 	objectTypeIndicationAudioISO14496part3     = 0x40
 	objectTypeIndicationVisualISO1318part2Main = 0x61
 	objectTypeIndicationAudioISO11172part3     = 0x6B
+	objectTypeIndicationVisualISO10918part1    = 0x6C
 )
 
 // Specification: ISO 14496-1, Table 6
@@ -346,6 +347,15 @@ func (i *Init) Unmarshal(byts []byte) error {
 			if state != waitingCodec {
 				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			mp4v := box.(*mp4.VisualSampleEntry)
+
+			width = int(mp4v.Width)
+			height = int(mp4v.Height)
 			state = waitingVideoEsds
 
 		case "mp4a":
@@ -378,6 +388,16 @@ func (i *Init) Unmarshal(byts []byte) error {
 			switch state {
 			case waitingVideoEsds:
 				switch conf.ObjectTypeIndication {
+				case objectTypeIndicationVisualISO14496part2:
+					spec := esdsFindDecoderSpecificInfo(esds.Descriptors)
+					if spec == nil {
+						return nil, fmt.Errorf("unable to find decoder specific info")
+					}
+
+					curTrack.Codec = &CodecMPEG4Video{
+						Config: spec,
+					}
+
 				case objectTypeIndicationVisualISO1318part2Main:
 					spec := esdsFindDecoderSpecificInfo(esds.Descriptors)
 					if spec == nil {
@@ -388,14 +408,10 @@ func (i *Init) Unmarshal(byts []byte) error {
 						Config: spec,
 					}
 
-				case objectTypeIndicationVisualISO14496part2:
-					spec := esdsFindDecoderSpecificInfo(esds.Descriptors)
-					if spec == nil {
-						return nil, fmt.Errorf("unable to find decoder specific info")
-					}
-
-					curTrack.Codec = &CodecMPEG4Video{
-						Config: spec,
+				case objectTypeIndicationVisualISO10918part1:
+					curTrack.Codec = &CodecMJPEG{
+						Width:  width,
+						Height: height,
 					}
 
 				default:
