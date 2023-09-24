@@ -21,6 +21,7 @@ Definitions and functions shared between [gortsplib](https://github.com/bluenvir
 |[ITU-T Rec. T-871, JPEG File Interchange Format](https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-T.871-201105-I!!PDF-E&type=items)|JPEG codec|
 |[ITU-T Rec. H.264 (08/2021)](https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-H.264-202108-I!!PDF-E&type=items)|H264 codec|
 |[ITU-T Rec. H.265 (08/2021)](https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-H.265-202108-I!!PDF-E&type=items)|H265 codec|
+|ISO 14496-15, Coding of audio-visual objects, Part 15, Advanced Video Coding (AVC) file format|H264 and H265 inside MP4|
 |[VP9 Bitstream & Decoding Process Specification v0.6](https://storage.googleapis.com/downloads.webmproject.org/docs/vp9/vp9-bitstream-specification-v0.6-20160331-draft.pdf)|VP9 codec|
 |[VP9 Codec ISO Media File Format Binding](https://www.webmproject.org/vp9/mp4/)|VP9 inside MP4|
 |[AV1 Bitstream & Decoding Process](https://aomediacodec.github.io/av1-spec/av1-spec.pdf)|AV1 codec|

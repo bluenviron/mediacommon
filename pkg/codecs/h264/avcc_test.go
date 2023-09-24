@@ -49,6 +49,25 @@ func TestAVCCUnmarshal(t *testing.T) {
 	}
 }
 
+// issue mediamtx/2375
+func TestAVCCUnmarshalEmpty(t *testing.T) {
+	dec, err := AVCCUnmarshal([]byte{
+		0x0, 0x0, 0x0, 0x0,
+	})
+
+	require.Equal(t, ErrAVCCNoNALUs, err)
+	require.Equal(t, [][]byte(nil), dec)
+
+	dec, err = AVCCUnmarshal([]byte{
+		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x3, 0x1, 0x2, 0x3,
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, [][]byte{
+		{1, 2, 3},
+	}, dec)
+}
+
 func TestAVCCMarshal(t *testing.T) {
 	for _, ca := range casesAVCC {
 		t.Run(ca.name, func(t *testing.T) {
