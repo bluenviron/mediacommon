@@ -1372,17 +1372,6 @@ var casesInit = []struct {
 	},
 }
 
-func TestInitMarshal(t *testing.T) {
-	for _, ca := range casesInit {
-		t.Run(ca.name, func(t *testing.T) {
-			buf := &writerseeker.WriterSeeker{}
-			err := ca.dec.Marshal(buf)
-			require.NoError(t, err)
-			require.Equal(t, ca.enc, buf.Bytes())
-		})
-	}
-}
-
 func TestInitUnmarshal(t *testing.T) {
 	for _, ca := range casesInit {
 		t.Run(ca.name, func(t *testing.T) {
@@ -1978,6 +1967,67 @@ func TestInitUnmarshalExternal(t *testing.T) {
 			err := init.Unmarshal(ca.byts)
 			require.NoError(t, err)
 			require.Equal(t, ca.init, init)
+		})
+	}
+}
+
+func TestInitMarshal(t *testing.T) {
+	for _, ca := range casesInit {
+		t.Run(ca.name, func(t *testing.T) {
+			buf := &writerseeker.WriterSeeker{}
+			err := ca.dec.Marshal(buf)
+			require.NoError(t, err)
+			require.Equal(t, ca.enc, buf.Bytes())
+		})
+	}
+}
+
+func TestInitMarshalEmptyParameters(t *testing.T) {
+	for _, ca := range []struct {
+		name  string
+		codec Codec
+	}{
+		{
+			"av1",
+			&CodecAV1{},
+		},
+		{
+			"vp9",
+			&CodecVP9{},
+		},
+		{
+			"h265",
+			&CodecH265{},
+		},
+		{
+			"h264",
+			&CodecH264{},
+		},
+		{
+			"mpeg-4 video",
+			&CodecMPEG4Video{},
+		},
+		{
+			"mpeg-1 video",
+			&CodecMPEG1Video{},
+		},
+		{
+			"mjpeg",
+			&CodecMJPEG{},
+		},
+	} {
+		t.Run(ca.name, func(t *testing.T) {
+			i := Init{
+				Tracks: []*InitTrack{{
+					ID:        1,
+					TimeScale: 90000,
+					Codec:     ca.codec,
+				}},
+			}
+
+			buf := &writerseeker.WriterSeeker{}
+			err := i.Marshal(buf)
+			require.Error(t, err)
 		})
 	}
 }

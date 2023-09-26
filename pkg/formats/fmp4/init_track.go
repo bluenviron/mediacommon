@@ -96,10 +96,18 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		height = av1SequenceHeader.Height()
 
 	case *CodecVP9:
+		if codec.Width == 0 {
+			return fmt.Errorf("VP9 parameters not provided")
+		}
+
 		width = codec.Width
 		height = codec.Height
 
 	case *CodecH265:
+		if len(codec.VPS) == 0 || len(codec.SPS) == 0 || len(codec.PPS) == 0 {
+			return fmt.Errorf("H265 parameters not provided")
+		}
+
 		h265SPS = &h265.SPS{}
 		err = h265SPS.Unmarshal(codec.SPS)
 		if err != nil {
@@ -110,6 +118,10 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		height = h265SPS.Height()
 
 	case *CodecH264:
+		if len(codec.SPS) == 0 || len(codec.PPS) == 0 {
+			return fmt.Errorf("H264 parameters not provided")
+		}
+
 		h264SPS = &h264.SPS{}
 		err = h264SPS.Unmarshal(codec.SPS)
 		if err != nil {
@@ -120,16 +132,28 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		height = h264SPS.Height()
 
 	case *CodecMPEG4Video:
+		if len(codec.Config) == 0 {
+			return fmt.Errorf("MPEG-4 Video config not provided")
+		}
+
 		// TODO: parse config and use real values
 		width = 800
 		height = 600
 
 	case *CodecMPEG1Video:
+		if len(codec.Config) == 0 {
+			return fmt.Errorf("MPEG-1/2 Video config not provided")
+		}
+
 		// TODO: parse config and use real values
 		width = 800
 		height = 600
 
 	case *CodecMJPEG:
+		if codec.Width == 0 {
+			return fmt.Errorf("M-JPEG parameters not provided")
+		}
+
 		width = codec.Width
 		height = codec.Height
 	}
