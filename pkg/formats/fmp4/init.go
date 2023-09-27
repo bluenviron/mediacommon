@@ -478,7 +478,7 @@ func (i *Init) Unmarshal(byts []byte) error {
 			if err != nil {
 				return nil, err
 			}
-			dac3 := box.(*Dac3)
+			dac3 := box.(*mp4.Dac3)
 
 			curTrack.Codec = &CodecAC3{
 				SampleRate:   sampleRate,
