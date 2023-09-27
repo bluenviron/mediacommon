@@ -482,7 +482,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		_, err = w.writeBoxStart(&mp4.VisualSampleEntry{ // <mp4v>
 			SampleEntry: mp4.SampleEntry{
 				AnyTypeBox: mp4.AnyTypeBox{
-					Type: BoxTypeMp4v(),
+					Type: mp4.BoxTypeMp4v(),
 				},
 				DataReferenceIndex: 1,
 			},
@@ -538,7 +538,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		_, err = w.writeBoxStart(&mp4.VisualSampleEntry{ // <mp4v>
 			SampleEntry: mp4.SampleEntry{
 				AnyTypeBox: mp4.AnyTypeBox{
-					Type: BoxTypeMp4v(),
+					Type: mp4.BoxTypeMp4v(),
 				},
 				DataReferenceIndex: 1,
 			},
@@ -594,7 +594,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		_, err = w.writeBoxStart(&mp4.VisualSampleEntry{ // <mp4v>
 			SampleEntry: mp4.SampleEntry{
 				AnyTypeBox: mp4.AnyTypeBox{
-					Type: BoxTypeMp4v(),
+					Type: mp4.BoxTypeMp4v(),
 				},
 				DataReferenceIndex: 1,
 			},
@@ -771,7 +771,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		_, err = w.writeBoxStart(&mp4.AudioSampleEntry{ // <ac-3>
 			SampleEntry: mp4.SampleEntry{
 				AnyTypeBox: mp4.AnyTypeBox{
-					Type: BoxTypeAC3(),
+					Type: mp4.BoxTypeAC3(),
 				},
 				DataReferenceIndex: 1,
 			},
@@ -783,7 +783,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 			return err
 		}
 
-		_, err = w.writeBox(&Dac3{ // <dac3/>
+		_, err = w.writeBox(&mp4.Dac3{ // <dac3/>
 			Fscod: codec.Fscod,
 			Bsid:  codec.Bsid,
 			Bsmod: codec.Bsmod,
