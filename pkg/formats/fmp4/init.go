@@ -160,6 +160,14 @@ func (i *Init) Unmarshal(byts []byte) error {
 	var channelCount int
 
 	_, err := mp4.ReadBoxStructure(bytes.NewReader(byts), func(h *mp4.ReadHandle) (interface{}, error) {
+		if !h.BoxInfo.IsSupportedType() {
+			if state != waitingTrak {
+				i.Tracks = i.Tracks[:len(i.Tracks)-1]
+				state = waitingTrak
+			}
+			return nil, nil
+		}
+
 		switch h.BoxInfo.Type.String() {
 		case "trak":
 			if state != waitingTrak {
@@ -491,25 +499,6 @@ func (i *Init) Unmarshal(byts []byte) error {
 				BitRateCode:  dac3.BitRateCode,
 			}
 			state = waitingTrak
-
-		case "ec-3": // ec-3, not supported yet
-			if state != waitingCodec {
-				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
-			}
-			i.Tracks = i.Tracks[:len(i.Tracks)-1]
-			state = waitingTrak
-			return nil, nil
-
-		case "c608", "c708": // closed captions, not supported yet
-			if state != waitingCodec {
-				return nil, fmt.Errorf("unexpected box ''%v'", h.BoxInfo.Type)
-			}
-			i.Tracks = i.Tracks[:len(i.Tracks)-1]
-			state = waitingTrak
-			return nil, nil
-
-		case "chrm", "nmhd":
-			return nil, nil
 		}
 
 		return h.Expand()
