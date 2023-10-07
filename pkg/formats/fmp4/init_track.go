@@ -799,6 +799,35 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		if err != nil {
 			return err
 		}
+
+	case *CodecLPCM:
+		_, err = w.writeBoxStart(&mp4.AudioSampleEntry{ // <ipcm>
+			SampleEntry: mp4.SampleEntry{
+				AnyTypeBox: mp4.AnyTypeBox{
+					Type: BoxTypeIpcm(),
+				},
+				DataReferenceIndex: 1,
+			},
+			ChannelCount: uint16(codec.ChannelCount),
+			SampleSize:   uint16(codec.BitDepth), // FFmpeg leaves this to 16 instead of using real bit depth
+			SampleRate:   uint32(codec.SampleRate * 65536),
+		})
+		if err != nil {
+			return err
+		}
+
+		_, err = w.writeBox(&PcmC{ // <pcmC/>
+			FormatFlags: func() uint8 {
+				if codec.LittleEndian {
+					return 1
+				}
+				return 0
+			}(),
+			PCMSampleSize: uint8(codec.BitDepth),
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	if track.Codec.IsVideo() {
