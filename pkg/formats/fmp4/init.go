@@ -150,6 +150,7 @@ func (i *Init) Unmarshal(byts []byte) error {
 		waitingAudioEsds
 		waitingDOps
 		waitingDac3
+		waitingPcmC
 	)
 
 	state := waitingTrak
@@ -497,6 +498,40 @@ func (i *Init) Unmarshal(byts []byte) error {
 				Acmod:        dac3.Acmod,
 				LfeOn:        dac3.LfeOn != 0,
 				BitRateCode:  dac3.BitRateCode,
+			}
+			state = waitingTrak
+
+		case "ipcm":
+			if state != waitingCodec {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			ac3 := box.(*mp4.AudioSampleEntry)
+
+			sampleRate = int(ac3.SampleRate / 65536)
+			channelCount = int(ac3.ChannelCount)
+			state = waitingPcmC
+
+		case "pcmC":
+			if state != waitingPcmC {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			pcmc := box.(*PcmC)
+
+			curTrack.Codec = &CodecLPCM{
+				LittleEndian: (pcmc.FormatFlags & 0x01) != 0,
+				BitDepth:     int(pcmc.PCMSampleSize),
+				SampleRate:   sampleRate,
+				ChannelCount: channelCount,
 			}
 			state = waitingTrak
 		}
