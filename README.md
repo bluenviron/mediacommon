@@ -33,6 +33,7 @@ Definitions and functions shared between [gortsplib](https://github.com/bluenvir
 |[Opus in MP4/ISOBMFF](https://opus-codec.org/docs/opus_in_isobmff.html)|Opus inside MP4|
 |[ATSC Standard: Digital Audio Compression (AC-3, E-AC-3)](http://www.atsc.org/wp-content/uploads/2015/03/A52-201212-17.pdf)|AC-3 codec|
 |[ETSI TS 102 366](https://www.etsi.org/deliver/etsi_ts/102300_102399/102366/01.04.01_60/ts_102366v010401p.pdf)|AC-3 inside MP4|
+|ISO 23003-5, MPEG audio technologies, Part 5, Uncompressed audio in MPEG-4 file format|LPCM inside MP4|
 |ISO 14496-1, Coding of audio-visual objects, Part 1, Systems|MP4 format|
 |ISO 14496-12, Coding of audio-visual objects, Part 12, ISO base media file format|MP4 format|
 |ISO 14496-14, Coding of audio-visual objects, Part 14, MP4 file format|MP4 format|
