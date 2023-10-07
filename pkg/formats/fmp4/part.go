@@ -1,8 +1,6 @@
 package fmp4
 
 import (
-	"bytes"
-	"fmt"
 	"io"
 
 	"github.com/abema/go-mp4"
@@ -20,173 +18,11 @@ const (
 
 // Part is a fMP4 part.
 type Part struct {
-	Tracks []*PartTrack
+	SequenceNumber uint32
+	Tracks         []*PartTrack
 }
 
-// Parts is a sequence of fMP4 parts.
-type Parts []*Part
-
-// Unmarshal decodes one or more fMP4 parts.
-func (ps *Parts) Unmarshal(byts []byte) error {
-	type readState int
-
-	const (
-		waitingMoof readState = iota
-		waitingTraf
-		waitingTfdtTfhdTrun
-	)
-
-	state := waitingMoof
-	var curPart *Part
-	var moofOffset uint64
-	var curTrack *PartTrack
-	var tfdt *mp4.Tfdt
-	var tfhd *mp4.Tfhd
-
-	_, err := mp4.ReadBoxStructure(bytes.NewReader(byts), func(h *mp4.ReadHandle) (interface{}, error) {
-		switch h.BoxInfo.Type.String() {
-		case "moof":
-			if state != waitingMoof {
-				return nil, fmt.Errorf("unexpected moof")
-			}
-
-			curPart = &Part{}
-			*ps = append(*ps, curPart)
-			moofOffset = h.BoxInfo.Offset
-			state = waitingTraf
-
-		case "traf":
-			if state != waitingTraf && state != waitingTfdtTfhdTrun {
-				return nil, fmt.Errorf("unexpected traf")
-			}
-
-			if curTrack != nil {
-				if tfdt == nil || tfhd == nil || curTrack.Samples == nil {
-					return nil, fmt.Errorf("parse error")
-				}
-			}
-
-			curTrack = &PartTrack{}
-			curPart.Tracks = append(curPart.Tracks, curTrack)
-			tfdt = nil
-			tfhd = nil
-			state = waitingTfdtTfhdTrun
-
-		case "tfhd":
-			if state != waitingTfdtTfhdTrun || tfhd != nil {
-				return nil, fmt.Errorf("unexpected tfhd")
-			}
-
-			box, _, err := h.ReadPayload()
-			if err != nil {
-				return nil, err
-			}
-
-			tfhd = box.(*mp4.Tfhd)
-			curTrack.ID = int(tfhd.TrackID)
-
-		case "tfdt":
-			if state != waitingTfdtTfhdTrun || tfdt != nil {
-				return nil, fmt.Errorf("unexpected tfdt")
-			}
-
-			box, _, err := h.ReadPayload()
-			if err != nil {
-				return nil, err
-			}
-
-			tfdt = box.(*mp4.Tfdt)
-
-			if tfdt.FullBox.Version != 1 {
-				return nil, fmt.Errorf("unsupported tfdt version")
-			}
-
-			curTrack.BaseTime = tfdt.BaseMediaDecodeTimeV1
-
-		case "trun":
-			if state != waitingTfdtTfhdTrun || tfhd == nil {
-				return nil, fmt.Errorf("unexpected trun")
-			}
-
-			box, _, err := h.ReadPayload()
-			if err != nil {
-				return nil, err
-			}
-			trun := box.(*mp4.Trun)
-
-			trunFlags := uint16(trun.Flags[1])<<8 | uint16(trun.Flags[2])
-			if (trunFlags & trunFlagDataOffsetPreset) == 0 {
-				return nil, fmt.Errorf("unsupported flags")
-			}
-
-			existing := len(curTrack.Samples)
-			tmp := make([]*PartSample, existing+len(trun.Entries))
-			copy(tmp, curTrack.Samples)
-			curTrack.Samples = tmp
-
-			ptr := byts[uint64(trun.DataOffset)+moofOffset:]
-
-			for i, e := range trun.Entries {
-				s := &PartSample{}
-
-				if (trunFlags & trunFlagSampleDurationPresent) != 0 {
-					s.Duration = e.SampleDuration
-				} else {
-					s.Duration = tfhd.DefaultSampleDuration
-				}
-
-				s.PTSOffset = e.SampleCompositionTimeOffsetV1
-
-				var sampleFlags uint32
-				if (trunFlags & trunFlagSampleFlagsPresent) != 0 {
-					sampleFlags = e.SampleFlags
-				} else {
-					sampleFlags = tfhd.DefaultSampleFlags
-				}
-				s.IsNonSyncSample = ((sampleFlags & sampleFlagIsNonSyncSample) != 0)
-
-				var size uint32
-				if (trunFlags & trunFlagSampleSizePresent) != 0 {
-					size = e.SampleSize
-				} else {
-					size = tfhd.DefaultSampleSize
-				}
-
-				s.Payload = ptr[:size]
-				ptr = ptr[size:]
-
-				curTrack.Samples[existing+i] = s
-			}
-
-		case "mdat":
-			if state != waitingTraf && state != waitingTfdtTfhdTrun {
-				return nil, fmt.Errorf("unexpected mdat")
-			}
-
-			if curTrack != nil {
-				if tfdt == nil || tfhd == nil || curTrack.Samples == nil {
-					return nil, fmt.Errorf("parse error")
-				}
-			}
-
-			state = waitingMoof
-			return nil, nil
-		}
-
-		return h.Expand()
-	})
-	if err != nil {
-		return err
-	}
-
-	if state != waitingMoof {
-		return fmt.Errorf("decode error")
-	}
-
-	return nil
-}
-
-// Marshal encodes a fMP4 part file.
+// Marshal encodes a fMP4 part.
 func (p *Part) Marshal(w io.WriteSeeker) error {
 	/*
 		moof
@@ -204,7 +40,7 @@ func (p *Part) Marshal(w io.WriteSeeker) error {
 	}
 
 	_, err = mw.writeBox(&mp4.Mfhd{ // <mfhd/>
-		SequenceNumber: 0,
+		SequenceNumber: p.SequenceNumber,
 	})
 	if err != nil {
 		return err
