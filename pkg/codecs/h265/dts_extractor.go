@@ -2,6 +2,7 @@ package h265
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/bluenviron/mediacommon/pkg/bits"
@@ -78,14 +79,31 @@ func getPTSDTSDiff(buf []byte, sps *SPS, pps *PPS) (uint32, error) {
 		return 0, err
 	}
 
-	if shortTermRefPicSetSpsFlag {
-		return 0, fmt.Errorf("short_term_ref_pic_set_sps_flag = true is not supported")
-	}
+	var rps *SPS_ShortTermRefPicSet
 
-	var rps SPS_ShortTermRefPicSet
-	err = rps.unmarshal(buf, &pos, uint32(len(sps.ShortTermRefPicSets)), uint32(len(sps.ShortTermRefPicSets)), nil)
-	if err != nil {
-		return 0, err
+	if !shortTermRefPicSetSpsFlag {
+		rps = &SPS_ShortTermRefPicSet{}
+		err = rps.unmarshal(buf, &pos, uint32(len(sps.ShortTermRefPicSets)), uint32(len(sps.ShortTermRefPicSets)), nil)
+		if err != nil {
+			return 0, err
+		}
+	} else {
+		if len(sps.ShortTermRefPicSets) == 0 {
+			return 0, fmt.Errorf("invalid short_term_ref_pic_set_idx")
+		}
+
+		b := int(math.Ceil(math.Log2(float64(len(sps.ShortTermRefPicSets)))))
+		tmp, err := bits.ReadBits(buf, &pos, b)
+		if err != nil {
+			return 0, err
+		}
+		shortTermRefPicSetIdx := int(tmp)
+
+		if len(sps.ShortTermRefPicSets) <= shortTermRefPicSetIdx {
+			return 0, fmt.Errorf("invalid short_term_ref_pic_set_idx")
+		}
+
+		rps = sps.ShortTermRefPicSets[shortTermRefPicSetIdx]
 	}
 
 	var v uint32
