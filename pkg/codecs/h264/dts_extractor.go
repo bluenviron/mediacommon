@@ -3,6 +3,7 @@ package h264
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/bluenviron/mediacommon/pkg/bits"
@@ -10,6 +11,10 @@ import (
 
 const (
 	maxReorderedFrames = 10
+	// (1 + max_size(first_mb_in_slice) + max_size(slice_type) + max_size(pic_parameter_set_id) + max_size(frame_num) + max_size(pic_order_cnt_lsb) ) * 3 =
+	// (1 + 3 * max_size(golomb) + (max_size(Log2MaxFrameNumMinus4) + 4) / 8 + (max_size(Log2MaxPicOrderCntLsbMinus4) + 4) / 8 =
+	// (1 + 3 * 4 + 2 + 2) * 3 = 51
+	maxBytesToGetPOC = 51
 )
 
 func getPictureOrderCount(buf []byte, sps *SPS) (uint32, error) {
@@ -17,7 +22,8 @@ func getPictureOrderCount(buf []byte, sps *SPS) (uint32, error) {
 		return 0, fmt.Errorf("not enough bits")
 	}
 
-	buf = EmulationPreventionRemove(buf)
+	trimBytes := int(math.Min(float64(len(buf)), float64(maxBytesToGetPOC)))
+	buf = EmulationPreventionRemove(buf[:trimBytes])
 
 	buf = buf[1:]
 	pos := 0
