@@ -10,16 +10,24 @@ import (
 
 const (
 	maxReorderedFrames = 10
+	/*
+		(max_size(first_mb_in_slice) + max_size(slice_type) + max_size(pic_parameter_set_id) +
+		max_size(frame_num) + max_size(pic_order_cnt_lsb)) * 4 / 3 =
+		(3 * max_size(golomb) + (max(Log2MaxFrameNumMinus4) + 4) / 8 + (max(Log2MaxPicOrderCntLsbMinus4) + 4) / 8) * 4 / 3 =
+		(3 * 4 + 2 + 2) * 4 / 3 = 22
+	*/
+	maxBytesToGetPOC = 22
 )
 
 func getPictureOrderCount(buf []byte, sps *SPS) (uint32, error) {
-	if len(buf) < 6 {
-		return 0, fmt.Errorf("not enough bits")
+	buf = buf[1:]
+	lb := len(buf)
+
+	if lb > maxBytesToGetPOC {
+		lb = maxBytesToGetPOC
 	}
 
-	buf = EmulationPreventionRemove(buf[:6])
-
-	buf = buf[1:]
+	buf = EmulationPreventionRemove(buf[:lb])
 	pos := 0
 
 	_, err := bits.ReadGolombUnsigned(buf, &pos) // first_mb_in_slice
