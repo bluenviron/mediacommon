@@ -569,8 +569,8 @@ func (s *SPS) Unmarshal(buf []byte) error {
 		return fmt.Errorf("not a SPS")
 	}
 
-	buf = h264.EmulationPreventionRemove(buf[2:])
-	pos := 0
+	buf = h264.EmulationPreventionRemove(buf[1:])
+	pos := 8
 
 	err := bits.HasSpace(buf, pos, 8)
 	if err != nil {

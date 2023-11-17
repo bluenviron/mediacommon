@@ -9,17 +9,22 @@ import (
 	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
 )
 
+const (
+	maxBytesToGetPOC = 12
+)
+
 func getPTSDTSDiff(buf []byte, sps *SPS, pps *PPS) (uint32, error) {
-	if len(buf) < 12 {
-		return 0, fmt.Errorf("not enough bits")
-	}
-
-	buf = h264.EmulationPreventionRemove(buf[:12])
-
 	typ := NALUType((buf[0] >> 1) & 0b111111)
 
-	buf = buf[2:]
-	pos := 0
+	buf = buf[1:]
+	lb := len(buf)
+
+	if lb > maxBytesToGetPOC {
+		lb = maxBytesToGetPOC
+	}
+
+	buf = h264.EmulationPreventionRemove(buf[:lb])
+	pos := 8
 
 	firstSliceSegmentInPicFlag, err := bits.ReadFlag(buf, &pos)
 	if err != nil {

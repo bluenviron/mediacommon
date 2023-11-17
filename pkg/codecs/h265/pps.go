@@ -27,8 +27,8 @@ func (p *PPS) Unmarshal(buf []byte) error {
 		return fmt.Errorf("not a PPS")
 	}
 
-	buf = h264.EmulationPreventionRemove(buf[2:])
-	pos := 0
+	buf = h264.EmulationPreventionRemove(buf[1:])
+	pos := 8
 
 	var err error
 	p.ID, err = bits.ReadGolombUnsigned(buf, &pos)
