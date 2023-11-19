@@ -1,7 +1,6 @@
 package fmp4
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 
@@ -134,7 +133,7 @@ type Init struct {
 }
 
 // Unmarshal decodes a fMP4 initialization block.
-func (i *Init) Unmarshal(byts []byte) error {
+func (i *Init) Unmarshal(r io.ReadSeeker) error {
 	type readState int
 
 	const (
@@ -160,7 +159,7 @@ func (i *Init) Unmarshal(byts []byte) error {
 	var sampleRate int
 	var channelCount int
 
-	_, err := mp4.ReadBoxStructure(bytes.NewReader(byts), func(h *mp4.ReadHandle) (interface{}, error) {
+	_, err := mp4.ReadBoxStructure(r, func(h *mp4.ReadHandle) (interface{}, error) {
 		if !h.BoxInfo.IsSupportedType() {
 			if state != waitingTrak {
 				i.Tracks = i.Tracks[:len(i.Tracks)-1]

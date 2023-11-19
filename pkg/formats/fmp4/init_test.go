@@ -1,6 +1,7 @@
 package fmp4
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/aler9/writerseeker"
@@ -1469,7 +1470,7 @@ func TestInitUnmarshal(t *testing.T) {
 	for _, ca := range casesInit {
 		t.Run(ca.name, func(t *testing.T) {
 			var init Init
-			err := init.Unmarshal(ca.enc)
+			err := init.Unmarshal(bytes.NewReader(ca.enc))
 			require.NoError(t, err)
 			require.Equal(t, ca.dec, init)
 		})
@@ -2057,7 +2058,7 @@ func TestInitUnmarshalExternal(t *testing.T) {
 	} {
 		t.Run(ca.name, func(t *testing.T) {
 			var init Init
-			err := init.Unmarshal(ca.byts)
+			err := init.Unmarshal(bytes.NewReader(ca.byts))
 			require.NoError(t, err)
 			require.Equal(t, ca.init, init)
 		})
@@ -2132,6 +2133,6 @@ func FuzzInitUnmarshal(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, b []byte) {
 		var init Init
-		init.Unmarshal(b) //nolint:errcheck
+		init.Unmarshal(bytes.NewReader(b)) //nolint:errcheck
 	})
 }
