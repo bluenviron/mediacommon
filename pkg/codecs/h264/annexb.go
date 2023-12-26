@@ -6,8 +6,8 @@ import (
 
 // AnnexBUnmarshal decodes an access unit from the Annex-B stream format.
 // Specification: ITU-T Rec. H.264, Annex B
-func AnnexBUnmarshal(byts []byte) ([][]byte, error) {
-	bl := len(byts)
+func AnnexBUnmarshal(buf []byte) ([][]byte, error) {
+	bl := len(buf)
 	initZeroCount := 0
 	start := 0
 
@@ -19,13 +19,13 @@ outer:
 
 		switch initZeroCount {
 		case 0, 1:
-			if byts[start] != 0 {
+			if buf[start] != 0 {
 				return nil, fmt.Errorf("initial delimiter not found")
 			}
 			initZeroCount++
 
 		case 2, 3:
-			switch byts[start] {
+			switch buf[start] {
 			case 1:
 				start++
 				break outer
@@ -45,7 +45,7 @@ outer:
 	n := 0
 
 	for i := start; i < bl; i++ {
-		switch byts[i] {
+		switch buf[i] {
 		case 0:
 			zeroCount++
 
@@ -73,7 +73,7 @@ outer:
 	auSize := 0
 
 	for i := start; i < bl; i++ {
-		switch byts[i] {
+		switch buf[i] {
 		case 0:
 			if zeroCount == 0 {
 				delimStart = i
@@ -92,7 +92,7 @@ outer:
 					return nil, fmt.Errorf("access unit size (%d) is too big, maximum is %d", auSize+l, MaxAccessUnitSize)
 				}
 
-				ret[pos] = byts[start:delimStart]
+				ret[pos] = buf[start:delimStart]
 				pos++
 				auSize += l
 				start = i + 1
@@ -114,7 +114,7 @@ outer:
 		return nil, fmt.Errorf("access unit size (%d) is too big, maximum is %d", auSize+l, MaxAccessUnitSize)
 	}
 
-	ret[pos] = byts[start:bl]
+	ret[pos] = buf[start:bl]
 
 	return ret, nil
 }
