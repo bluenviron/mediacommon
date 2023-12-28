@@ -19,10 +19,11 @@ Definitions and functions shared between [gortsplib](https://github.com/bluenvir
 |ISO 13818-2, Generic Coding of Moving Pictures and Associated Audio information, Part 2, Video|codecs / MPEG-1/2 Video|
 |ISO 14496-2, Coding of audio-visual objects, Part 2, Visual|codecs / MPEG-4 Video|
 |[ITU-T Rec. T-871, JPEG File Interchange Format](https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-T.871-201105-I!!PDF-E&type=items)|codecs / JPEG|
-|[ITU-T Rec. H.264 (08/2021)](https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-H.264-202108-I!!PDF-E&type=items)|codecs / H264|
-|[ITU-T Rec. H.265 (08/2021)](https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-H.265-202108-I!!PDF-E&type=items)|codecs / H265|
+|[ITU-T Rec. H.264 (08/2021)](https://www.itu.int/rec/T-REC-H.264)|codecs / H264|
+|[ITU-T Rec. H.265 (08/2021)](https://www.itu.int/rec/T-REC-H.265)|codecs / H265|
 |[VP9 Bitstream & Decoding Process Specification v0.6](https://storage.googleapis.com/downloads.webmproject.org/docs/vp9/vp9-bitstream-specification-v0.6-20160331-draft.pdf)|codecs / VP9|
 |[AV1 Bitstream & Decoding Process](https://aomediacodec.github.io/av1-spec/av1-spec.pdf)|codecs / AV1|
+|[ITU-T Rec. G.711 (11/88)](https://www.itu.int/rec/T-REC-G.711)|codecs / G711|
 |ISO 11172-3, Coding of moving pictures and associated audio|codecs / MPEG-1/2 Audio|
 |ISO 13818-3, Generic Coding of Moving Pictures and Associated Audio information, Part 3, Audio|codecs / MPEG-1/2 Audio|
 |ISO 14496-3, Coding of audio-visual objects, Part 3, Audio|codecs / MPEG-4 Audio|
