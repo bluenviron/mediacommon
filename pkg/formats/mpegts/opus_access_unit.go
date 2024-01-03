@@ -12,7 +12,7 @@ type opusAccessUnit struct {
 func (au *opusAccessUnit) unmarshal(buf []byte) (int, error) {
 	n, err := au.ControlHeader.unmarshal(buf)
 	if err != nil {
-		return 0, fmt.Errorf("could not decode control header: %v", err)
+		return 0, fmt.Errorf("could not decode control header: %w", err)
 	}
 	buf = buf[n:]
 

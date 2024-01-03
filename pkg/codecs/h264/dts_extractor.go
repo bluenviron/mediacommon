@@ -98,7 +98,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 				var spsp SPS
 				err := spsp.Unmarshal(nalu)
 				if err != nil {
-					return 0, false, fmt.Errorf("invalid SPS: %v", err)
+					return 0, false, fmt.Errorf("invalid SPS: %w", err)
 				}
 				d.sps = nalu
 				d.spsp = &spsp

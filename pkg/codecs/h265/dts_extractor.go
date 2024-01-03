@@ -156,7 +156,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 			var spsp SPS
 			err := spsp.Unmarshal(nalu)
 			if err != nil {
-				return 0, fmt.Errorf("invalid SPS: %v", err)
+				return 0, fmt.Errorf("invalid SPS: %w", err)
 			}
 			d.spsp = &spsp
 
@@ -164,7 +164,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 			var ppsp PPS
 			err := ppsp.Unmarshal(nalu)
 			if err != nil {
-				return 0, fmt.Errorf("invalid PPS: %v", err)
+				return 0, fmt.Errorf("invalid PPS: %w", err)
 			}
 			d.ppsp = &ppsp
 

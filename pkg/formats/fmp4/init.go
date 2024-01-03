@@ -439,7 +439,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 					var c mpeg4audio.Config
 					err := c.Unmarshal(spec)
 					if err != nil {
-						return nil, fmt.Errorf("invalid MPEG-4 Audio configuration: %s", err)
+						return nil, fmt.Errorf("invalid MPEG-4 Audio configuration: %w", err)
 					}
 
 					curTrack.Codec = &CodecMPEG4Audio{

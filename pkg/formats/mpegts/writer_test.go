@@ -4,6 +4,7 @@ package mpegts
 import (
 	"bytes"
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/asticode/go-astits"
@@ -78,7 +79,7 @@ func TestWriter(t *testing.T) {
 
 			for {
 				pkt, err := dem.NextPacket()
-				if err == astits.ErrNoMorePackets {
+				if errors.Is(err, astits.ErrNoMorePackets) {
 					break
 				}
 				require.NoError(t, err)

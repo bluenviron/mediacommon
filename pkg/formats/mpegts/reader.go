@@ -2,6 +2,7 @@ package mpegts
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -75,7 +76,7 @@ func NewReader(br io.Reader) (*Reader, error) {
 		var track Track
 		err := track.unmarshal(dem, es)
 		if err != nil {
-			if err == errUnsupportedCodec {
+			if errors.Is(err, errUnsupportedCodec) {
 				continue
 			}
 			return nil, err

@@ -89,7 +89,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		av1SequenceHeader = &av1.SequenceHeader{}
 		err = av1SequenceHeader.Unmarshal(codec.SequenceHeader)
 		if err != nil {
-			return fmt.Errorf("unable to parse AV1 sequence header: %v", err)
+			return fmt.Errorf("unable to parse AV1 sequence header: %w", err)
 		}
 
 		width = av1SequenceHeader.Width()
@@ -111,7 +111,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		h265SPS = &h265.SPS{}
 		err = h265SPS.Unmarshal(codec.SPS)
 		if err != nil {
-			return fmt.Errorf("unable to parse H265 SPS: %v", err)
+			return fmt.Errorf("unable to parse H265 SPS: %w", err)
 		}
 
 		width = h265SPS.Width()
@@ -125,7 +125,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		h264SPS = &h264.SPS{}
 		err = h264SPS.Unmarshal(codec.SPS)
 		if err != nil {
-			return fmt.Errorf("unable to parse H264 SPS: %v", err)
+			return fmt.Errorf("unable to parse H264 SPS: %w", err)
 		}
 
 		width = h264SPS.Width()
