@@ -4,6 +4,7 @@ package mpegts
 import (
 	"bytes"
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/asticode/go-astits"
@@ -932,7 +933,7 @@ func TestReader(t *testing.T) {
 
 			for {
 				err := r.Read()
-				if err == astits.ErrNoMorePackets {
+				if errors.Is(err, astits.ErrNoMorePackets) {
 					break
 				}
 				require.NoError(t, err)

@@ -31,7 +31,7 @@ func findMPEG4AudioConfig(dem *astits.Demuxer, pid uint16) (*mpeg4audio.Config, 
 		var adtsPkts mpeg4audio.ADTSPackets
 		err = adtsPkts.Unmarshal(data.PES.Data)
 		if err != nil {
-			return nil, fmt.Errorf("unable to decode ADTS: %s", err)
+			return nil, fmt.Errorf("unable to decode ADTS: %w", err)
 		}
 
 		pkt := adtsPkts[0]
@@ -57,13 +57,13 @@ func findAC3Parameters(dem *astits.Demuxer, pid uint16) (int, int, error) {
 		var syncInfo ac3.SyncInfo
 		err = syncInfo.Unmarshal(data.PES.Data)
 		if err != nil {
-			return 0, 0, fmt.Errorf("invalid AC-3 frame: %s", err)
+			return 0, 0, fmt.Errorf("invalid AC-3 frame: %w", err)
 		}
 
 		var bsi ac3.BSI
 		err = bsi.Unmarshal(data.PES.Data[5:])
 		if err != nil {
-			return 0, 0, fmt.Errorf("invalid AC-3 frame: %s", err)
+			return 0, 0, fmt.Errorf("invalid AC-3 frame: %w", err)
 		}
 
 		return syncInfo.SampleRate(), bsi.ChannelCount(), nil
