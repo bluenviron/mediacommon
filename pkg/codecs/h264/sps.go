@@ -554,7 +554,7 @@ func (s *SPS) Unmarshal(buf []byte) error {
 		}
 
 	default:
-		s.ChromaFormatIdc = 0
+		s.ChromaFormatIdc = 1
 		s.SeparateColourPlaneFlag = false
 		s.BitDepthLumaMinus8 = 0
 		s.BitDepthChromaMinus8 = 0
