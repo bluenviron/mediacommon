@@ -96,6 +96,7 @@ func TestSPSUnmarshal(t *testing.T) {
 			},
 			SPS{
 				ProfileIdc:                66,
+				ChromaFormatIdc:           1,
 				ConstraintSet0Flag:        true,
 				ConstraintSet1Flag:        true,
 				LevelIdc:                  40,
@@ -122,7 +123,7 @@ func TestSPSUnmarshal(t *testing.T) {
 				},
 			},
 			1920,
-			1084,
+			1080,
 			30,
 		},
 		{
@@ -368,6 +369,7 @@ func TestSPSUnmarshal(t *testing.T) {
 			},
 			SPS{
 				ProfileIdc:                  77,
+				ChromaFormatIdc:             1,
 				LevelIdc:                    41,
 				Log2MaxFrameNumMinus4:       5,
 				Log2MaxPicOrderCntLsbMinus4: 5,
@@ -420,7 +422,7 @@ func TestSPSUnmarshal(t *testing.T) {
 				},
 			},
 			1920,
-			1084,
+			1080,
 			25,
 		},
 		{
@@ -434,6 +436,7 @@ func TestSPSUnmarshal(t *testing.T) {
 			},
 			SPS{
 				ProfileIdc:                  77,
+				ChromaFormatIdc:             1,
 				ConstraintSet1Flag:          true,
 				LevelIdc:                    40,
 				Log2MaxFrameNumMinus4:       1,
@@ -475,7 +478,7 @@ func TestSPSUnmarshal(t *testing.T) {
 				},
 			},
 			1920,
-			1084,
+			1080,
 			25,
 		},
 	} {
