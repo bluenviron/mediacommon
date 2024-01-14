@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/aler9/writerseeker"
 	"github.com/stretchr/testify/require"
 
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
+	"github.com/bluenviron/mediacommon/pkg/formats/fmp4/seekablebuffer"
 )
 
 var testSPS = []byte{
@@ -2069,8 +2069,8 @@ func TestInitUnmarshalExternal(t *testing.T) {
 func TestInitMarshal(t *testing.T) {
 	for _, ca := range casesInit {
 		t.Run(ca.name, func(t *testing.T) {
-			buf := &writerseeker.WriterSeeker{}
-			err := ca.dec.Marshal(buf)
+			var buf seekablebuffer.Buffer
+			err := ca.dec.Marshal(&buf)
 			require.NoError(t, err)
 			require.Equal(t, ca.enc, buf.Bytes())
 		})
@@ -2120,8 +2120,8 @@ func TestInitMarshalEmptyParameters(t *testing.T) {
 				}},
 			}
 
-			buf := &writerseeker.WriterSeeker{}
-			err := i.Marshal(buf)
+			var buf seekablebuffer.Buffer
+			err := i.Marshal(&buf)
 			require.Error(t, err)
 		})
 	}

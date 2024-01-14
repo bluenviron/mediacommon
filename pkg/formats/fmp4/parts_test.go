@@ -3,7 +3,7 @@ package fmp4
 import (
 	"testing"
 
-	"github.com/aler9/writerseeker"
+	"github.com/bluenviron/mediacommon/pkg/formats/fmp4/seekablebuffer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -154,8 +154,8 @@ var casesParts = []struct {
 func TestPartsMarshal(t *testing.T) {
 	for _, ca := range casesParts {
 		t.Run(ca.name, func(t *testing.T) {
-			buf := &writerseeker.WriterSeeker{}
-			err := ca.parts.Marshal(buf)
+			var buf seekablebuffer.Buffer
+			err := ca.parts.Marshal(&buf)
 			require.NoError(t, err)
 			require.Equal(t, ca.enc, buf.Bytes())
 		})
