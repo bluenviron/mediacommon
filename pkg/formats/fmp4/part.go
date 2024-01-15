@@ -25,11 +25,12 @@ type Part struct {
 // Marshal encodes a fMP4 part.
 func (p *Part) Marshal(w io.WriteSeeker) error {
 	/*
-		moof
-		- mfhd
-		- traf (video)
-		- traf (audio)
-		mdat
+		|moof|
+		|    |mfhd|
+		|    |    |traf|
+		|    |    |traf|
+		|    |    |....|
+		|    |mdat|
 	*/
 
 	mw := newMP4Writer(w)

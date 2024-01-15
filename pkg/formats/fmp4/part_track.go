@@ -13,10 +13,10 @@ type PartTrack struct {
 
 func (pt *PartTrack) marshal(w *mp4Writer) (*mp4.Trun, int, error) {
 	/*
-		traf
-		- tfhd
-		- tfdt
-		- trun
+		|traf|
+		|    |tfhd|
+		|    |tfdt|
+		|    |trun|
 	*/
 
 	_, err := w.writeBoxStart(&mp4.Traf{}) // <traf>

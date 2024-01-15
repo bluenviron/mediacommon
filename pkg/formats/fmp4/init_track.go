@@ -26,50 +26,50 @@ type InitTrack struct {
 
 func (track *InitTrack) marshal(w *mp4Writer) error {
 	/*
-		   trak
-		   - tkhd
-		   - mdia
-			 - mdhd
-			 - hdlr
-			 - minf
-			   - vmhd (video)
-			   - smhd (audio)
-			   - dinf
-				 - dref
-				   - url
-			   - stbl
-				 - stsd
-				   - av01 (AV1)
-					 - av1C
-					 - btrt
-				   - vp09 (VP9)
-					 - vpcC
-					 - btrt
-				   - hev1 (H265)
-					 - hvcC
-					 - btrt
-				   - avc1 (H264)
-					 - avcC
-					 - btrt
-				   - mp4v (MPEG-4/2/1 video, MJPEG)
-					 - esds
-					 - btrt
-				   - Opus (Opus)
-					 - dOps
-					 - btrt
-				   - mp4a (MPEG-4 audio)
-					 - esds
-					 - btrt
-				   - mp4a (MPEG-1 audio)
-					 - esds
-					 - btrt
-				   - ac-3 (AC-3)
-					 - dac3
-					 - btrt
-				 - stts
-				 - stsc
-				 - stsz
-				 - stco
+		|trak|
+		|    |tkhd|
+		|    |mdia|
+		|    |    |mdhd|
+		|    |    |hdlr|
+		|    |    |minf|
+		|    |    |    |vmhd| (video)
+		|    |    |    |smhd| (audio)
+		|    |    |    |dinf|
+		|    |    |    |    |dref|
+		|    |    |    |    |    |url|
+		|    |    |    |stbl|
+		|    |    |    |    |stsd|
+		|    |    |    |    |    |av01| (AV1)
+		|    |    |    |    |    |    |av1C|
+		|    |    |    |    |    |    |btrt|
+		|    |    |    |    |    |vp09| (VP9)
+		|    |    |    |    |    |    |vpcC|
+		|    |    |    |    |    |    |btrt|
+		|    |    |    |    |    |hev1| (H265)
+		|    |    |    |    |    |    |hvcC|
+		|    |    |    |    |    |    |btrt|
+		|    |    |    |    |    |avc1| (H264)
+		|    |    |    |    |    |    |avcC|
+		|    |    |    |    |    |    |btrt|
+		|    |    |    |    |    |mp4v| (MPEG-4/2/1 video, MJPEG)
+		|    |    |    |    |    |    |esds|
+		|    |    |    |    |    |    |btrt|
+		|    |    |    |    |    |Opus| (Opus)
+		|    |    |    |    |    |    |dOps|
+		|    |    |    |    |    |    |btrt|
+		|    |    |    |    |    |mp4a| (MPEG-4/1 audio)
+		|    |    |    |    |    |    |esds|
+		|    |    |    |    |    |    |btrt|
+		|    |    |    |    |    |ac-3| (AC-3)
+		|    |    |    |    |    |    |dac3|
+		|    |    |    |    |    |    |btrt|
+		|    |    |    |    |    |ipcm| (LPCM)
+		|    |    |    |    |    |    |pcmC|
+		|    |    |    |    |    |    |btrt|
+		|    |    |    |    |stts|
+		|    |    |    |    |stsc|
+		|    |    |    |    |stsz|
+		|    |    |    |    |stco|
 	*/
 
 	_, err := w.writeBoxStart(&mp4.Trak{}) // <trak>

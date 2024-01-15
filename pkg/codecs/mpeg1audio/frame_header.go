@@ -119,15 +119,15 @@ func (h FrameHeader) FrameLen() int {
 // SampleCount returns the number of samples contained into the frame.
 func (h FrameHeader) SampleCount() int {
 	/*
-			 MPEG-1:
-			 * layer 1: 384
-			 * layer 2: 1152
-			 * layer 3: 1152
+		MPEG-1:
+		* layer 1: 384
+		* layer 2: 1152
+		* layer 3: 1152
 
-		     MPEG-2:
-			 * layer 1: 384
-			 * layer 2: 1152
-			 * layer 3: 576
+		MPEG-2:
+		* layer 1: 384
+		* layer 2: 1152
+		* layer 3: 576
 	*/
 	return 1152
 }
