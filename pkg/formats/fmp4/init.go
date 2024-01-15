@@ -555,16 +555,16 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 // Marshal encodes a fMP4 initialization file.
 func (i *Init) Marshal(w io.WriteSeeker) error {
 	/*
-		- ftyp
-		- moov
-		  - mvhd
-		  - trak
-		  - trak
-		  - ...
-		- mvex
-		  - trex
-		  - trex
-		  - ...
+		|ftyp|
+		|moov|
+		|    |mvhd|
+		|    |    |trak|
+		|    |    |trak|
+		|    |    |....|
+		|    |mvex|
+		|    |    |trex|
+		|    |    |trex|
+		|    |    |....|
 	*/
 
 	mw := newMP4Writer(w)
