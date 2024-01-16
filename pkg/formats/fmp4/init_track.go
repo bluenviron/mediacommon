@@ -804,7 +804,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		_, err = w.writeBoxStart(&mp4.AudioSampleEntry{ // <ipcm>
 			SampleEntry: mp4.SampleEntry{
 				AnyTypeBox: mp4.AnyTypeBox{
-					Type: BoxTypeIpcm(),
+					Type: mp4.BoxTypeIpcm(),
 				},
 				DataReferenceIndex: 1,
 			},
@@ -816,7 +816,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 			return err
 		}
 
-		_, err = w.writeBox(&PcmC{ // <pcmC/>
+		_, err = w.writeBox(&mp4.PcmC{ // <pcmC/>
 			FormatFlags: func() uint8 {
 				if codec.LittleEndian {
 					return 1

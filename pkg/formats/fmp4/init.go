@@ -524,7 +524,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			pcmc := box.(*PcmC)
+			pcmc := box.(*mp4.PcmC)
 
 			curTrack.Codec = &CodecLPCM{
 				LittleEndian: (pcmc.FormatFlags & 0x01) != 0,
