@@ -15,4 +15,4 @@ func (CodecVP9) IsVideo() bool {
 	return true
 }
 
-func (CodecVP9) isCodec() {}
+func (*CodecVP9) isCodec() {}

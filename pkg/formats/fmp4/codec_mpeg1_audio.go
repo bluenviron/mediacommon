@@ -11,4 +11,4 @@ func (CodecMPEG1Audio) IsVideo() bool {
 	return false
 }
 
-func (CodecMPEG1Audio) isCodec() {}
+func (*CodecMPEG1Audio) isCodec() {}

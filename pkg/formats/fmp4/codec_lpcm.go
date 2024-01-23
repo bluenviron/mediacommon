@@ -13,4 +13,4 @@ func (CodecLPCM) IsVideo() bool {
 	return false
 }
 
-func (CodecLPCM) isCodec() {}
+func (*CodecLPCM) isCodec() {}
