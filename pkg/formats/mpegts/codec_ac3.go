@@ -10,15 +10,17 @@ type CodecAC3 struct {
 	ChannelCount int
 }
 
+// IsVideo implements Codec.
+func (CodecAC3) IsVideo() bool {
+	return true
+}
+
+func (*CodecAC3) isCodec() {}
+
 func (c CodecAC3) marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 	return &astits.PMTElementaryStream{
 		ElementaryPID:               pid,
 		ElementaryStreamDescriptors: nil,
 		StreamType:                  astits.StreamTypeAC3Audio,
 	}, nil
-}
-
-// IsVideo implements Codec.
-func (CodecAC3) IsVideo() bool {
-	return true
 }

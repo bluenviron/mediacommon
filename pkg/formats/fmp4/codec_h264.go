@@ -11,4 +11,4 @@ func (CodecH264) IsVideo() bool {
 	return true
 }
 
-func (CodecH264) isCodec() {}
+func (*CodecH264) isCodec() {}

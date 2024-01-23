@@ -10,4 +10,4 @@ func (CodecOpus) IsVideo() bool {
 	return false
 }
 
-func (CodecOpus) isCodec() {}
+func (*CodecOpus) isCodec() {}

@@ -11,4 +11,4 @@ func (CodecMJPEG) IsVideo() bool {
 	return true
 }
 
-func (CodecMJPEG) isCodec() {}
+func (*CodecMJPEG) isCodec() {}

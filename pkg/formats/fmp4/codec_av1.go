@@ -10,4 +10,4 @@ func (CodecAV1) IsVideo() bool {
 	return true
 }
 
-func (CodecAV1) isCodec() {}
+func (*CodecAV1) isCodec() {}

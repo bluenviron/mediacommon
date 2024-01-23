@@ -17,4 +17,4 @@ func (CodecAC3) IsVideo() bool {
 	return false
 }
 
-func (CodecAC3) isCodec() {}
+func (*CodecAC3) isCodec() {}
