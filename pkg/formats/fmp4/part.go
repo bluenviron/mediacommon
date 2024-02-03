@@ -27,10 +27,10 @@ func (p *Part) Marshal(w io.WriteSeeker) error {
 	/*
 		|moof|
 		|    |mfhd|
-		|    |    |traf|
-		|    |    |traf|
-		|    |    |....|
-		|    |mdat|
+		|    |traf|
+		|    |traf|
+		|    |....|
+		|mdat|
 	*/
 
 	mw := newMP4Writer(w)
