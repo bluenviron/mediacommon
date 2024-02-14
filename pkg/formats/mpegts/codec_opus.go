@@ -19,6 +19,7 @@ func (*CodecOpus) isCodec() {}
 func (c CodecOpus) marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 	return &astits.PMTElementaryStream{
 		ElementaryPID: pid,
+		StreamType:    astits.StreamTypePrivateData,
 		ElementaryStreamDescriptors: []*astits.Descriptor{
 			{
 				Length: 4,
@@ -36,6 +37,5 @@ func (c CodecOpus) marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 				},
 			},
 		},
-		StreamType: astits.StreamTypePrivateData,
 	}, nil
 }

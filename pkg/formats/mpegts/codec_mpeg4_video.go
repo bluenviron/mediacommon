@@ -16,8 +16,7 @@ func (*CodecMPEG4Video) isCodec() {}
 
 func (c CodecMPEG4Video) marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 	return &astits.PMTElementaryStream{
-		ElementaryPID:               pid,
-		ElementaryStreamDescriptors: nil,
-		StreamType:                  astits.StreamTypeMPEG4Video,
+		ElementaryPID: pid,
+		StreamType:    astits.StreamTypeMPEG4Video,
 	}, nil
 }

@@ -16,8 +16,7 @@ func (*CodecH264) isCodec() {}
 
 func (c CodecH264) marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 	return &astits.PMTElementaryStream{
-		ElementaryPID:               pid,
-		ElementaryStreamDescriptors: nil,
-		StreamType:                  astits.StreamTypeH264Video,
+		ElementaryPID: pid,
+		StreamType:    astits.StreamTypeH264Video,
 	}, nil
 }
