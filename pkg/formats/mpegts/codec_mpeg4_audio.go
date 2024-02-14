@@ -20,8 +20,7 @@ func (*CodecMPEG4Audio) isCodec() {}
 
 func (c CodecMPEG4Audio) marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 	return &astits.PMTElementaryStream{
-		ElementaryPID:               pid,
-		ElementaryStreamDescriptors: nil,
-		StreamType:                  astits.StreamTypeAACAudio,
+		ElementaryPID: pid,
+		StreamType:    astits.StreamTypeAACAudio,
 	}, nil
 }

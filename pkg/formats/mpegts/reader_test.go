@@ -944,6 +944,375 @@ func TestReader(t *testing.T) {
 	}
 }
 
+func TestReaderDecodeErrors(t *testing.T) {
+	for _, ca := range []string{
+		"missing pts",
+		"h26x invalid avcc",
+		"opus pts != dts",
+		"opus invalid au",
+		"mpeg-4 audio pts != dts",
+		"mpeg-4 audio invalid",
+		"mpeg-1 audio pts != dts",
+		"ac-3 pts != dts",
+		"garbage",
+	} {
+		t.Run(ca, func(t *testing.T) {
+			var buf bytes.Buffer
+			mux := astits.NewMuxer(context.Background(), &buf)
+
+			switch ca {
+			case "missing pts", "h26x invalid avcc", "garbage":
+				err := mux.AddElementaryStream(astits.PMTElementaryStream{
+					ElementaryPID: 123,
+					StreamType:    astits.StreamTypeH264Video,
+				})
+				require.NoError(t, err)
+
+			case "opus pts != dts", "opus invalid au":
+				err := mux.AddElementaryStream(astits.PMTElementaryStream{
+					ElementaryPID: 123,
+					StreamType:    astits.StreamTypePrivateData,
+					ElementaryStreamDescriptors: []*astits.Descriptor{
+						{
+							Length: 4,
+							Tag:    astits.DescriptorTagRegistration,
+							Registration: &astits.DescriptorRegistration{
+								FormatIdentifier: opusIdentifier,
+							},
+						},
+						{
+							Length: 2,
+							Tag:    astits.DescriptorTagExtension,
+							Extension: &astits.DescriptorExtension{
+								Tag:     0x80,
+								Unknown: &[]uint8{2},
+							},
+						},
+					},
+				})
+				require.NoError(t, err)
+
+			case "mpeg-4 audio pts != dts", "mpeg-4 audio invalid":
+				err := mux.AddElementaryStream(astits.PMTElementaryStream{
+					ElementaryPID: 123,
+					StreamType:    astits.StreamTypeAACAudio,
+				})
+				require.NoError(t, err)
+
+			case "mpeg-1 audio pts != dts":
+				err := mux.AddElementaryStream(astits.PMTElementaryStream{
+					ElementaryPID: 123,
+					StreamType:    astits.StreamTypeMPEG1Audio,
+				})
+				require.NoError(t, err)
+
+			case "ac-3 pts != dts":
+				err := mux.AddElementaryStream(astits.PMTElementaryStream{
+					ElementaryPID: 123,
+					StreamType:    astits.StreamTypeAC3Audio,
+				})
+				require.NoError(t, err)
+			}
+
+			mux.SetPCRPID(123)
+
+			switch ca {
+			case "missing pts":
+				_, err := mux.WriteData(&astits.MuxerData{
+					PID: 123,
+					PES: &astits.PESData{
+						Header: &astits.PESHeader{
+							OptionalHeader: &astits.PESOptionalHeader{
+								MarkerBits:      2,
+								PTSDTSIndicator: astits.PTSDTSIndicatorNoPTSOrDTS,
+							},
+							StreamID: streamIDVideo,
+						},
+						Data: []byte{1, 2, 3, 4},
+					},
+				})
+				require.NoError(t, err)
+
+			case "h26x invalid avcc", "opus invalid au":
+				_, err := mux.WriteData(&astits.MuxerData{
+					PID: 123,
+					PES: &astits.PESData{
+						Header: &astits.PESHeader{
+							OptionalHeader: &astits.PESOptionalHeader{
+								MarkerBits:      2,
+								PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+								PTS:             &astits.ClockReference{Base: 90000},
+							},
+							StreamID: streamIDVideo,
+						},
+						Data: []byte{1, 2, 3, 4},
+					},
+				})
+				require.NoError(t, err)
+
+			case "opus pts != dts", "mpeg-1 audio pts != dts":
+				_, err := mux.WriteData(&astits.MuxerData{
+					PID: 123,
+					PES: &astits.PESData{
+						Header: &astits.PESHeader{
+							OptionalHeader: &astits.PESOptionalHeader{
+								MarkerBits:      2,
+								PTSDTSIndicator: astits.PTSDTSIndicatorBothPresent,
+								PTS:             &astits.ClockReference{Base: 90000},
+								DTS:             &astits.ClockReference{Base: 180000},
+							},
+							StreamID: streamIDVideo,
+						},
+						Data: []byte{1, 2, 3, 4},
+					},
+				})
+				require.NoError(t, err)
+
+			case "mpeg-4 audio pts != dts":
+				data, _ := mpeg4audio.ADTSPackets{{
+					Type:         mpeg4audio.ObjectTypeAACLC,
+					SampleRate:   44100,
+					ChannelCount: 1,
+					AU:           []byte{1, 2, 3, 4},
+				}}.Marshal()
+
+				_, err := mux.WriteData(&astits.MuxerData{
+					PID: 123,
+					PES: &astits.PESData{
+						Header: &astits.PESHeader{
+							OptionalHeader: &astits.PESOptionalHeader{
+								MarkerBits:      2,
+								PTSDTSIndicator: astits.PTSDTSIndicatorBothPresent,
+								PTS:             &astits.ClockReference{Base: 90000},
+								DTS:             &astits.ClockReference{Base: 180000},
+							},
+							StreamID: streamIDVideo,
+						},
+						Data: data,
+					},
+				})
+				require.NoError(t, err)
+
+				_, err = mux.WriteData(&astits.MuxerData{
+					PID: 123,
+					PES: &astits.PESData{
+						Header: &astits.PESHeader{
+							OptionalHeader: &astits.PESOptionalHeader{
+								MarkerBits:      2,
+								PTSDTSIndicator: astits.PTSDTSIndicatorBothPresent,
+								PTS:             &astits.ClockReference{Base: 90000},
+								DTS:             &astits.ClockReference{Base: 180000},
+							},
+							StreamID: streamIDVideo,
+						},
+						Data: []byte{1, 2, 3, 4},
+					},
+				})
+				require.NoError(t, err)
+
+			case "mpeg-4 audio invalid":
+				data, _ := mpeg4audio.ADTSPackets{{
+					Type:         mpeg4audio.ObjectTypeAACLC,
+					SampleRate:   44100,
+					ChannelCount: 1,
+					AU:           []byte{1, 2, 3, 4},
+				}}.Marshal()
+
+				_, err := mux.WriteData(&astits.MuxerData{
+					PID: 123,
+					PES: &astits.PESData{
+						Header: &astits.PESHeader{
+							OptionalHeader: &astits.PESOptionalHeader{
+								MarkerBits:      2,
+								PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+								PTS:             &astits.ClockReference{Base: 90000},
+							},
+							StreamID: streamIDVideo,
+						},
+						Data: data,
+					},
+				})
+				require.NoError(t, err)
+
+				_, err = mux.WriteData(&astits.MuxerData{
+					PID: 123,
+					PES: &astits.PESData{
+						Header: &astits.PESHeader{
+							OptionalHeader: &astits.PESOptionalHeader{
+								MarkerBits:      2,
+								PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+								PTS:             &astits.ClockReference{Base: 90000},
+							},
+							StreamID: streamIDVideo,
+						},
+						Data: []byte{1, 2, 3, 4},
+					},
+				})
+				require.NoError(t, err)
+
+			case "ac-3 pts != dts":
+				_, err := mux.WriteData(&astits.MuxerData{
+					PID: 123,
+					PES: &astits.PESData{
+						Header: &astits.PESHeader{
+							OptionalHeader: &astits.PESOptionalHeader{
+								MarkerBits:      2,
+								PTSDTSIndicator: astits.PTSDTSIndicatorBothPresent,
+								PTS:             &astits.ClockReference{Base: 90000},
+								DTS:             &astits.ClockReference{Base: 180000},
+							},
+							StreamID: streamIDVideo,
+						},
+						Data: []byte{
+							0x0b, 0x77, 0x47, 0x11, 0x0c, 0x40, 0x2f, 0x84,
+							0x2b, 0xc1, 0x07, 0x7a, 0xb0, 0xfa, 0xbb, 0xea,
+							0xef, 0x9f, 0x57, 0x7c, 0xf9, 0xf3, 0xf7, 0xcf,
+							0x9f, 0x3e, 0x32, 0xfe, 0xd5, 0xc1, 0x50, 0xde,
+							0xc5, 0x1e, 0x73, 0xd2, 0x6c, 0xa6, 0x94, 0x46,
+						},
+					},
+				})
+				require.NoError(t, err)
+
+				_, err = mux.WriteData(&astits.MuxerData{
+					PID: 123,
+					PES: &astits.PESData{
+						Header: &astits.PESHeader{
+							OptionalHeader: &astits.PESOptionalHeader{
+								MarkerBits:      2,
+								PTSDTSIndicator: astits.PTSDTSIndicatorBothPresent,
+								PTS:             &astits.ClockReference{Base: 90000},
+								DTS:             &astits.ClockReference{Base: 180000},
+							},
+							StreamID: streamIDVideo,
+						},
+						Data: []byte{1, 2, 3, 4},
+					},
+				})
+				require.NoError(t, err)
+
+			case "garbage":
+				_, err := mux.WriteData(&astits.MuxerData{
+					PID: 123,
+					PES: &astits.PESData{
+						Header: &astits.PESHeader{
+							OptionalHeader: &astits.PESOptionalHeader{
+								MarkerBits:      2,
+								PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+								PTS:             &astits.ClockReference{Base: 90000},
+							},
+							StreamID: streamIDVideo,
+						},
+						Data: []byte{0, 0, 0, 1, 1, 2, 3, 4},
+					},
+				})
+				require.NoError(t, err)
+
+				buf.Write(bytes.Repeat([]byte{1, 2, 3, 4}, 188/4))
+
+				_, err = mux.WriteData(&astits.MuxerData{
+					PID: 123,
+					PES: &astits.PESData{
+						Header: &astits.PESHeader{
+							OptionalHeader: &astits.PESOptionalHeader{
+								MarkerBits:      2,
+								PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+								PTS:             &astits.ClockReference{Base: 90000},
+							},
+							StreamID: streamIDVideo,
+						},
+						Data: []byte{0, 0, 0, 1, 1, 2, 3, 4},
+					},
+				})
+				require.NoError(t, err)
+			}
+
+			r, err := NewReader(bytes.NewReader(buf.Bytes()))
+			require.NoError(t, err)
+
+			dataRecv := false
+
+			switch ca {
+			case "missing pts", "h26x invalid avcc":
+				r.OnDataH26x(r.Tracks()[0], func(pts, dts int64, au [][]byte) error {
+					return nil
+				})
+
+			case "opus pts != dts", "opus invalid au":
+				r.OnDataOpus(r.Tracks()[0], func(pts int64, packets [][]byte) error {
+					return nil
+				})
+
+			case "mpeg-4 audio pts != dts", "mpeg-4 audio invalid":
+				r.OnDataMPEG4Audio(r.Tracks()[0], func(pts int64, aus [][]byte) error {
+					return nil
+				})
+
+			case "mpeg-1 audio pts != dts":
+				r.OnDataMPEG1Audio(r.Tracks()[0], func(pts int64, aus [][]byte) error {
+					return nil
+				})
+
+			case "ac-3 pts != dts":
+				r.OnDataAC3(r.Tracks()[0], func(pts int64, frame []byte) error {
+					return nil
+				})
+
+			case "garbage":
+				counter := 0
+				r.OnDataH26x(r.Tracks()[0], func(pts, dts int64, au [][]byte) error {
+					counter++
+					if counter == 2 {
+						dataRecv = true
+					}
+					return nil
+				})
+			}
+
+			decodeErrRecv := false
+
+			r.OnDecodeError(func(err error) {
+				switch ca {
+				case "missing pts":
+					require.EqualError(t, err, "PTS is missing")
+
+				case "h26x invalid avcc":
+					require.EqualError(t, err, "initial delimiter not found")
+
+				case "opus pts != dts", "mpeg-4 audio pts != dts", "mpeg-1 audio pts != dts", "ac-3 pts != dts":
+					require.EqualError(t, err, "PTS is not equal to DTS")
+
+				case "opus invalid au":
+					require.EqualError(t, err, "invalid control header: invalid prefix")
+
+				case "mpeg-4 audio invalid":
+					require.EqualError(t, err, "invalid ADTS: invalid length")
+
+				case "garbage":
+					require.EqualError(t, err, "astits: fetching next packet failed:"+
+						" astits: fetching next packet from buffer failed:"+
+						" astits: building packet failed: astits: packet must start with a sync byte")
+				}
+				decodeErrRecv = true
+			})
+
+			for {
+				err := r.Read()
+				if err != nil {
+					require.Equal(t, astits.ErrNoMorePackets, err)
+					break
+				}
+			}
+
+			require.Equal(t, true, decodeErrRecv)
+
+			if ca == "garbage" {
+				require.Equal(t, true, dataRecv)
+			}
+		})
+	}
+}
+
 func FuzzReader(f *testing.F) {
 	for _, ca := range casesReadWriter {
 		var buf bytes.Buffer

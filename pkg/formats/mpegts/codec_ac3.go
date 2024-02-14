@@ -19,8 +19,7 @@ func (*CodecAC3) isCodec() {}
 
 func (c CodecAC3) marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 	return &astits.PMTElementaryStream{
-		ElementaryPID:               pid,
-		ElementaryStreamDescriptors: nil,
-		StreamType:                  astits.StreamTypeAC3Audio,
+		ElementaryPID: pid,
+		StreamType:    astits.StreamTypeAC3Audio,
 	}, nil
 }

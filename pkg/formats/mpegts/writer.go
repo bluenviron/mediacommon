@@ -191,7 +191,7 @@ func (w *Writer) WriteMPEG1Audio(
 		}
 
 		if h.MPEG2 {
-			return fmt.Errorf("Only MPEG-1 audio is supported")
+			return fmt.Errorf("only MPEG-1 audio is supported")
 		}
 
 		track.mp3Checked = true

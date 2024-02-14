@@ -16,8 +16,7 @@ func (*CodecMPEG1Audio) isCodec() {}
 
 func (c CodecMPEG1Audio) marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 	return &astits.PMTElementaryStream{
-		ElementaryPID:               pid,
-		ElementaryStreamDescriptors: nil,
-		StreamType:                  astits.StreamTypeMPEG1Audio,
+		ElementaryPID: pid,
+		StreamType:    astits.StreamTypeMPEG1Audio,
 	}, nil
 }

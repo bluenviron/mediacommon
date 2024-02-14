@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/asticode/go-astits"
 
@@ -175,7 +176,7 @@ func (r *Reader) OnDataMPEG4Audio(track *Track, cb ReaderOnDataMPEG4AudioFunc) {
 		var pkts mpeg4audio.ADTSPackets
 		err := pkts.Unmarshal(data)
 		if err != nil {
-			r.onDecodeError(err)
+			r.onDecodeError(fmt.Errorf("invalid ADTS: %w", err))
 			return nil
 		}
 
@@ -249,35 +250,42 @@ func (r *Reader) OnDataAC3(track *Track, cb ReaderOnDataAC3Func) {
 
 // Read reads data.
 func (r *Reader) Read() error {
-	data, err := r.dem.NextData()
-	if err != nil {
-		return err
+	for {
+		data, err := r.dem.NextData()
+		if err != nil {
+			// https://github.com/asticode/go-astits/blob/b0b19247aa31633650c32638fb55f597fa6e2468/packet_buffer.go#L133C1-L133C5
+			if errors.Is(err, astits.ErrNoMorePackets) || strings.Contains(err.Error(), "astits: reading ") {
+				return err
+			}
+			r.onDecodeError(err)
+			continue
+		}
+
+		if data.PES == nil {
+			return nil
+		}
+
+		if data.PES.Header.OptionalHeader == nil ||
+			data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorNoPTSOrDTS ||
+			data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorIsForbidden {
+			r.onDecodeError(fmt.Errorf("PTS is missing"))
+			return nil
+		}
+
+		pts := data.PES.Header.OptionalHeader.PTS.Base
+
+		var dts int64
+		if data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorBothPresent {
+			dts = data.PES.Header.OptionalHeader.DTS.Base
+		} else {
+			dts = pts
+		}
+
+		onData, ok := r.onData[data.PID]
+		if !ok {
+			return nil
+		}
+
+		return onData(pts, dts, data.PES.Data)
 	}
-
-	if data.PES == nil {
-		return nil
-	}
-
-	if data.PES.Header.OptionalHeader == nil ||
-		data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorNoPTSOrDTS ||
-		data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorIsForbidden {
-		r.onDecodeError(fmt.Errorf("PTS is missing"))
-		return nil
-	}
-
-	pts := data.PES.Header.OptionalHeader.PTS.Base
-
-	var dts int64
-	if data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorBothPresent {
-		dts = data.PES.Header.OptionalHeader.DTS.Base
-	} else {
-		dts = pts
-	}
-
-	onData, ok := r.onData[data.PID]
-	if !ok {
-		return nil
-	}
-
-	return onData(pts, dts, data.PES.Data)
 }
