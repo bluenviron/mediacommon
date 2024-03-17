@@ -183,3 +183,12 @@ func FuzzPartsUnmarshal(f *testing.F) {
 		parts.Unmarshal(b) //nolint:errcheck
 	})
 }
+
+func BenchmarkPartsUnmarshal(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		for _, ca := range casesParts {
+			var parts Parts
+			parts.Unmarshal(ca.enc) //nolint:errcheck
+		}
+	}
+}
