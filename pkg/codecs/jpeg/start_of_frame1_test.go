@@ -49,7 +49,7 @@ func TestStartOfFrame1Marshal(t *testing.T) {
 }
 
 func FuzzStartOfFrame1Unmarshal(f *testing.F) {
-	f.Fuzz(func(t *testing.T, b []byte) {
+	f.Fuzz(func(_ *testing.T, b []byte) {
 		var h StartOfFrame1
 		h.Unmarshal(b) //nolint:errcheck
 	})

@@ -30,7 +30,7 @@ func TestPPSUnmarshal(t *testing.T) {
 }
 
 func FuzzPPSUnmarshal(f *testing.F) {
-	f.Fuzz(func(t *testing.T, b []byte) {
+	f.Fuzz(func(_ *testing.T, b []byte) {
 		var pps PPS
 		pps.Unmarshal(b) //nolint:errcheck
 	})

@@ -69,7 +69,7 @@ func TestDefineQuantizationTableMarshal(t *testing.T) {
 }
 
 func FuzzDefineQuantizationTableUnmarshal(f *testing.F) {
-	f.Fuzz(func(t *testing.T, b []byte) {
+	f.Fuzz(func(_ *testing.T, b []byte) {
 		var h DefineQuantizationTable
 		h.Unmarshal(b) //nolint:errcheck
 	})

@@ -42,7 +42,7 @@ func TestIsValidConfig(t *testing.T) {
 }
 
 func FuzzIsValidConfig(f *testing.F) {
-	f.Fuzz(func(t *testing.T, b []byte) {
+	f.Fuzz(func(_ *testing.T, b []byte) {
 		IsValidConfig(b) //nolint:errcheck
 	})
 }

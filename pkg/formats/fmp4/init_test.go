@@ -2132,7 +2132,7 @@ func FuzzInitUnmarshal(f *testing.F) {
 		f.Add(ca.enc)
 	}
 
-	f.Fuzz(func(t *testing.T, b []byte) {
+	f.Fuzz(func(_ *testing.T, b []byte) {
 		var init Init
 		init.Unmarshal(bytes.NewReader(b)) //nolint:errcheck
 	})

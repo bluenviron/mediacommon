@@ -136,7 +136,7 @@ func TestOpusControlHeaderUnmarshal(t *testing.T) {
 }
 
 func FuzzOpusControlHeaderUnmarshal(f *testing.F) {
-	f.Fuzz(func(t *testing.T, b []byte) {
+	f.Fuzz(func(_ *testing.T, b []byte) {
 		var h opusControlHeader
 		h.unmarshal(b) //nolint:errcheck
 	})

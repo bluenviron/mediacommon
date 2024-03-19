@@ -1234,33 +1234,33 @@ func TestReaderDecodeErrors(t *testing.T) {
 
 			switch ca {
 			case "missing pts", "h26x invalid avcc":
-				r.OnDataH26x(r.Tracks()[0], func(pts, dts int64, au [][]byte) error {
+				r.OnDataH26x(r.Tracks()[0], func(_, _ int64, _ [][]byte) error {
 					return nil
 				})
 
 			case "opus pts != dts", "opus invalid au":
-				r.OnDataOpus(r.Tracks()[0], func(pts int64, packets [][]byte) error {
+				r.OnDataOpus(r.Tracks()[0], func(_ int64, _ [][]byte) error {
 					return nil
 				})
 
 			case "mpeg-4 audio pts != dts", "mpeg-4 audio invalid":
-				r.OnDataMPEG4Audio(r.Tracks()[0], func(pts int64, aus [][]byte) error {
+				r.OnDataMPEG4Audio(r.Tracks()[0], func(_ int64, _ [][]byte) error {
 					return nil
 				})
 
 			case "mpeg-1 audio pts != dts":
-				r.OnDataMPEG1Audio(r.Tracks()[0], func(pts int64, aus [][]byte) error {
+				r.OnDataMPEG1Audio(r.Tracks()[0], func(_ int64, _ [][]byte) error {
 					return nil
 				})
 
 			case "ac-3 pts != dts":
-				r.OnDataAC3(r.Tracks()[0], func(pts int64, frame []byte) error {
+				r.OnDataAC3(r.Tracks()[0], func(_ int64, _ []byte) error {
 					return nil
 				})
 
 			case "garbage":
 				counter := 0
-				r.OnDataH26x(r.Tracks()[0], func(pts, dts int64, au [][]byte) error {
+				r.OnDataH26x(r.Tracks()[0], func(_, _ int64, _ [][]byte) error {
 					counter++
 					if counter == 2 {
 						dataRecv = true
@@ -1423,7 +1423,7 @@ func FuzzReader(f *testing.F) {
 		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 	})
 
-	f.Fuzz(func(t *testing.T, b []byte) {
+	f.Fuzz(func(_ *testing.T, b []byte) {
 		NewReader(bytes.NewReader(b)) //nolint:errcheck
 	})
 }

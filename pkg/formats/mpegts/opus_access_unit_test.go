@@ -76,7 +76,7 @@ func TestOpusAccessUnitUnmarshal(t *testing.T) {
 }
 
 func FuzzOpusAccessUnitUnmarshal(f *testing.F) {
-	f.Fuzz(func(t *testing.T, b []byte) {
+	f.Fuzz(func(_ *testing.T, b []byte) {
 		var h opusAccessUnit
 		h.unmarshal(b) //nolint:errcheck
 	})

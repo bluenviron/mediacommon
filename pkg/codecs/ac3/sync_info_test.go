@@ -327,7 +327,7 @@ func TestSyncInfoUnmarshal(t *testing.T) {
 }
 
 func FuzzSyncInfoUnmarshal(f *testing.F) {
-	f.Fuzz(func(t *testing.T, b []byte) {
+	f.Fuzz(func(_ *testing.T, b []byte) {
 		var syncInfo SyncInfo
 		syncInfo.Unmarshal(b) //nolint:errcheck
 	})
