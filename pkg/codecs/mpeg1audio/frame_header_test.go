@@ -113,7 +113,7 @@ func TestFrameHeaderUnmarshal(t *testing.T) {
 }
 
 func FuzzFrameHeaderUnmarshal(f *testing.F) {
-	f.Fuzz(func(t *testing.T, b []byte) {
+	f.Fuzz(func(_ *testing.T, b []byte) {
 		var h FrameHeader
 		h.Unmarshal(b) //nolint:errcheck
 	})

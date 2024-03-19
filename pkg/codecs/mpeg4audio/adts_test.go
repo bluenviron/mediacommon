@@ -69,7 +69,7 @@ func TestADTSMarshal(t *testing.T) {
 }
 
 func FuzzADTSUnmarshal(f *testing.F) {
-	f.Fuzz(func(t *testing.T, b []byte) {
+	f.Fuzz(func(_ *testing.T, b []byte) {
 		var pkts ADTSPackets
 		pkts.Unmarshal(b) //nolint:errcheck
 	})

@@ -510,7 +510,7 @@ func BenchmarkSPSUnmarshal(b *testing.B) {
 }
 
 func FuzzSPSUnmarshal(f *testing.F) {
-	f.Fuzz(func(t *testing.T, b []byte) {
+	f.Fuzz(func(_ *testing.T, b []byte) {
 		var sps SPS
 		sps.Unmarshal(b) //nolint:errcheck
 	})

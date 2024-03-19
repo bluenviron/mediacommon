@@ -178,7 +178,7 @@ func FuzzPartsUnmarshal(f *testing.F) {
 		f.Add(ca.enc)
 	}
 
-	f.Fuzz(func(t *testing.T, b []byte) {
+	f.Fuzz(func(_ *testing.T, b []byte) {
 		var parts Parts
 		parts.Unmarshal(b) //nolint:errcheck
 	})

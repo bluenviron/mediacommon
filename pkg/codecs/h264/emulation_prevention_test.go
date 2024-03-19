@@ -56,7 +56,7 @@ func TestEmulationPreventionRemove(t *testing.T) {
 }
 
 func FuzzEmulationPreventionRemove(f *testing.F) {
-	f.Fuzz(func(t *testing.T, b []byte) {
+	f.Fuzz(func(_ *testing.T, b []byte) {
 		EmulationPreventionRemove(b)
 	})
 }

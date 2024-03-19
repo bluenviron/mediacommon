@@ -129,7 +129,7 @@ func (r *Reader) OnDataH26x(track *Track, cb ReaderOnDataH26xFunc) {
 
 // OnDataMPEGxVideo sets a callback that is called when data from an MPEG-1/2/4 Video track is received.
 func (r *Reader) OnDataMPEGxVideo(track *Track, cb ReaderOnDataMPEGxVideoFunc) {
-	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
+	r.onData[track.PID] = func(pts int64, _ int64, data []byte) error {
 		return cb(pts, data)
 	}
 }

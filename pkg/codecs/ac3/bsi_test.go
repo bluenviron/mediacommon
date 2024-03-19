@@ -18,7 +18,7 @@ func TestBSIUnmarshal(t *testing.T) {
 }
 
 func FuzzBSIUnmarshal(f *testing.F) {
-	f.Fuzz(func(t *testing.T, b []byte) {
+	f.Fuzz(func(_ *testing.T, b []byte) {
 		var bsi BSI
 		bsi.Unmarshal(b) //nolint:errcheck
 	})
