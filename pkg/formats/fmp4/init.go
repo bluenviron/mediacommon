@@ -576,9 +576,9 @@ func (i *Init) Marshal(w io.WriteSeeker) error {
 		|ftyp|
 		|moov|
 		|    |mvhd|
-		|    |    |trak|
-		|    |    |trak|
-		|    |    |....|
+		|    |trak|
+		|    |trak|
+		|    |....|
 		|    |mvex|
 		|    |    |trex|
 		|    |    |trex|
