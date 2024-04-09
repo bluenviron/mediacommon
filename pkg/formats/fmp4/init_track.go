@@ -24,7 +24,7 @@ type InitTrack struct {
 	Codec     Codec
 }
 
-func (track *InitTrack) marshal(w *mp4Writer) error {
+func (it *InitTrack) marshal(w *mp4Writer) error {
 	/*
 		|trak|
 		|    |tkhd|
@@ -84,7 +84,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 	var width int
 	var height int
 
-	switch codec := track.Codec.(type) {
+	switch codec := it.Codec.(type) {
 	case *CodecAV1:
 		av1SequenceHeader = &av1.SequenceHeader{}
 		err = av1SequenceHeader.Unmarshal(codec.SequenceHeader)
@@ -158,12 +158,12 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		height = codec.Height
 	}
 
-	if track.Codec.IsVideo() {
+	if it.Codec.IsVideo() {
 		_, err = w.writeBox(&mp4.Tkhd{ // <tkhd/>
 			FullBox: mp4.FullBox{
 				Flags: [3]byte{0, 0, 3},
 			},
-			TrackID: uint32(track.ID),
+			TrackID: uint32(it.ID),
 			Width:   uint32(width * 65536),
 			Height:  uint32(height * 65536),
 			Matrix:  [9]int32{0x10000, 0, 0, 0, 0x10000, 0, 0, 0, 0x40000000},
@@ -176,7 +176,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 			FullBox: mp4.FullBox{
 				Flags: [3]byte{0, 0, 3},
 			},
-			TrackID:        uint32(track.ID),
+			TrackID:        uint32(it.ID),
 			AlternateGroup: 1,
 			Volume:         256,
 			Matrix:         [9]int32{0x10000, 0, 0, 0, 0x10000, 0, 0, 0, 0x40000000},
@@ -192,14 +192,14 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 	}
 
 	_, err = w.writeBox(&mp4.Mdhd{ // <mdhd/>
-		Timescale: track.TimeScale,
+		Timescale: it.TimeScale,
 		Language:  [3]byte{'u', 'n', 'd'},
 	})
 	if err != nil {
 		return err
 	}
 
-	if track.Codec.IsVideo() {
+	if it.Codec.IsVideo() {
 		_, err = w.writeBox(&mp4.Hdlr{ // <hdlr/>
 			HandlerType: [4]byte{'v', 'i', 'd', 'e'},
 			Name:        "VideoHandler",
@@ -222,7 +222,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		return err
 	}
 
-	if track.Codec.IsVideo() {
+	if it.Codec.IsVideo() {
 		_, err = w.writeBox(&mp4.Vmhd{ // <vmhd/>
 			FullBox: mp4.FullBox{
 				Flags: [3]byte{0, 0, 1},
@@ -281,7 +281,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		return err
 	}
 
-	switch codec := track.Codec.(type) {
+	switch codec := it.Codec.(type) {
 	case *CodecAV1:
 		_, err = w.writeBoxStart(&mp4.VisualSampleEntry{ // <av01>
 			SampleEntry: mp4.SampleEntry{
@@ -504,7 +504,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 					Tag:  mp4.ESDescrTag,
 					Size: 32 + uint32(len(codec.Config)),
 					ESDescriptor: &mp4.ESDescriptor{
-						ESID: uint16(track.ID),
+						ESID: uint16(it.ID),
 					},
 				},
 				{
@@ -560,7 +560,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 					Tag:  mp4.ESDescrTag,
 					Size: 32 + uint32(len(codec.Config)),
 					ESDescriptor: &mp4.ESDescriptor{
-						ESID: uint16(track.ID),
+						ESID: uint16(it.ID),
 					},
 				},
 				{
@@ -616,7 +616,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 					Tag:  mp4.ESDescrTag,
 					Size: 27,
 					ESDescriptor: &mp4.ESDescriptor{
-						ESID: uint16(track.ID),
+						ESID: uint16(it.ID),
 					},
 				},
 				{
@@ -690,7 +690,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 					Tag:  mp4.ESDescrTag,
 					Size: 32 + uint32(len(enc)),
 					ESDescriptor: &mp4.ESDescriptor{
-						ESID: uint16(track.ID),
+						ESID: uint16(it.ID),
 					},
 				},
 				{
@@ -742,7 +742,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 					Tag:  mp4.ESDescrTag,
 					Size: 27,
 					ESDescriptor: &mp4.ESDescriptor{
-						ESID: uint16(track.ID),
+						ESID: uint16(it.ID),
 					},
 				},
 				{
@@ -830,7 +830,7 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		}
 	}
 
-	if track.Codec.IsVideo() {
+	if it.Codec.IsVideo() {
 		_, err = w.writeBox(&mp4.Btrt{ // <btrt/>
 			MaxBitrate: 1000000,
 			AvgBitrate: 1000000,
@@ -858,25 +858,25 @@ func (track *InitTrack) marshal(w *mp4Writer) error {
 		return err
 	}
 
-	_, err = w.writeBox(&mp4.Stts{ // <stts>
+	_, err = w.writeBox(&mp4.Stts{ // <stts/>
 	})
 	if err != nil {
 		return err
 	}
 
-	_, err = w.writeBox(&mp4.Stsc{ // <stsc>
+	_, err = w.writeBox(&mp4.Stsc{ // <stsc/>
 	})
 	if err != nil {
 		return err
 	}
 
-	_, err = w.writeBox(&mp4.Stsz{ // <stsz>
+	_, err = w.writeBox(&mp4.Stsz{ // <stsz/>
 	})
 	if err != nil {
 		return err
 	}
 
-	_, err = w.writeBox(&mp4.Stco{ // <stco>
+	_, err = w.writeBox(&mp4.Stco{ // <stco/>
 	})
 	if err != nil {
 		return err
