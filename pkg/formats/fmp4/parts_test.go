@@ -1,6 +1,7 @@
 package fmp4
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/bluenviron/mediacommon/pkg/formats/fmp4/seekablebuffer"
@@ -190,5 +191,26 @@ func BenchmarkPartsUnmarshal(b *testing.B) {
 			var parts Parts
 			parts.Unmarshal(ca.enc) //nolint:errcheck
 		}
+	}
+}
+
+func BenchmarkPartsMarshal(b *testing.B) {
+	parts := Parts{{
+		Tracks: []*PartTrack{{
+			ID:      1,
+			Samples: make([]*PartSample, 10000),
+		}},
+	}}
+
+	for i := 0; i < 10000; i++ {
+		parts[0].Tracks[0].Samples[i] = &PartSample{
+			Duration: 90000,
+			Payload:  bytes.Repeat([]byte{1}, 16),
+		}
+	}
+
+	for i := 0; i < b.N; i++ {
+		var buf seekablebuffer.Buffer
+		parts.Marshal(&buf) //nolint:errcheck
 	}
 }
