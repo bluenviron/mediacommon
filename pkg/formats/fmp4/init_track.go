@@ -19,9 +19,22 @@ func boolToUint8(v bool) uint8 {
 
 // InitTrack is a track of Init.
 type InitTrack struct {
-	ID        int
+	// ID, starts from 1.
+	ID int
+
+	// time scale.
 	TimeScale uint32
-	Codec     Codec
+
+	// maximum bitrate.
+	// it defaults to 1MB for video tracks, 128k for audio tracks.
+	MaxBitrate uint32
+
+	// average bitrate.
+	// it defaults to 1MB for video tracks, 128k for audio tracks.
+	AvgBitrate uint32
+
+	// codec.
+	Codec Codec
 }
 
 func (it *InitTrack) marshal(w *mp4Writer) error {
@@ -281,6 +294,24 @@ func (it *InitTrack) marshal(w *mp4Writer) error {
 		return err
 	}
 
+	maxBitrate := it.MaxBitrate
+	if maxBitrate == 0 {
+		if it.Codec.IsVideo() {
+			maxBitrate = 1000000
+		} else {
+			maxBitrate = 128825
+		}
+	}
+
+	avgBitrate := it.AvgBitrate
+	if avgBitrate == 0 {
+		if it.Codec.IsVideo() {
+			avgBitrate = 1000000
+		} else {
+			avgBitrate = 128825
+		}
+	}
+
 	switch codec := it.Codec.(type) {
 	case *CodecAV1:
 		_, err = w.writeBoxStart(&mp4.VisualSampleEntry{ // <av01>
@@ -514,8 +545,8 @@ func (it *InitTrack) marshal(w *mp4Writer) error {
 						ObjectTypeIndication: objectTypeIndicationVisualISO14496part2,
 						StreamType:           streamTypeVisualStream,
 						Reserved:             true,
-						MaxBitrate:           1000000,
-						AvgBitrate:           1000000,
+						MaxBitrate:           maxBitrate,
+						AvgBitrate:           avgBitrate,
 					},
 				},
 				{
@@ -570,8 +601,8 @@ func (it *InitTrack) marshal(w *mp4Writer) error {
 						ObjectTypeIndication: objectTypeIndicationVisualISO1318part2Main,
 						StreamType:           streamTypeVisualStream,
 						Reserved:             true,
-						MaxBitrate:           1000000,
-						AvgBitrate:           1000000,
+						MaxBitrate:           maxBitrate,
+						AvgBitrate:           avgBitrate,
 					},
 				},
 				{
@@ -626,8 +657,8 @@ func (it *InitTrack) marshal(w *mp4Writer) error {
 						ObjectTypeIndication: objectTypeIndicationVisualISO10918part1,
 						StreamType:           streamTypeVisualStream,
 						Reserved:             true,
-						MaxBitrate:           1000000,
-						AvgBitrate:           1000000,
+						MaxBitrate:           maxBitrate,
+						AvgBitrate:           avgBitrate,
 					},
 				},
 				{
@@ -700,8 +731,8 @@ func (it *InitTrack) marshal(w *mp4Writer) error {
 						ObjectTypeIndication: objectTypeIndicationAudioISO14496part3,
 						StreamType:           streamTypeAudioStream,
 						Reserved:             true,
-						MaxBitrate:           128825,
-						AvgBitrate:           128825,
+						MaxBitrate:           maxBitrate,
+						AvgBitrate:           avgBitrate,
 					},
 				},
 				{
@@ -752,8 +783,8 @@ func (it *InitTrack) marshal(w *mp4Writer) error {
 						ObjectTypeIndication: objectTypeIndicationAudioISO11172part3,
 						StreamType:           streamTypeAudioStream,
 						Reserved:             true,
-						MaxBitrate:           128825,
-						AvgBitrate:           128825,
+						MaxBitrate:           maxBitrate,
+						AvgBitrate:           avgBitrate,
 					},
 				},
 				{
@@ -830,22 +861,12 @@ func (it *InitTrack) marshal(w *mp4Writer) error {
 		}
 	}
 
-	if it.Codec.IsVideo() {
-		_, err = w.writeBox(&mp4.Btrt{ // <btrt/>
-			MaxBitrate: 1000000,
-			AvgBitrate: 1000000,
-		})
-		if err != nil {
-			return err
-		}
-	} else {
-		_, err = w.writeBox(&mp4.Btrt{ // <btrt/>
-			MaxBitrate: 128825,
-			AvgBitrate: 128825,
-		})
-		if err != nil {
-			return err
-		}
+	_, err = w.writeBox(&mp4.Btrt{ // <btrt/>
+		MaxBitrate: maxBitrate,
+		AvgBitrate: avgBitrate,
+	})
+	if err != nil {
+		return err
 	}
 
 	err = w.writeBoxEnd() // </*>
