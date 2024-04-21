@@ -1,6 +1,6 @@
 module github.com/bluenviron/mediacommon
 
-go 1.19
+go 1.20
 
 require (
 	github.com/abema/go-mp4 v1.2.0
