@@ -7,5 +7,6 @@ const (
 	MaxAccessUnitSize = 8 * 1024 * 1024
 
 	// MaxNALUsPerAccessUnit is the maximum number of NALUs per access unit.
-	MaxNALUsPerAccessUnit = 21
+	// with x264, tune=zerolatency and 4K resolution, NALU count is lower than 25.
+	MaxNALUsPerAccessUnit = 25
 )
