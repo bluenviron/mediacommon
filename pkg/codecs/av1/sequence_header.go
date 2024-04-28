@@ -108,7 +108,7 @@ func (c *SequenceHeader_ColorConfig) unmarshal(seqProfile uint8, buf []byte, pos
 	}
 
 	if c.ColorDescriptionPresentFlag {
-		err := bits.HasSpace(buf, *pos, 24)
+		err = bits.HasSpace(buf, *pos, 24)
 		if err != nil {
 			return err
 		}
@@ -234,7 +234,9 @@ func (h *SequenceHeader) Unmarshal(buf []byte) error {
 	buf = buf[1:]
 
 	if oh.HasSize {
-		size, sizeN, err := LEB128Unmarshal(buf)
+		var size uint
+		var sizeN int
+		size, sizeN, err = LEB128Unmarshal(buf)
 		if err != nil {
 			return err
 		}
@@ -283,7 +285,7 @@ func (h *SequenceHeader) Unmarshal(buf []byte) error {
 		}
 		h.DecoderModelInfoPresentFlag = false
 
-		err := bits.HasSpace(buf, pos, 6)
+		err = bits.HasSpace(buf, pos, 6)
 		if err != nil {
 			return err
 		}
@@ -299,7 +301,7 @@ func (h *SequenceHeader) Unmarshal(buf []byte) error {
 		h.InitialDisplayDelayMinus1 = make([]uint8, h.OperatingPointsCntMinus1+1)
 
 		for i := uint8(0); i <= h.OperatingPointsCntMinus1; i++ {
-			err := bits.HasSpace(buf, pos, 17)
+			err = bits.HasSpace(buf, pos, 17)
 			if err != nil {
 				return err
 			}
@@ -308,7 +310,6 @@ func (h *SequenceHeader) Unmarshal(buf []byte) error {
 			h.SeqLevelIdx[i] = uint8(bits.ReadBitsUnsafe(buf, &pos, 5))
 
 			if h.SeqLevelIdx[i] > 7 {
-				var err error
 				h.SeqTier[i], err = bits.ReadFlag(buf, &pos)
 				if err != nil {
 					return err
@@ -323,14 +324,14 @@ func (h *SequenceHeader) Unmarshal(buf []byte) error {
 			h.DecoderModelPresentForThisOp[i] = false
 
 			if h.InitialDisplayDelayPresentFlag {
-				var err error
 				h.InitialDisplayPresentForThisOp[i], err = bits.ReadFlag(buf, &pos)
 				if err != nil {
 					return err
 				}
 
 				if h.InitialDisplayPresentForThisOp[i] {
-					tmp, err := bits.ReadBits(buf, &pos, 4)
+					var tmp uint64
+					tmp, err = bits.ReadBits(buf, &pos, 4)
 					if err != nil {
 						return err
 					}
@@ -363,7 +364,6 @@ func (h *SequenceHeader) Unmarshal(buf []byte) error {
 	if h.ReducedStillPictureHeader {
 		h.FrameIDNumbersPresentFlag = false
 	} else {
-		var err error
 		h.FrameIDNumbersPresentFlag, err = bits.ReadFlag(buf, &pos)
 		if err != nil {
 			return err
@@ -394,7 +394,7 @@ func (h *SequenceHeader) Unmarshal(buf []byte) error {
 		h.SeqForceScreenContentTools = SequenceHeader_SeqForceScreenContentTools_SELECT_SCREEN_CONTENT_TOOLS
 		h.SeqForceIntegerMv = SequenceHeader_SeqForceIntegerMv_SELECT_INTEGER_MV
 	} else {
-		err := bits.HasSpace(buf, pos, 5)
+		err = bits.HasSpace(buf, pos, 5)
 		if err != nil {
 			return err
 		}
@@ -406,7 +406,7 @@ func (h *SequenceHeader) Unmarshal(buf []byte) error {
 		h.EnableOrderHint = bits.ReadFlagUnsafe(buf, &pos)
 
 		if h.EnableOrderHint {
-			err := bits.HasSpace(buf, pos, 2)
+			err = bits.HasSpace(buf, pos, 2)
 			if err != nil {
 				return err
 			}
@@ -423,7 +423,8 @@ func (h *SequenceHeader) Unmarshal(buf []byte) error {
 		if h.SeqChooseScreenContentTools {
 			h.SeqForceScreenContentTools = SequenceHeader_SeqForceScreenContentTools_SELECT_SCREEN_CONTENT_TOOLS
 		} else {
-			tmp, err := bits.ReadBits(buf, &pos, 1)
+			var tmp uint64
+			tmp, err = bits.ReadBits(buf, &pos, 1)
 			if err != nil {
 				return err
 			}
@@ -431,7 +432,6 @@ func (h *SequenceHeader) Unmarshal(buf []byte) error {
 		}
 
 		if h.SeqForceScreenContentTools > 0 {
-			var err error
 			h.SeqChooseIntegerMv, err = bits.ReadFlag(buf, &pos)
 			if err != nil {
 				return err
@@ -440,7 +440,8 @@ func (h *SequenceHeader) Unmarshal(buf []byte) error {
 			if h.SeqChooseIntegerMv {
 				h.SeqForceIntegerMv = SequenceHeader_SeqForceIntegerMv_SELECT_INTEGER_MV
 			} else {
-				tmp, err := bits.ReadBits(buf, &pos, 1)
+				var tmp uint64
+				tmp, err = bits.ReadBits(buf, &pos, 1)
 				if err != nil {
 					return err
 				}
@@ -451,7 +452,8 @@ func (h *SequenceHeader) Unmarshal(buf []byte) error {
 		}
 
 		if h.EnableOrderHint {
-			tmp, err := bits.ReadBits(buf, &pos, 3)
+			var tmp uint64
+			tmp, err = bits.ReadBits(buf, &pos, 3)
 			if err != nil {
 				return err
 			}

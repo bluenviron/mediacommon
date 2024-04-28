@@ -136,7 +136,7 @@ func (h *Header) Unmarshal(buf []byte) error {
 	h.Profile = profileHighBit<<1 + profileLowBit
 
 	if h.Profile == 3 {
-		err := bits.HasSpace(buf, pos, 1)
+		err = bits.HasSpace(buf, pos, 1)
 		if err != nil {
 			return err
 		}
@@ -149,7 +149,8 @@ func (h *Header) Unmarshal(buf []byte) error {
 	}
 
 	if h.ShowExistingFrame {
-		tmp, err := bits.ReadBits(buf, &pos, 3)
+		var tmp uint64
+		tmp, err = bits.ReadBits(buf, &pos, 3)
 		if err != nil {
 			return err
 		}

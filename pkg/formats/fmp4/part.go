@@ -54,7 +54,9 @@ func (p *Part) Marshal(w io.WriteSeeker) error {
 	dataSize := 0
 
 	for i, track := range p.Tracks {
-		trun, trunOffset, err := track.marshal(mw)
+		var trun *mp4.Trun
+		var trunOffset int
+		trun, trunOffset, err = track.marshal(mw)
 		if err != nil {
 			return err
 		}

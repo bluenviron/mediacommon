@@ -618,7 +618,7 @@ func (i *Init) Marshal(w io.WriteSeeker) error {
 	}
 
 	for _, track := range i.Tracks {
-		err := track.marshal(mw)
+		err = track.marshal(mw)
 		if err != nil {
 			return err
 		}

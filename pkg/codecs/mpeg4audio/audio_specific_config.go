@@ -55,7 +55,7 @@ func (c *AudioSpecificConfig) UnmarshalFromPos(buf []byte, pos *int) error {
 		c.SampleRate = sampleRates[sampleRateIndex]
 
 	case sampleRateIndex == 0x0F:
-		tmp, err := bits.ReadBits(buf, pos, 24)
+		tmp, err = bits.ReadBits(buf, pos, 24)
 		if err != nil {
 			return err
 		}
@@ -87,7 +87,8 @@ func (c *AudioSpecificConfig) UnmarshalFromPos(buf []byte, pos *int) error {
 	if c.Type == ObjectTypeSBR || c.Type == ObjectTypePS {
 		c.ExtensionType = c.Type
 
-		extensionSamplingFrequencyIndex, err := bits.ReadBits(buf, pos, 4)
+		var extensionSamplingFrequencyIndex uint64
+		extensionSamplingFrequencyIndex, err = bits.ReadBits(buf, pos, 4)
 		if err != nil {
 			return err
 		}
@@ -97,7 +98,7 @@ func (c *AudioSpecificConfig) UnmarshalFromPos(buf []byte, pos *int) error {
 			c.ExtensionSampleRate = sampleRates[extensionSamplingFrequencyIndex]
 
 		case extensionSamplingFrequencyIndex == 0x0F:
-			tmp, err := bits.ReadBits(buf, pos, 24)
+			tmp, err = bits.ReadBits(buf, pos, 24)
 			if err != nil {
 				return err
 			}
@@ -129,7 +130,7 @@ func (c *AudioSpecificConfig) UnmarshalFromPos(buf []byte, pos *int) error {
 	}
 
 	if c.DependsOnCoreCoder {
-		tmp, err := bits.ReadBits(buf, pos, 14)
+		tmp, err = bits.ReadBits(buf, pos, 14)
 		if err != nil {
 			return err
 		}

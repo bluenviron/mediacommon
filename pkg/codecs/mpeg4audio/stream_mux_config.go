@@ -60,7 +60,8 @@ func (c *StreamMuxConfig) Unmarshal(buf []byte) error {
 		p := &StreamMuxConfigProgram{}
 		c.Programs[prog] = p
 
-		numLayer, err := bits.ReadBits(buf, &pos, 3)
+		var numLayer uint64
+		numLayer, err = bits.ReadBits(buf, &pos, 3)
 		if err != nil {
 			return err
 		}
@@ -76,7 +77,6 @@ func (c *StreamMuxConfig) Unmarshal(buf []byte) error {
 			if prog == 0 && lay == 0 {
 				useSameConfig = false
 			} else {
-				var err error
 				useSameConfig, err = bits.ReadFlag(buf, &pos)
 				if err != nil {
 					return err
@@ -85,13 +85,14 @@ func (c *StreamMuxConfig) Unmarshal(buf []byte) error {
 
 			if !useSameConfig {
 				l.AudioSpecificConfig = &AudioSpecificConfig{}
-				err := l.AudioSpecificConfig.UnmarshalFromPos(buf, &pos)
+				err = l.AudioSpecificConfig.UnmarshalFromPos(buf, &pos)
 				if err != nil {
 					return err
 				}
 			}
 
-			tmp, err := bits.ReadBits(buf, &pos, 3)
+			var tmp uint64
+			tmp, err = bits.ReadBits(buf, &pos, 3)
 			if err != nil {
 				// support truncated configs
 				l.LatmBufferFullness = 255
@@ -101,28 +102,27 @@ func (c *StreamMuxConfig) Unmarshal(buf []byte) error {
 
 			switch l.FrameLengthType {
 			case 0:
-				tmp, err := bits.ReadBits(buf, &pos, 8)
+				tmp, err = bits.ReadBits(buf, &pos, 8)
 				if err != nil {
 					return err
 				}
 				l.LatmBufferFullness = uint(tmp)
 
 			case 1:
-				tmp, err := bits.ReadBits(buf, &pos, 9)
+				tmp, err = bits.ReadBits(buf, &pos, 9)
 				if err != nil {
 					return err
 				}
 				l.FrameLength = uint(tmp)
 
 			case 4, 5, 3:
-				tmp, err := bits.ReadBits(buf, &pos, 6)
+				tmp, err = bits.ReadBits(buf, &pos, 6)
 				if err != nil {
 					return err
 				}
 				l.CELPframeLengthTableIndex = uint(tmp)
 
 			case 6, 7:
-				var err error
 				l.HVXCframeLengthTableIndex, err = bits.ReadFlag(buf, &pos)
 				if err != nil {
 					return err
@@ -140,7 +140,7 @@ func (c *StreamMuxConfig) Unmarshal(buf []byte) error {
 		for {
 			c.OtherDataLenBits *= 256
 
-			err := bits.HasSpace(buf, pos, 9)
+			err = bits.HasSpace(buf, pos, 9)
 			if err != nil {
 				return err
 			}

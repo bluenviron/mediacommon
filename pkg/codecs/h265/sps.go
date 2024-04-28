@@ -136,14 +136,15 @@ func (v *SPS_VUI) unmarshal(buf []byte, pos *int) error {
 	}
 
 	if v.AspectRatioInfoPresentFlag {
-		tmp, err := bits.ReadBits(buf, pos, 8)
+		var tmp uint64
+		tmp, err = bits.ReadBits(buf, pos, 8)
 		if err != nil {
 			return err
 		}
 		v.AspectRatioIdc = uint8(tmp)
 
 		if v.AspectRatioIdc == 255 { // EXTENDED_SAR
-			err := bits.HasSpace(buf, *pos, 32)
+			err = bits.HasSpace(buf, *pos, 32)
 			if err != nil {
 				return err
 			}
@@ -171,7 +172,7 @@ func (v *SPS_VUI) unmarshal(buf []byte, pos *int) error {
 	}
 
 	if v.VideoSignalTypePresentFlag {
-		err := bits.HasSpace(buf, *pos, 5)
+		err = bits.HasSpace(buf, *pos, 5)
 		if err != nil {
 			return err
 		}
@@ -181,7 +182,7 @@ func (v *SPS_VUI) unmarshal(buf []byte, pos *int) error {
 		v.ColourDescriptionPresentFlag = bits.ReadFlagUnsafe(buf, pos)
 
 		if v.ColourDescriptionPresentFlag {
-			err := bits.HasSpace(buf, *pos, 24)
+			err = bits.HasSpace(buf, *pos, 24)
 			if err != nil {
 				return err
 			}
@@ -231,7 +232,7 @@ func (v *SPS_VUI) unmarshal(buf []byte, pos *int) error {
 
 	if defaultDisplayWindowFlag {
 		v.DefaultDisplayWindow = &SPS_DefaultDisplayWindow{}
-		err := v.DefaultDisplayWindow.unmarshal(buf, pos)
+		err = v.DefaultDisplayWindow.unmarshal(buf, pos)
 		if err != nil {
 			return err
 		}
@@ -444,13 +445,14 @@ func (r *SPS_ShortTermRefPicSet) unmarshal(buf []byte, pos *int, stRpsIdx uint32
 		numDeltaPocs := shortTermRefPicSets[refRpsIdx].NumNegativePics + shortTermRefPicSets[refRpsIdx].NumPositivePics
 
 		for j := uint32(0); j <= numDeltaPocs; j++ {
-			usedByCurrPicFlag, err := bits.ReadFlag(buf, pos)
+			var usedByCurrPicFlag bool
+			usedByCurrPicFlag, err = bits.ReadFlag(buf, pos)
 			if err != nil {
 				return err
 			}
 
 			if usedByCurrPicFlag {
-				_, err := bits.ReadGolombUnsigned(buf, pos) // use_delta_flag
+				_, err = bits.ReadGolombUnsigned(buf, pos) // use_delta_flag
 				if err != nil {
 					return err
 				}
@@ -621,7 +623,7 @@ func (s *SPS) Unmarshal(buf []byte) error {
 
 	if conformanceWindowFlag {
 		s.ConformanceWindow = &SPS_ConformanceWindow{}
-		err := s.ConformanceWindow.unmarshal(buf, &pos)
+		err = s.ConformanceWindow.unmarshal(buf, &pos)
 		if err != nil {
 			return err
 		}
@@ -739,7 +741,7 @@ func (s *SPS) Unmarshal(buf []byte) error {
 	}
 
 	if s.PcmEnabledFlag {
-		err := bits.HasSpace(buf, pos, 8)
+		err = bits.HasSpace(buf, pos, 8)
 		if err != nil {
 			return err
 		}
@@ -777,7 +779,7 @@ func (s *SPS) Unmarshal(buf []byte) error {
 
 		for i := uint32(0); i < numShortTermRefPicSets; i++ {
 			s.ShortTermRefPicSets[i] = &SPS_ShortTermRefPicSet{}
-			err := s.ShortTermRefPicSets[i].unmarshal(buf, &pos, i, numShortTermRefPicSets, s.ShortTermRefPicSets)
+			err = s.ShortTermRefPicSets[i].unmarshal(buf, &pos, i, numShortTermRefPicSets, s.ShortTermRefPicSets)
 			if err != nil {
 				return err
 			}
@@ -792,7 +794,8 @@ func (s *SPS) Unmarshal(buf []byte) error {
 	}
 
 	if s.LongTermRefPicsPresentFlag {
-		numLongTermRefPicsSPS, err := bits.ReadGolombUnsigned(buf, &pos)
+		var numLongTermRefPicsSPS uint32
+		numLongTermRefPicsSPS, err = bits.ReadGolombUnsigned(buf, &pos)
 		if err != nil {
 			return err
 		}
