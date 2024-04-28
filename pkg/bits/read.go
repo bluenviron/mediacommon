@@ -25,8 +25,6 @@ func ReadBits(buf []byte, pos *int, n int) (uint64, error) {
 
 // ReadBitsUnsafe reads N bits.
 func ReadBitsUnsafe(buf []byte, pos *int, n int) uint64 {
-	v := uint64(0)
-
 	res := 8 - (*pos & 0x07)
 	if n < res {
 		v := uint64((buf[*pos>>0x03] >> (res - n)) & (1<<n - 1))
@@ -34,7 +32,7 @@ func ReadBitsUnsafe(buf []byte, pos *int, n int) uint64 {
 		return v
 	}
 
-	v = (v << res) | uint64(buf[*pos>>0x03]&(1<<res-1))
+	v := uint64(buf[*pos>>0x03] & (1<<res - 1))
 	*pos += res
 	n -= res
 

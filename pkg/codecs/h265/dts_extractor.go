@@ -36,7 +36,7 @@ func getPTSDTSDiff(buf []byte, sps *SPS, pps *PPS) (uint32, error) {
 	}
 
 	if typ >= NALUType_BLA_W_LP && typ <= NALUType_RSV_IRAP_VCL23 {
-		_, err := bits.ReadFlag(buf, &pos) // no_output_of_prior_pics_flag
+		_, err = bits.ReadFlag(buf, &pos) // no_output_of_prior_pics_flag
 		if err != nil {
 			return 0, err
 		}
@@ -48,7 +48,7 @@ func getPTSDTSDiff(buf []byte, sps *SPS, pps *PPS) (uint32, error) {
 	}
 
 	if pps.NumExtraSliceHeaderBits > 0 {
-		err := bits.HasSpace(buf, pos, int(pps.NumExtraSliceHeaderBits))
+		err = bits.HasSpace(buf, pos, int(pps.NumExtraSliceHeaderBits))
 		if err != nil {
 			return 0, err
 		}
@@ -61,14 +61,14 @@ func getPTSDTSDiff(buf []byte, sps *SPS, pps *PPS) (uint32, error) {
 	}
 
 	if pps.OutputFlagPresentFlag {
-		_, err := bits.ReadFlag(buf, &pos) // pic_output_flag
+		_, err = bits.ReadFlag(buf, &pos) // pic_output_flag
 		if err != nil {
 			return 0, err
 		}
 	}
 
 	if sps.SeparateColourPlaneFlag {
-		_, err := bits.ReadBits(buf, &pos, 2) // colour_plane_id
+		_, err = bits.ReadBits(buf, &pos, 2) // colour_plane_id
 		if err != nil {
 			return 0, err
 		}

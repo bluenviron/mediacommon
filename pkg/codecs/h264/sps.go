@@ -69,7 +69,8 @@ func (h *SPS_HRD) unmarshal(buf []byte, pos *int) error {
 	h.CpbSizeScale = uint8(bits.ReadBitsUnsafe(buf, pos, 4))
 
 	for i := uint32(0); i <= h.CpbCntMinus1; i++ {
-		v, err := bits.ReadGolombUnsigned(buf, pos)
+		var v uint32
+		v, err = bits.ReadGolombUnsigned(buf, pos)
 		if err != nil {
 			return err
 		}
@@ -81,7 +82,8 @@ func (h *SPS_HRD) unmarshal(buf []byte, pos *int) error {
 		}
 		h.CpbSizeValueMinus1 = append(h.CpbSizeValueMinus1, v)
 
-		vb, err := bits.ReadFlag(buf, pos)
+		var vb bool
+		vb, err = bits.ReadFlag(buf, pos)
 		if err != nil {
 			return err
 		}
@@ -220,14 +222,15 @@ func (v *SPS_VUI) unmarshal(buf []byte, pos *int) error {
 	}
 
 	if v.AspectRatioInfoPresentFlag {
-		tmp, err := bits.ReadBits(buf, pos, 8)
+		var tmp uint64
+		tmp, err = bits.ReadBits(buf, pos, 8)
 		if err != nil {
 			return err
 		}
 		v.AspectRatioIdc = uint8(tmp)
 
 		if v.AspectRatioIdc == 255 { // Extended_SAR
-			err := bits.HasSpace(buf, *pos, 32)
+			err = bits.HasSpace(buf, *pos, 32)
 			if err != nil {
 				return err
 			}
@@ -255,7 +258,7 @@ func (v *SPS_VUI) unmarshal(buf []byte, pos *int) error {
 	}
 
 	if v.VideoSignalTypePresentFlag {
-		err := bits.HasSpace(buf, *pos, 5)
+		err = bits.HasSpace(buf, *pos, 5)
 		if err != nil {
 			return err
 		}
@@ -265,7 +268,7 @@ func (v *SPS_VUI) unmarshal(buf []byte, pos *int) error {
 		v.ColourDescriptionPresentFlag = bits.ReadFlagUnsafe(buf, pos)
 
 		if v.ColourDescriptionPresentFlag {
-			err := bits.HasSpace(buf, *pos, 24)
+			err = bits.HasSpace(buf, *pos, 24)
 			if err != nil {
 				return err
 			}
@@ -300,7 +303,7 @@ func (v *SPS_VUI) unmarshal(buf []byte, pos *int) error {
 
 	if timingInfoPresentFlag {
 		v.TimingInfo = &SPS_TimingInfo{}
-		err := v.TimingInfo.unmarshal(buf, pos)
+		err = v.TimingInfo.unmarshal(buf, pos)
 		if err != nil {
 			return err
 		}
@@ -313,7 +316,7 @@ func (v *SPS_VUI) unmarshal(buf []byte, pos *int) error {
 
 	if nalHrdParametersPresentFlag {
 		v.NalHRD = &SPS_HRD{}
-		err := v.NalHRD.unmarshal(buf, pos)
+		err = v.NalHRD.unmarshal(buf, pos)
 		if err != nil {
 			return err
 		}
@@ -326,7 +329,7 @@ func (v *SPS_VUI) unmarshal(buf []byte, pos *int) error {
 
 	if vclHrdParametersPresentFlag {
 		v.VclHRD = &SPS_HRD{}
-		err := v.VclHRD.unmarshal(buf, pos)
+		err = v.VclHRD.unmarshal(buf, pos)
 		if err != nil {
 			return err
 		}
@@ -510,7 +513,8 @@ func (s *SPS) Unmarshal(buf []byte) error {
 			return err
 		}
 
-		seqScalingMatrixPresentFlag, err := bits.ReadFlag(buf, &pos)
+		var seqScalingMatrixPresentFlag bool
+		seqScalingMatrixPresentFlag, err = bits.ReadFlag(buf, &pos)
 		if err != nil {
 			return err
 		}
@@ -524,14 +528,17 @@ func (s *SPS) Unmarshal(buf []byte) error {
 			}
 
 			for i := 0; i < lim; i++ {
-				seqScalingListPresentFlag, err := bits.ReadFlag(buf, &pos)
+				var seqScalingListPresentFlag bool
+				seqScalingListPresentFlag, err = bits.ReadFlag(buf, &pos)
 				if err != nil {
 					return err
 				}
 
 				if seqScalingListPresentFlag {
 					if i < 6 {
-						scalingList, useDefaultScalingMatrixFlag, err := readScalingList(buf, &pos, 16)
+						var scalingList []int32
+						var useDefaultScalingMatrixFlag bool
+						scalingList, useDefaultScalingMatrixFlag, err = readScalingList(buf, &pos, 16)
 						if err != nil {
 							return err
 						}
@@ -540,7 +547,9 @@ func (s *SPS) Unmarshal(buf []byte) error {
 						s.UseDefaultScalingMatrix4x4Flag = append(s.UseDefaultScalingMatrix4x4Flag,
 							useDefaultScalingMatrixFlag)
 					} else {
-						scalingList, useDefaultScalingMatrixFlag, err := readScalingList(buf, &pos, 64)
+						var scalingList []int32
+						var useDefaultScalingMatrixFlag bool
+						scalingList, useDefaultScalingMatrixFlag, err = readScalingList(buf, &pos, 64)
 						if err != nil {
 							return err
 						}
@@ -601,7 +610,8 @@ func (s *SPS) Unmarshal(buf []byte) error {
 			return err
 		}
 
-		numRefFramesInPicOrderCntCycle, err := bits.ReadGolombUnsigned(buf, &pos)
+		var numRefFramesInPicOrderCntCycle uint32
+		numRefFramesInPicOrderCntCycle, err = bits.ReadGolombUnsigned(buf, &pos)
 		if err != nil {
 			return err
 		}
@@ -612,7 +622,8 @@ func (s *SPS) Unmarshal(buf []byte) error {
 
 		s.OffsetForRefFrames = make([]int32, numRefFramesInPicOrderCntCycle)
 		for i := uint32(0); i < numRefFramesInPicOrderCntCycle; i++ {
-			v, err := bits.ReadGolombSigned(buf, &pos)
+			var v int32
+			v, err = bits.ReadGolombSigned(buf, &pos)
 			if err != nil {
 				return err
 			}
@@ -677,7 +688,7 @@ func (s *SPS) Unmarshal(buf []byte) error {
 
 	if frameCroppingFlag {
 		s.FrameCropping = &SPS_FrameCropping{}
-		err := s.FrameCropping.unmarshal(buf, &pos)
+		err = s.FrameCropping.unmarshal(buf, &pos)
 		if err != nil {
 			return err
 		}

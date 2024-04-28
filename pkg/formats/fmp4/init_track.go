@@ -333,7 +333,8 @@ func (it *InitTrack) marshal(w *mp4Writer) error {
 			return err
 		}
 
-		bs, err := av1.BitstreamMarshal([][]byte{codec.SequenceHeader})
+		var bs []byte
+		bs, err = av1.BitstreamMarshal([][]byte{codec.SequenceHeader})
 		if err != nil {
 			return err
 		}
