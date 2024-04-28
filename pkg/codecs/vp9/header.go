@@ -146,7 +146,6 @@ func (h *Header) Unmarshal(buf []byte) error {
 			return err
 		}
 		h.FrameToShowMapIdx = uint8(tmp)
-
 		return nil
 	}
 
@@ -198,16 +197,25 @@ func (h *Header) Unmarshal(buf []byte) error {
 
 // Width returns the video width.
 func (h Header) Width() int {
+	if h.FrameSize == nil {
+		return 0
+	}
 	return int(h.FrameSize.FrameWidthMinus1) + 1
 }
 
 // Height returns the video height.
 func (h Header) Height() int {
+	if h.FrameSize == nil {
+		return 0
+	}
 	return int(h.FrameSize.FrameHeightMinus1) + 1
 }
 
 // ChromaSubsampling returns the chroma subsampling format, in ISO-BMFF/vpcC format.
 func (h Header) ChromaSubsampling() uint8 {
+	if h.ColorConfig == nil {
+		return 1
+	}
 	switch {
 	case !h.ColorConfig.SubsamplingX && !h.ColorConfig.SubsamplingY:
 		return 3 // 4:4:4

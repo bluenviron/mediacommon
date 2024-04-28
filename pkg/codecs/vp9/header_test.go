@@ -74,6 +74,11 @@ func TestHeaderUnmarshal(t *testing.T) {
 func FuzzHeaderUnmarshal(f *testing.F) {
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		var sh Header
-		sh.Unmarshal(b) //nolint:errcheck
+		err := sh.Unmarshal(b) //nolint:errcheck
+		if err == nil {
+			sh.Width()
+			sh.Height()
+			sh.ChromaSubsampling()
+		}
 	})
 }
