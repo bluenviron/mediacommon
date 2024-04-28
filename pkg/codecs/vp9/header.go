@@ -6,15 +6,6 @@ import (
 	"github.com/bluenviron/mediacommon/pkg/bits"
 )
 
-// FrameType is a frame type.
-type FrameType bool
-
-// frame types.
-const (
-	FrameTypeKeyFrame    FrameType = false
-	FrameTypeNonKeyFrame FrameType = true
-)
-
 // Header_ColorConfig is the color_config member of an header.
 type Header_ColorConfig struct { //nolint:revive
 	TenOrTwelveBit bool
@@ -110,7 +101,7 @@ type Header struct {
 	Profile            uint8
 	ShowExistingFrame  bool
 	FrameToShowMapIdx  uint8
-	FrameType          FrameType
+	NonKeyFrame        bool
 	ShowFrame          bool
 	ErrorResilientMode bool
 	ColorConfig        *Header_ColorConfig
@@ -163,11 +154,11 @@ func (h *Header) Unmarshal(buf []byte) error {
 		return err
 	}
 
-	h.FrameType = FrameType(bits.ReadFlagUnsafe(buf, &pos))
+	h.NonKeyFrame = bits.ReadFlagUnsafe(buf, &pos)
 	h.ShowFrame = bits.ReadFlagUnsafe(buf, &pos)
 	h.ErrorResilientMode = bits.ReadFlagUnsafe(buf, &pos)
 
-	if !h.FrameType {
+	if !h.NonKeyFrame {
 		err := bits.HasSpace(buf, pos, 24)
 		if err != nil {
 			return err
