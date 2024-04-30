@@ -101,7 +101,7 @@ func (w *Writer) WriteH26x(
 		return err
 	}
 
-	return w.writeVideo(track, pts, dts, randomAccess, enc)
+	return w.WriteVideo(track, pts, dts, randomAccess, enc)
 }
 
 // WriteMPEG4Video writes a MPEG-4 Video frame.
@@ -112,7 +112,7 @@ func (w *Writer) WriteMPEG4Video(
 ) error {
 	randomAccess := bytes.Contains(frame, []byte{0, 0, 1, byte(mpeg4video.GroupOfVOPStartCode)})
 
-	return w.writeVideo(track, pts, pts, randomAccess, frame)
+	return w.WriteVideo(track, pts, pts, randomAccess, frame)
 }
 
 // WriteMPEG1Video writes a MPEG-1/2 Video frame.
@@ -123,7 +123,7 @@ func (w *Writer) WriteMPEG1Video(
 ) error {
 	randomAccess := bytes.Contains(frame, []byte{0, 0, 1, 0xB8})
 
-	return w.writeVideo(track, pts, pts, randomAccess, frame)
+	return w.WriteVideo(track, pts, pts, randomAccess, frame)
 }
 
 // WriteOpus writes Opus packets.
@@ -148,7 +148,7 @@ func (w *Writer) WriteOpus(
 		n += mn
 	}
 
-	return w.writeAudio(track, pts, enc)
+	return w.WriteAudio(track, pts, enc)
 }
 
 // WriteMPEG4Audio writes MPEG-4 Audio access units.
@@ -174,7 +174,7 @@ func (w *Writer) WriteMPEG4Audio(
 		return err
 	}
 
-	return w.writeAudio(track, pts, enc)
+	return w.WriteAudio(track, pts, enc)
 }
 
 // WriteMPEG1Audio writes MPEG-1 Audio packets.
@@ -203,7 +203,7 @@ func (w *Writer) WriteMPEG1Audio(
 		n += copy(enc[n:], frame)
 	}
 
-	return w.writeAudio(track, pts, enc)
+	return w.WriteAudio(track, pts, enc)
 }
 
 // WriteAC3 writes a AC-3 frame.
@@ -212,10 +212,10 @@ func (w *Writer) WriteAC3(
 	pts int64,
 	frame []byte,
 ) error {
-	return w.writeAudio(track, pts, frame)
+	return w.WriteAudio(track, pts, frame)
 }
 
-func (w *Writer) writeVideo(
+func (w *Writer) WriteVideo(
 	track *Track,
 	pts int64,
 	dts int64,
@@ -274,7 +274,7 @@ func (w *Writer) writeVideo(
 	return err
 }
 
-func (w *Writer) writeAudio(track *Track, pts int64, data []byte) error {
+func (w *Writer) WriteAudio(track *Track, pts int64, data []byte) error {
 	if !w.leadingTrackChosen {
 		w.leadingTrackChosen = true
 		track.isLeading = true
