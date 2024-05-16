@@ -206,7 +206,7 @@ func (d *DTSExtractor) Extract(au [][]byte, pts time.Duration) (time.Duration, e
 		return 0, fmt.Errorf("DTS is greater than PTS")
 	}
 
-	if d.prevDTSFilled && dts <= d.prevDTS {
+	if d.prevDTSFilled && dts < d.prevDTS {
 		return 0, fmt.Errorf("DTS is not monotonically increasing, was %v, now is %v",
 			d.prevDTS, dts)
 	}
