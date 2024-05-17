@@ -526,7 +526,6 @@ func (r *SPS_ShortTermRefPicSet) unmarshal(buf []byte, pos *int, stRpsIdx uint32
 		}
 
 		r.NumPositivePics = i
-
 	} else {
 		r.NumNegativePics, err = bits.ReadGolombUnsigned(buf, pos)
 		if err != nil {
