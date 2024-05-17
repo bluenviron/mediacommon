@@ -482,7 +482,12 @@ func (r *SPS_ShortTermRefPicSet) unmarshal(buf []byte, pos *int, stRpsIdx uint32
 				if err != nil {
 					return err
 				}
-				r.DeltaPocS0[i] = int32(deltaPocS0Minus1) + 1
+
+				if i == 0 {
+					r.DeltaPocS0[i] = -int32(deltaPocS0Minus1 + 1)
+				} else {
+					r.DeltaPocS0[i] = r.DeltaPocS0[i-1] - (int32(deltaPocS0Minus1) + 1)
+				}
 
 				r.UsedByCurrPicS0Flag[i], err = bits.ReadFlag(buf, pos)
 				if err != nil {
@@ -504,7 +509,12 @@ func (r *SPS_ShortTermRefPicSet) unmarshal(buf []byte, pos *int, stRpsIdx uint32
 				if err != nil {
 					return err
 				}
-				r.DeltaPocS1[i] = int32(deltaPocS1Minus1) + 1
+
+				if i == 0 {
+					r.DeltaPocS1[i] = int32(deltaPocS1Minus1) + 1
+				} else {
+					r.DeltaPocS1[i] = r.DeltaPocS1[i-1] + int32(deltaPocS1Minus1) + 1
+				}
 
 				r.UsedByCurrPicS1Flag[i], err = bits.ReadFlag(buf, pos)
 				if err != nil {
