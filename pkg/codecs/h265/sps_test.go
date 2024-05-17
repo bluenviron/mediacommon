@@ -278,7 +278,7 @@ func TestSPSUnmarshal(t *testing.T) {
 				SampleAdaptiveOffsetEnabledFlag:      true,
 				ShortTermRefPicSets: []*SPS_ShortTermRefPicSet{{
 					NumNegativePics:     1,
-					DeltaPocS0Minus1:    []uint32{0},
+					DeltaPocS0:          []uint32{1},
 					UsedByCurrPicS0Flag: []bool{true},
 				}},
 				VUI: &SPS_VUI{
@@ -345,7 +345,7 @@ func TestSPSUnmarshal(t *testing.T) {
 				ShortTermRefPicSets: []*SPS_ShortTermRefPicSet{
 					{
 						NumNegativePics:     1,
-						DeltaPocS0Minus1:    []uint32{0},
+						DeltaPocS0:          []uint32{1},
 						UsedByCurrPicS0Flag: []bool{true},
 					},
 				},
