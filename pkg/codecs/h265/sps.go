@@ -405,9 +405,9 @@ type SPS_ShortTermRefPicSet struct { //nolint:revive
 	AbsDeltaRpsMinus1            uint32
 	NumNegativePics              uint32
 	NumPositivePics              uint32
-	DeltaPocS0                   []uint32
+	DeltaPocS0                   []int32
 	UsedByCurrPicS0Flag          []bool
-	DeltaPocS1                   []uint32
+	DeltaPocS1                   []int32
 	UsedByCurrPicS1Flag          []bool
 }
 
@@ -474,7 +474,7 @@ func (r *SPS_ShortTermRefPicSet) unmarshal(buf []byte, pos *int, stRpsIdx uint32
 				return fmt.Errorf("num_negative_pics exceeds %d", maxNegativePics)
 			}
 
-			r.DeltaPocS0 = make([]uint32, r.NumNegativePics)
+			r.DeltaPocS0 = make([]int32, r.NumNegativePics)
 			r.UsedByCurrPicS0Flag = make([]bool, r.NumNegativePics)
 
 			for i := uint32(0); i < r.NumNegativePics; i++ {
@@ -482,7 +482,7 @@ func (r *SPS_ShortTermRefPicSet) unmarshal(buf []byte, pos *int, stRpsIdx uint32
 				if err != nil {
 					return err
 				}
-				r.DeltaPocS0[i] = deltaPocS0Minus1 + 1
+				r.DeltaPocS0[i] = int32(deltaPocS0Minus1) + 1
 
 				r.UsedByCurrPicS0Flag[i], err = bits.ReadFlag(buf, pos)
 				if err != nil {
@@ -496,7 +496,7 @@ func (r *SPS_ShortTermRefPicSet) unmarshal(buf []byte, pos *int, stRpsIdx uint32
 				return fmt.Errorf("num_positive_pics exceeds %d", maxPositivePics)
 			}
 
-			r.DeltaPocS1 = make([]uint32, r.NumPositivePics)
+			r.DeltaPocS1 = make([]int32, r.NumPositivePics)
 			r.UsedByCurrPicS1Flag = make([]bool, r.NumPositivePics)
 
 			for i := uint32(0); i < r.NumPositivePics; i++ {
@@ -504,7 +504,7 @@ func (r *SPS_ShortTermRefPicSet) unmarshal(buf []byte, pos *int, stRpsIdx uint32
 				if err != nil {
 					return err
 				}
-				r.DeltaPocS1[i] = deltaPocS1Minus1 + 1
+				r.DeltaPocS1[i] = int32(deltaPocS1Minus1) + 1
 
 				r.UsedByCurrPicS1Flag[i], err = bits.ReadFlag(buf, pos)
 				if err != nil {
