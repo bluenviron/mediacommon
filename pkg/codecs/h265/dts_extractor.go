@@ -120,13 +120,13 @@ func getPTSDTSDiff(buf []byte, sps *SPS, pps *PPS) (uint32, error) {
 			if len(rps.DeltaPocS0) == 0 {
 				return 0, fmt.Errorf("invalid DeltaPocS0")
 			}
-			v = uint32(rps.DeltaPocS0[0]) + sps.MaxNumReorderPics[0] - 2
+			v = uint32(-rps.DeltaPocS0[0]) + sps.MaxNumReorderPics[0] - 2
 		}
 	} else { // I or P-frame
 		if len(rps.DeltaPocS0) == 0 {
 			return 0, fmt.Errorf("invalid DeltaPocS0")
 		}
-		v = uint32(rps.DeltaPocS0[0]) + sps.MaxNumReorderPics[0] - 1
+		v = uint32(-rps.DeltaPocS0[0]) + sps.MaxNumReorderPics[0] - 1
 	}
 
 	return v, nil
