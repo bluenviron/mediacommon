@@ -441,23 +441,92 @@ func (r *SPS_ShortTermRefPicSet) unmarshal(buf []byte, pos *int, stRpsIdx uint32
 			return err
 		}
 
+		var s int32
+		if r.DeltaRpsSign {
+			s = 1
+		}
+		deltaRps := (1 - 2*s) * (int32(r.AbsDeltaRpsMinus1) + 1)
+
 		refRpsIdx := stRpsIdx - (r.DeltaIdxMinus1 + 1)
-		numDeltaPocs := shortTermRefPicSets[refRpsIdx].NumNegativePics + shortTermRefPicSets[refRpsIdx].NumPositivePics
+		refRPS := shortTermRefPicSets[refRpsIdx]
+		numDeltaPocs := refRPS.NumNegativePics + refRPS.NumPositivePics
+		usedByCurrPicFlag := make([]bool, numDeltaPocs+1)
+
+		useDeltaFlag := make([]bool, numDeltaPocs+1)
+		for i := range useDeltaFlag {
+			useDeltaFlag[i] = true
+		}
 
 		for j := uint32(0); j <= numDeltaPocs; j++ {
-			var usedByCurrPicFlag bool
-			usedByCurrPicFlag, err = bits.ReadFlag(buf, pos)
+			usedByCurrPicFlag[j], err = bits.ReadFlag(buf, pos)
 			if err != nil {
 				return err
 			}
 
-			if usedByCurrPicFlag {
-				_, err = bits.ReadGolombUnsigned(buf, pos) // use_delta_flag
+			if !usedByCurrPicFlag[j] {
+				useDeltaFlag[j], err = bits.ReadFlag(buf, pos)
 				if err != nil {
 					return err
 				}
 			}
 		}
+
+		i := uint32(0)
+
+		for j := (int32(refRPS.NumPositivePics) - 1); j >= 0; j-- {
+			dPoc := refRPS.DeltaPocS1[j] + deltaRps
+			if dPoc < 0 && useDeltaFlag[refRPS.NumNegativePics+uint32(j)] {
+				r.DeltaPocS0 = append(r.DeltaPocS0, dPoc)
+				r.UsedByCurrPicS0Flag = append(r.UsedByCurrPicS0Flag, usedByCurrPicFlag[refRPS.NumNegativePics+uint32(j)])
+				i++
+			}
+		}
+
+		if deltaRps < 0 && useDeltaFlag[numDeltaPocs] {
+			r.DeltaPocS0 = append(r.DeltaPocS0, deltaRps)
+			r.UsedByCurrPicS0Flag = append(r.UsedByCurrPicS0Flag, usedByCurrPicFlag[numDeltaPocs])
+			i++
+		}
+
+		for j := uint32(0); j < refRPS.NumNegativePics; j++ {
+			dPoc := refRPS.DeltaPocS0[j] + deltaRps
+			if dPoc < 0 && useDeltaFlag[j] {
+				r.DeltaPocS0 = append(r.DeltaPocS0, dPoc)
+				r.UsedByCurrPicS0Flag = append(r.UsedByCurrPicS0Flag, usedByCurrPicFlag[j])
+				i++
+			}
+		}
+
+		r.NumNegativePics = i
+
+		i = uint32(0)
+
+		for j := (int32(refRPS.NumNegativePics) - 1); j >= 0; j-- {
+			dPoc := refRPS.DeltaPocS0[j] + deltaRps
+			if dPoc > 0 && useDeltaFlag[j] {
+				r.DeltaPocS1 = append(r.DeltaPocS1, dPoc)
+				r.UsedByCurrPicS1Flag = append(r.UsedByCurrPicS1Flag, usedByCurrPicFlag[j])
+				i++
+			}
+		}
+
+		if deltaRps > 0 && useDeltaFlag[numDeltaPocs] {
+			r.DeltaPocS1 = append(r.DeltaPocS1, deltaRps)
+			r.UsedByCurrPicS1Flag = append(r.UsedByCurrPicS1Flag, usedByCurrPicFlag[numDeltaPocs])
+			i++
+		}
+
+		for j := uint32(0); j < refRPS.NumPositivePics; j++ {
+			dPoc := refRPS.DeltaPocS1[j] + deltaRps
+			if dPoc > 0 && useDeltaFlag[refRPS.NumNegativePics+j] {
+				r.DeltaPocS1 = append(r.DeltaPocS1, dPoc)
+				r.UsedByCurrPicS1Flag = append(r.UsedByCurrPicS1Flag, usedByCurrPicFlag[refRPS.NumNegativePics+j])
+				i++
+			}
+		}
+
+		r.NumPositivePics = i
+
 	} else {
 		r.NumNegativePics, err = bits.ReadGolombUnsigned(buf, pos)
 		if err != nil {

@@ -115,7 +115,7 @@ func getPTSDTSDiff(buf []byte, sps *SPS, pps *PPS) (uint32, error) {
 
 	if sliceType == 0 { // B-frame
 		if typ == NALUType_TRAIL_N || typ == NALUType_RASL_N {
-			v = sps.MaxNumReorderPics[0] - uint32(len(rps.DeltaPocS1))
+			v = (sps.MaxNumReorderPics[0]) - uint32(len(rps.DeltaPocS1))
 		} else if typ == NALUType_TRAIL_R || typ == NALUType_RASL_R {
 			if len(rps.DeltaPocS0) == 0 {
 				return 0, fmt.Errorf("invalid DeltaPocS0")
