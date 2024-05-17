@@ -118,6 +118,10 @@ func BenchmarkAnnexBUnmarshal(b *testing.B) {
 }
 
 func FuzzAnnexBUnmarshal(f *testing.F) {
+	for _, ca := range casesAnnexB {
+		f.Add(ca.encin)
+	}
+
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		AnnexBUnmarshal(b) //nolint:errcheck
 	})

@@ -28,6 +28,10 @@ func TestPacketDuration(t *testing.T) {
 }
 
 func FuzzPacketDuration(f *testing.F) {
+	for _, ca := range casesPacketDuration {
+		f.Add(ca.byts)
+	}
+
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		PacketDuration(b)
 	})

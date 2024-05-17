@@ -79,6 +79,10 @@ func TestAVCCMarshal(t *testing.T) {
 }
 
 func FuzzAVCCUnmarshal(f *testing.F) {
+	for _, ca := range casesAVCC {
+		f.Add(ca.enc)
+	}
+
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		AVCCUnmarshal(b) //nolint:errcheck
 	})

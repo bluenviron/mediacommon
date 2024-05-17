@@ -327,6 +327,10 @@ func TestSyncInfoUnmarshal(t *testing.T) {
 }
 
 func FuzzSyncInfoUnmarshal(f *testing.F) {
+	for _, ca := range ac3Cases {
+		f.Add(ca.enc)
+	}
+
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		var syncInfo SyncInfo
 		syncInfo.Unmarshal(b) //nolint:errcheck

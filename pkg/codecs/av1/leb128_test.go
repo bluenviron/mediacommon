@@ -51,6 +51,10 @@ func TestLEB128Marshal(t *testing.T) {
 }
 
 func FuzzLEB128Unmarshal(f *testing.F) {
+	for _, ca := range casesLEB128 {
+		f.Add(ca.enc)
+	}
+
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		LEB128Unmarshal(b) //nolint:errcheck
 	})
