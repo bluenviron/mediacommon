@@ -18,6 +18,10 @@ func TestBSIUnmarshal(t *testing.T) {
 }
 
 func FuzzBSIUnmarshal(f *testing.F) {
+	for _, ca := range ac3Cases {
+		f.Add(ca.enc[5:])
+	}
+
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		var bsi BSI
 		bsi.Unmarshal(b) //nolint:errcheck

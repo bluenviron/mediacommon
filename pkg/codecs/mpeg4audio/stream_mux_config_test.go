@@ -161,6 +161,10 @@ func TestStreamMuxConfigMarshal(t *testing.T) {
 }
 
 func FuzzStreamMuxConfigUnmarshal(f *testing.F) {
+	for _, ca := range streamMuxConfigCases {
+		f.Add(ca.enc)
+	}
+
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		var conf StreamMuxConfig
 		conf.Unmarshal(b) //nolint:errcheck

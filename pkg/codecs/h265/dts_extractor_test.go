@@ -211,6 +211,7 @@ func FuzzDTSExtractor(f *testing.F) {
 	}
 
 	ex := NewDTSExtractor()
+
 	f.Fuzz(func(_ *testing.T, b []byte, p uint64) {
 		if len(b) < 1 {
 			return

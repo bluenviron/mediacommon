@@ -53,6 +53,10 @@ func TestBitstreamMarshal(t *testing.T) {
 }
 
 func FuzzBitstreamUnmarshal(f *testing.F) {
+	for _, ca := range casesBitstream {
+		f.Add(ca.enc)
+	}
+
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		BitstreamUnmarshal(b, true) //nolint:errcheck
 	})

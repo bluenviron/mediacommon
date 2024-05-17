@@ -42,6 +42,10 @@ func TestStartOfScanMarshal(t *testing.T) {
 }
 
 func FuzzStartOfScanUnmarshal(f *testing.F) {
+	for _, ca := range casesStartOfScan {
+		f.Add(ca.enc)
+	}
+
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		var h StartOfScan
 		h.Unmarshal(b) //nolint:errcheck
