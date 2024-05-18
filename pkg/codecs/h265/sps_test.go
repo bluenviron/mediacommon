@@ -277,7 +277,7 @@ var casesSPS = []struct {
 			SampleAdaptiveOffsetEnabledFlag:      true,
 			ShortTermRefPicSets: []*SPS_ShortTermRefPicSet{{
 				NumNegativePics:     1,
-				DeltaPocS0Minus1:    []uint32{0},
+				DeltaPocS0:          []int32{-1},
 				UsedByCurrPicS0Flag: []bool{true},
 			}},
 			VUI: &SPS_VUI{
@@ -344,7 +344,7 @@ var casesSPS = []struct {
 			ShortTermRefPicSets: []*SPS_ShortTermRefPicSet{
 				{
 					NumNegativePics:     1,
-					DeltaPocS0Minus1:    []uint32{0},
+					DeltaPocS0:          []int32{-1},
 					UsedByCurrPicS0Flag: []bool{true},
 				},
 			},
