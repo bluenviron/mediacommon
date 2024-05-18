@@ -448,6 +448,10 @@ func (r *SPS_ShortTermRefPicSet) unmarshal(buf []byte, pos *int, stRpsIdx uint32
 		deltaRps := (1 - 2*s) * (int32(r.AbsDeltaRpsMinus1) + 1)
 
 		refRpsIdx := stRpsIdx - (r.DeltaIdxMinus1 + 1)
+		if refRpsIdx >= uint32(len(shortTermRefPicSets)) {
+			return fmt.Errorf("invalid refRpsIdx")
+		}
+
 		refRPS := shortTermRefPicSets[refRpsIdx]
 		numDeltaPocs := refRPS.NumNegativePics + refRPS.NumPositivePics
 		usedByCurrPicFlag := make([]bool, numDeltaPocs+1)
