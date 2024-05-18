@@ -319,21 +319,42 @@ func TestDTSExtractor(t *testing.T) {
 	}
 }
 
-func FuzzDTSExtractor(f *testing.F) {
-	ex := NewDTSExtractor()
-
-	f.Fuzz(func(_ *testing.T, b []byte, p uint64) {
-		if len(b) < 1 {
+func FuzzDTSExtractorFirstAU(f *testing.F) {
+	f.Fuzz(func(_ *testing.T, a []byte, b []byte) {
+		if len(a) < 1 || len(b) < 1 {
 			return
 		}
+
+		ex := NewDTSExtractor()
+
 		ex.Extract([][]byte{ //nolint:errcheck
+			a,
+			b,
+		}, 0)
+	})
+}
+
+func FuzzDTSExtractorSecondAU(f *testing.F) {
+	f.Fuzz(func(t *testing.T, a []byte) {
+		if len(a) < 1 {
+			return
+		}
+
+		ex := NewDTSExtractor()
+
+		_, err := ex.Extract([][]byte{
 			{ // SPS
 				0x27, 0x64, 0x00, 0x20, 0xac, 0x52, 0x18, 0x0f,
 				0x01, 0x17, 0xef, 0xff, 0x00, 0x01, 0x00, 0x01,
 				0x6a, 0x02, 0x02, 0x03, 0x6d, 0x85, 0x6b, 0xde,
 				0xf8, 0x08,
 			},
-			b,
-		}, time.Duration(p))
+			{ // IDR
+				0x05,
+			},
+		}, 0)
+		require.NoError(t, err)
+
+		ex.Extract([][]byte{a}, 1*time.Second) //nolint:errcheck
 	})
 }
