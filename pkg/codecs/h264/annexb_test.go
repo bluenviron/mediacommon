@@ -84,6 +84,17 @@ func TestAnnexBUnmarshal(t *testing.T) {
 	}
 }
 
+func TestAnnexBUnmarshalEmpty(t *testing.T) {
+	buf := []byte{0, 0, 0, 1, 0, 0, 0, 1}
+	_, err := AnnexBUnmarshal(buf)
+	require.Equal(t, err, ErrAnnexBNoNALUs)
+
+	buf = []byte{0, 0, 0, 1, 0, 0, 0, 1, 1}
+	dec, err := AnnexBUnmarshal(buf)
+	require.NoError(t, err)
+	require.Equal(t, [][]byte{{1}}, dec)
+}
+
 func TestAnnexBMarshal(t *testing.T) {
 	for _, ca := range casesAnnexB {
 		t.Run(ca.name, func(t *testing.T) {
