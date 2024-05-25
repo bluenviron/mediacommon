@@ -9,6 +9,7 @@ import (
 	"github.com/asticode/go-astits"
 
 	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
+	"github.com/bluenviron/mediacommon/pkg/codecs/h265"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg1audio"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4video"
@@ -89,6 +90,8 @@ func NewWriter(
 }
 
 // WriteH26x writes a H26x access unit.
+//
+// Deprecated: replaced by WriteH264 and WriteH265.
 func (w *Writer) WriteH26x(
 	track *Track,
 	pts int64,
@@ -96,6 +99,50 @@ func (w *Writer) WriteH26x(
 	randomAccess bool,
 	au [][]byte,
 ) error {
+	if _, ok := track.Codec.(*CodecH265); ok {
+		return w.WriteH265(track, pts, dts, randomAccess, au)
+	}
+	return w.WriteH264(track, pts, dts, randomAccess, au)
+}
+
+// WriteH264 writes a H264 access unit.
+func (w *Writer) WriteH264(
+	track *Track,
+	pts int64,
+	dts int64,
+	randomAccess bool,
+	au [][]byte,
+) error {
+	// prepend an AUD. This is required by video.js, iOS, QuickTime
+	if h264.NALUType(au[0][0]&0x1F) != h264.NALUTypeAccessUnitDelimiter {
+		au = append([][]byte{
+			{byte(h264.NALUTypeAccessUnitDelimiter), 240},
+		}, au...)
+	}
+
+	enc, err := h264.AnnexBMarshal(au)
+	if err != nil {
+		return err
+	}
+
+	return w.writeVideo(track, pts, dts, randomAccess, enc)
+}
+
+// WriteH265 writes a H265 access unit.
+func (w *Writer) WriteH265(
+	track *Track,
+	pts int64,
+	dts int64,
+	randomAccess bool,
+	au [][]byte,
+) error {
+	// prepend an AUD. This is required by video.js, iOS, QuickTime
+	if h265.NALUType(au[0][0]>>1) != h265.NALUType_AUD_NUT {
+		au = append([][]byte{
+			{byte(h265.NALUType_AUD_NUT) << 1, 1, 0x50},
+		}, au...)
+	}
+
 	enc, err := h264.AnnexBMarshal(au)
 	if err != nil {
 		return err
