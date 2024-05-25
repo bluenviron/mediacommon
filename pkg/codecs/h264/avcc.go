@@ -13,8 +13,7 @@ var ErrAVCCNoNALUs = errors.New("AVCC unit doesn't contain any NALU")
 func AVCCUnmarshal(buf []byte) ([][]byte, error) {
 	bl := len(buf)
 	pos := 0
-	var ret [][]byte
-	naluCount := 0
+	n := 0
 	auSize := 0
 
 	for {
@@ -30,18 +29,12 @@ func AVCCUnmarshal(buf []byte) ([][]byte, error) {
 				return nil, fmt.Errorf("access unit size (%d) is too big, maximum is %d", auSize+l, MaxAccessUnitSize)
 			}
 
-			if (naluCount + 1) > MaxNALUsPerAccessUnit {
-				return nil, fmt.Errorf("NALU count (%d) exceeds maximum allowed (%d)",
-					len(ret)+1, MaxNALUsPerAccessUnit)
-			}
-
 			if (bl - pos) < l {
 				return nil, fmt.Errorf("invalid length")
 			}
 
-			ret = append(ret, buf[pos:pos+l])
 			auSize += l
-			naluCount++
+			n++
 			pos += l
 		}
 
@@ -50,8 +43,27 @@ func AVCCUnmarshal(buf []byte) ([][]byte, error) {
 		}
 	}
 
-	if ret == nil {
+	if n == 0 {
 		return nil, ErrAVCCNoNALUs
+	}
+
+	if n > MaxNALUsPerAccessUnit {
+		return nil, fmt.Errorf("NALU count (%d) exceeds maximum allowed (%d)",
+			n, MaxNALUsPerAccessUnit)
+	}
+
+	ret := make([][]byte, n)
+	pos = 0
+
+	for i := 0; i < n; {
+		l := int(uint32(buf[pos])<<24 | uint32(buf[pos+1])<<16 | uint32(buf[pos+2])<<8 | uint32(buf[pos+3]))
+		pos += 4
+
+		if l != 0 {
+			ret[i] = buf[pos : pos+l]
+			pos += l
+			i++
+		}
 	}
 
 	return ret, nil
