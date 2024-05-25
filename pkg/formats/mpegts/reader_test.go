@@ -10,7 +10,6 @@ import (
 	"github.com/asticode/go-astits"
 	"github.com/stretchr/testify/require"
 
-	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
 	"github.com/bluenviron/mediacommon/pkg/codecs/h265"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
 )
@@ -60,7 +59,6 @@ var casesReadWriter = []struct {
 				30 * 90000,
 				30 * 90000,
 				[][]byte{
-					{byte(h265.NALUType_AUD_NUT) << 1, 1, 0x50}, // AUD
 					testH265SPS, // SPS
 					testH265PPS, // PPS
 					{byte(h265.NALUType_CRA_NUT) << 1},
@@ -70,7 +68,6 @@ var casesReadWriter = []struct {
 				30*90000 + 2*90000,
 				30*90000 + 1*90000,
 				[][]byte{
-					{byte(h265.NALUType_AUD_NUT) << 1, 1, 0x50}, // AUD
 					{byte(h265.NALUType_TRAIL_N) << 1},
 				},
 			},
@@ -162,7 +159,6 @@ var casesReadWriter = []struct {
 				30 * 90000,
 				30 * 90000,
 				[][]byte{
-					{byte(h264.NALUTypeAccessUnitDelimiter), 240}, // AUD
 					testH264SPS, // SPS
 					{8},         // PPS
 					{5},         // IDR
@@ -172,7 +168,6 @@ var casesReadWriter = []struct {
 				30*90000 + 2*90000,
 				30*90000 + 1*90000,
 				[][]byte{
-					{byte(h264.NALUTypeAccessUnitDelimiter), 240}, // AUD
 					{1}, // non-IDR
 				},
 			},
@@ -879,8 +874,17 @@ func TestReader(t *testing.T) {
 			i := 0
 
 			switch ca.track.Codec.(type) {
-			case *CodecH265, *CodecH264:
-				r.OnDataH26x(ca.track, func(pts int64, dts int64, au [][]byte) error {
+			case *CodecH265:
+				r.OnDataH265(ca.track, func(pts int64, dts int64, au [][]byte) error {
+					require.Equal(t, ca.samples[i].pts, pts)
+					require.Equal(t, ca.samples[i].dts, dts)
+					require.Equal(t, ca.samples[i].data, au)
+					i++
+					return nil
+				})
+
+			case *CodecH264:
+				r.OnDataH264(ca.track, func(pts int64, dts int64, au [][]byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
 					require.Equal(t, ca.samples[i].dts, dts)
 					require.Equal(t, ca.samples[i].data, au)
@@ -1243,7 +1247,7 @@ func TestReaderDecodeErrors(t *testing.T) {
 
 			switch ca {
 			case "missing pts", "h26x invalid avcc":
-				r.OnDataH26x(r.Tracks()[0], func(_, _ int64, _ [][]byte) error {
+				r.OnDataH264(r.Tracks()[0], func(_, _ int64, _ [][]byte) error {
 					return nil
 				})
 
@@ -1269,7 +1273,7 @@ func TestReaderDecodeErrors(t *testing.T) {
 
 			case "garbage":
 				counter := 0
-				r.OnDataH26x(r.Tracks()[0], func(_, _ int64, _ [][]byte) error {
+				r.OnDataH264(r.Tracks()[0], func(_, _ int64, _ [][]byte) error {
 					counter++
 					if counter == 2 {
 						dataRecv = true

@@ -105,8 +105,8 @@ func (w *Writer) WriteH26x(
 	return w.WriteH264(track, pts, dts, randomAccess, au)
 }
 
-// WriteH264 writes a H264 access unit.
-func (w *Writer) WriteH264(
+// WriteH265 writes a H265 access unit.
+func (w *Writer) WriteH265(
 	track *Track,
 	pts int64,
 	dts int64,
@@ -114,9 +114,9 @@ func (w *Writer) WriteH264(
 	au [][]byte,
 ) error {
 	// prepend an AUD. This is required by video.js, iOS, QuickTime
-	if h264.NALUType(au[0][0]&0x1F) != h264.NALUTypeAccessUnitDelimiter {
+	if au[0][0] != byte(h265.NALUType_AUD_NUT<<1) {
 		au = append([][]byte{
-			{byte(h264.NALUTypeAccessUnitDelimiter), 240},
+			{byte(h265.NALUType_AUD_NUT) << 1, 1, 0x50},
 		}, au...)
 	}
 
@@ -128,8 +128,8 @@ func (w *Writer) WriteH264(
 	return w.writeVideo(track, pts, dts, randomAccess, enc)
 }
 
-// WriteH265 writes a H265 access unit.
-func (w *Writer) WriteH265(
+// WriteH264 writes a H264 access unit.
+func (w *Writer) WriteH264(
 	track *Track,
 	pts int64,
 	dts int64,
@@ -137,9 +137,9 @@ func (w *Writer) WriteH265(
 	au [][]byte,
 ) error {
 	// prepend an AUD. This is required by video.js, iOS, QuickTime
-	if h265.NALUType(au[0][0]>>1) != h265.NALUType_AUD_NUT {
+	if au[0][0] != byte(h264.NALUTypeAccessUnitDelimiter) {
 		au = append([][]byte{
-			{byte(h265.NALUType_AUD_NUT) << 1, 1, 0x50},
+			{byte(h264.NALUTypeAccessUnitDelimiter), 240},
 		}, au...)
 	}
 

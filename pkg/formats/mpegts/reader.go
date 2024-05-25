@@ -11,6 +11,7 @@ import (
 
 	"github.com/bluenviron/mediacommon/pkg/codecs/ac3"
 	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
+	"github.com/bluenviron/mediacommon/pkg/codecs/h265"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg1audio"
 	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
 )
@@ -114,13 +115,45 @@ func (r *Reader) OnDecodeError(cb ReaderOnDecodeErrorFunc) {
 	r.onDecodeError = cb
 }
 
-// OnDataH26x sets a callback that is called when data from an H26x track is received.
+// OnDataH26x sets a callback that is called when data from an H265 or H264 track is received.
+//
+// Deprecated: replaced by OnDataH264, OnDataH265
 func (r *Reader) OnDataH26x(track *Track, cb ReaderOnDataH26xFunc) {
+	if _, ok := track.Codec.(*CodecH265); ok {
+		r.OnDataH265(track, cb)
+	} else {
+		r.OnDataH264(track, cb)
+	}
+}
+
+// OnDataH265 sets a callback that is called when data from an H265 track is received.
+func (r *Reader) OnDataH265(track *Track, cb ReaderOnDataH26xFunc) {
 	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
 		au, err := h264.AnnexBUnmarshal(data)
 		if err != nil {
 			r.onDecodeError(err)
 			return nil
+		}
+
+		if au[0][0] == byte(h265.NALUType_AUD_NUT<<1) {
+			au = au[1:]
+		}
+
+		return cb(pts, dts, au)
+	}
+}
+
+// OnDataH264 sets a callback that is called when data from an H264 track is received.
+func (r *Reader) OnDataH264(track *Track, cb ReaderOnDataH26xFunc) {
+	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
+		au, err := h264.AnnexBUnmarshal(data)
+		if err != nil {
+			r.onDecodeError(err)
+			return nil
+		}
+
+		if au[0][0] == byte(h264.NALUTypeAccessUnitDelimiter) {
+			au = au[1:]
 		}
 
 		return cb(pts, dts, au)
