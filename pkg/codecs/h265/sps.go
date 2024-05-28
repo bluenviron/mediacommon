@@ -27,6 +27,64 @@ var subHeightC = []uint32{
 	1,
 }
 
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// SPS_ScalingListData is a scaling list data.
+type SPS_ScalingListData struct { //nolint:revive
+	ScalingListPredModeFlag      [4][6]bool
+	ScalingListPredmatrixIDDelta [4][6]uint32
+	ScalingListDcCoefMinus8      [4][6]int32
+}
+
+func (d *SPS_ScalingListData) unmarshal(buf []byte, pos *int) error {
+	for sizeID := 0; sizeID < 4; sizeID++ {
+		var matrixIDIncr int
+		if sizeID == 3 {
+			matrixIDIncr = 3
+		} else {
+			matrixIDIncr = 1
+		}
+
+		for matrixID := 0; matrixID < 6; matrixID += matrixIDIncr {
+			var err error
+			d.ScalingListPredModeFlag[sizeID][matrixID], err = bits.ReadFlag(buf, pos)
+			if err != nil {
+				return err
+			}
+
+			if !d.ScalingListPredModeFlag[sizeID][matrixID] {
+				d.ScalingListPredmatrixIDDelta[sizeID][matrixID], err = bits.ReadGolombUnsigned(buf, pos)
+				if err != nil {
+					return err
+				}
+			} else {
+				coefNum := min(64, 1<<(4+(sizeID<<1)))
+
+				if sizeID > 1 {
+					d.ScalingListDcCoefMinus8[sizeID-2][matrixID], err = bits.ReadGolombSigned(buf, pos)
+					if err != nil {
+						return err
+					}
+				}
+
+				for i := 0; i < coefNum; i++ {
+					_, err = bits.ReadGolombSigned(buf, pos) // scalingListDeltaCoef
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 // SPS_DefaultDisplayWindow is a default display window.
 type SPS_DefaultDisplayWindow struct { //nolint:revive
 	LeftOffset   uint32
@@ -626,7 +684,7 @@ type SPS struct {
 	MaxTransformHierarchyDepthInter      uint32
 	MaxTransformHierarchyDepthIntra      uint32
 	ScalingListEnabledFlag               bool
-	ScalingListDataPresentFlag           bool
+	ScalingListData                      *SPS_ScalingListData
 	AmpEnabledFlag                       bool
 	SampleAdaptiveOffsetEnabledFlag      bool
 	PcmEnabledFlag                       bool
@@ -799,13 +857,18 @@ func (s *SPS) Unmarshal(buf []byte) error {
 	}
 
 	if s.ScalingListEnabledFlag {
-		s.ScalingListDataPresentFlag, err = bits.ReadFlag(buf, &pos)
+		var scalingListDataPresentFlag bool
+		scalingListDataPresentFlag, err = bits.ReadFlag(buf, &pos)
 		if err != nil {
 			return err
 		}
 
-		if s.ScalingListDataPresentFlag {
-			return fmt.Errorf("ScalingListDataPresentFlag not supported yet")
+		if scalingListDataPresentFlag {
+			s.ScalingListData = &SPS_ScalingListData{}
+			err = s.ScalingListData.unmarshal(buf, &pos)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
