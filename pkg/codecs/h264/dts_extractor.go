@@ -19,7 +19,7 @@ const (
 	maxBytesToGetPOC = 22
 )
 
-func getPictureOrderCount(buf []byte, sps *SPS) (uint32, error) {
+func getPictureOrderCount(buf []byte, sps *SPS, idr bool) (uint32, error) {
 	buf = buf[1:]
 	lb := len(buf)
 
@@ -48,6 +48,13 @@ func getPictureOrderCount(buf []byte, sps *SPS) (uint32, error) {
 	_, err = bits.ReadBits(buf, &pos, int(sps.Log2MaxFrameNumMinus4+4)) // frame_num
 	if err != nil {
 		return 0, err
+	}
+
+	if idr {
+		_, err = bits.ReadGolombUnsigned(buf, &pos) // idr_pic_id
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	picOrderCntLsb, err := bits.ReadBits(buf, &pos, int(sps.Log2MaxPicOrderCntLsbMinus4+4))
@@ -130,8 +137,13 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 
 	switch {
 	case idr != nil:
-		d.expectedPOC = 0
 		d.pauseDTS = 0
+
+		var err error
+		d.expectedPOC, err = getPictureOrderCount(idr, d.spsp, true)
+		if err != nil {
+			return 0, false, err
+		}
 
 		if !d.prevDTSFilled || d.reorderedFrames == 0 {
 			return pts, false, nil
@@ -148,7 +160,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 			return d.prevDTS + 1*time.Millisecond, true, nil
 		}
 
-		poc, err := getPictureOrderCount(nonIDR, d.spsp)
+		poc, err := getPictureOrderCount(nonIDR, d.spsp, false)
 		if err != nil {
 			return 0, false, err
 		}
