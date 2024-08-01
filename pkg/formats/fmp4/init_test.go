@@ -2134,7 +2134,11 @@ func FuzzInitUnmarshal(f *testing.F) {
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		var init Init
-		init.Unmarshal(bytes.NewReader(b)) //nolint:errcheck
+		err := init.Unmarshal(bytes.NewReader(b))
+		if err == nil {
+			var buf seekablebuffer.Buffer
+			init.Marshal(&buf) //nolint:errcheck
+		}
 	})
 }
 

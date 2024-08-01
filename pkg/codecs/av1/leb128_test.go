@@ -56,6 +56,10 @@ func FuzzLEB128Unmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		LEB128Unmarshal(b) //nolint:errcheck
+		v, _, err := LEB128Unmarshal(b)
+		if err == nil {
+			enc := make([]byte, LEB128MarshalSize(v))
+			LEB128MarshalTo(v, enc)
+		}
 	})
 }

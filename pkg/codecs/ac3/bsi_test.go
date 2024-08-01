@@ -24,6 +24,9 @@ func FuzzBSIUnmarshal(f *testing.F) {
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		var bsi BSI
-		bsi.Unmarshal(b) //nolint:errcheck
+		err := bsi.Unmarshal(b)
+		if err == nil {
+			bsi.ChannelCount() //nolint:staticcheck
+		}
 	})
 }

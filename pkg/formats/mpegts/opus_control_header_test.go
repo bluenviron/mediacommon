@@ -142,6 +142,10 @@ func FuzzOpusControlHeaderUnmarshal(f *testing.F) {
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		var h opusControlHeader
-		h.unmarshal(b) //nolint:errcheck
+		_, err := h.unmarshal(b)
+		if err == nil {
+			buf := make([]byte, h.marshalSize())
+			h.marshalTo(buf) //nolint:errcheck
+		}
 	})
 }

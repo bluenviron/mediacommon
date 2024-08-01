@@ -518,6 +518,11 @@ func FuzzSPSUnmarshal(f *testing.F) {
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		var sps SPS
-		sps.Unmarshal(b) //nolint:errcheck
+		err := sps.Unmarshal(b) //nolint:errcheck
+		if err == nil {
+			sps.Width()
+			sps.Height()
+			sps.FPS()
+		}
 	})
 }

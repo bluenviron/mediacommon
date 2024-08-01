@@ -167,6 +167,9 @@ func FuzzStreamMuxConfigUnmarshal(f *testing.F) {
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		var conf StreamMuxConfig
-		conf.Unmarshal(b) //nolint:errcheck
+		err := conf.Unmarshal(b)
+		if err == nil {
+			conf.Marshal() //nolint:errcheck
+		}
 	})
 }
