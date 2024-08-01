@@ -82,6 +82,10 @@ func FuzzOpusAccessUnitUnmarshal(f *testing.F) {
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		var h opusAccessUnit
-		h.unmarshal(b) //nolint:errcheck
+		_, err := h.unmarshal(b) //nolint:errcheck
+		if err == nil {
+			buf := make([]byte, h.marshalSize())
+			h.marshalTo(buf) //nolint:errcheck
+		}
 	})
 }

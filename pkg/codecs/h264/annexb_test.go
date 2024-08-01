@@ -134,6 +134,9 @@ func FuzzAnnexBUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		AnnexBUnmarshal(b) //nolint:errcheck
+		au, err := AnnexBUnmarshal(b)
+		if err == nil {
+			AnnexBMarshal(au) //nolint:errcheck
+		}
 	})
 }

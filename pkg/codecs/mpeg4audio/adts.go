@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// ADTSPacket is an ADTS frame.
+// ADTSPacket is an ADTS packet.
 // Specification: ISO 14496-3, Table 1.A.5
 type ADTSPacket struct {
 	Type         ObjectType
@@ -13,7 +13,7 @@ type ADTSPacket struct {
 	AU           []byte
 }
 
-// ADTSPackets is a group od ADTS packets.
+// ADTSPackets is a group of ADTS packets.
 type ADTSPackets []*ADTSPacket
 
 // Unmarshal decodes an ADTS stream into ADTS packets.

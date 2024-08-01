@@ -333,6 +333,10 @@ func FuzzSyncInfoUnmarshal(f *testing.F) {
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		var syncInfo SyncInfo
-		syncInfo.Unmarshal(b) //nolint:errcheck
+		err := syncInfo.Unmarshal(b)
+		if err == nil {
+			syncInfo.FrameSize()
+			syncInfo.SampleRate() //nolint:staticcheck
+		}
 	})
 }

@@ -58,6 +58,9 @@ func FuzzBitstreamUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		BitstreamUnmarshal(b, true) //nolint:errcheck
+		tu, err := BitstreamUnmarshal(b, true)
+		if err == nil {
+			BitstreamMarshal(tu) //nolint:errcheck
+		}
 	})
 }

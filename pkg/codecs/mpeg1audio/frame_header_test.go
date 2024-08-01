@@ -121,6 +121,10 @@ func FuzzFrameHeaderUnmarshal(f *testing.F) {
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		var h FrameHeader
-		h.Unmarshal(b) //nolint:errcheck
+		err := h.Unmarshal(b)
+		if err == nil {
+			h.FrameLen()    //nolint:staticcheck
+			h.SampleCount() //nolint:staticcheck
+		}
 	})
 }

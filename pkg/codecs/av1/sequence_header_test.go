@@ -145,6 +145,10 @@ func FuzzSequenceHeaderUnmarshal(f *testing.F) {
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		var sh SequenceHeader
-		sh.Unmarshal(b) //nolint:errcheck
+		err := sh.Unmarshal(b)
+		if err == nil {
+			sh.Width()
+			sh.Height()
+		}
 	})
 }

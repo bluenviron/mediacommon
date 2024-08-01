@@ -181,7 +181,11 @@ func FuzzPartsUnmarshal(f *testing.F) {
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		var parts Parts
-		parts.Unmarshal(b) //nolint:errcheck
+		err := parts.Unmarshal(b)
+		if err == nil {
+			var buf seekablebuffer.Buffer
+			parts.Marshal(&buf) //nolint:errcheck
+		}
 	})
 }
 

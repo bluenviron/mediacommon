@@ -75,6 +75,9 @@ func FuzzADTSUnmarshal(f *testing.F) {
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		var pkts ADTSPackets
-		pkts.Unmarshal(b) //nolint:errcheck
+		err := pkts.Unmarshal(b)
+		if err == nil {
+			pkts.Marshal() //nolint:errcheck
+		}
 	})
 }
