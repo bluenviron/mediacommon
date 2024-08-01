@@ -96,6 +96,8 @@ func (c *StreamMuxConfig) Unmarshal(buf []byte) error {
 			if err != nil {
 				// support truncated configs
 				l.LatmBufferFullness = 255
+				c.Programs = c.Programs[:prog+1]
+				p.Layers = p.Layers[:lay+1]
 				return nil //nolint:nilerr
 			}
 			l.FrameLengthType = uint(tmp)
