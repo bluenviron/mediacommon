@@ -741,6 +741,11 @@ func (s *SPS) Unmarshal(buf []byte) error {
 		return err
 	}
 
+	// this prevents a panic in Marshal()
+	if s.ChromaFormatIdc > 3 {
+		return fmt.Errorf("invalid chroma_format_idc")
+	}
+
 	if s.ChromaFormatIdc == 3 {
 		s.SeparateColourPlaneFlag, err = bits.ReadFlag(buf, &pos)
 		if err != nil {
