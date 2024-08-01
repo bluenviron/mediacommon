@@ -110,6 +110,15 @@ func (ps *Parts) Unmarshal(byts []byte) error {
 					return nil, fmt.Errorf("unexpected trun")
 				}
 
+				// prevent RAM exhaustion due to unlimited Trun unmarshaling
+				rawBox := byts[h.BoxInfo.Offset:]
+				if len(rawBox) >= 16 {
+					sampleCount := uint32(rawBox[12])<<24 | uint32(rawBox[13])<<16 | uint32(rawBox[14])<<8 | uint32(rawBox[15])
+					if sampleCount > maxSamplesPerTrun {
+						return nil, fmt.Errorf("sample count (%d) exceeds maximum (%d)", sampleCount, maxSamplesPerTrun)
+					}
+				}
+
 				box, _, err := h.ReadPayload()
 				if err != nil {
 					return nil, err
