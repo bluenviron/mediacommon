@@ -28,6 +28,9 @@ type ReaderOnDataMPEGxVideoFunc func(pts int64, frame []byte) error
 // ReaderOnDataOpusFunc is the prototype of the callback passed to OnDataOpus.
 type ReaderOnDataOpusFunc func(pts int64, packets [][]byte) error
 
+// ReaderOnDataKLVFunc is the prototype of the callback passed to OnDataKLV.
+type ReaderOnDataKLVFunc func(pts int64, packets []byte) error
+
 // ReaderOnDataMPEG4AudioFunc is the prototype of the callback passed to OnDataMPEG4Audio.
 type ReaderOnDataMPEG4AudioFunc func(pts int64, aus [][]byte) error
 
@@ -198,6 +201,17 @@ func (r *Reader) OnDataOpus(track *Track, cb ReaderOnDataOpusFunc) {
 	}
 }
 
+// OnDataKLVA sets a callback that is called when data from an KLV track is received.
+func (r *Reader) OnDataKLV(track *Track, cb ReaderOnDataKLVFunc) {
+	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
+		if pts != dts {
+			r.onDecodeError(fmt.Errorf("PTS is not equal to DTS"))
+			return nil
+		}
+		return cb(pts, data)
+	}
+}
+
 // OnDataMPEG4Audio sets a callback that is called when data from an MPEG-4 Audio track is received.
 func (r *Reader) OnDataMPEG4Audio(track *Track, cb ReaderOnDataMPEG4AudioFunc) {
 	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
@@ -305,7 +319,28 @@ func (r *Reader) Read() error {
 			return nil
 		}
 
-		pts := data.PES.Header.OptionalHeader.PTS.Base
+		// for For Asynchronous KLV, found in StreamType Private Data (0x06), there is no PTS. In this case set PTS==0
+		// ignore all other Private Data streams
+		pts := int64(0)
+		if data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorNoPTSOrDTS {
+			for _, track := range r.tracks {
+				if data.PID == track.PID {
+					// above code feels more elegant, but does not uniquely identify KLV Streams, would need to pass more
+					// information in track struct. Instead we match the codec defined in track.go
+					switch codec := track.Codec.(type) {
+					case *CodecKLV:
+						break
+
+					default:
+						fmt.Errorf("PTS is missing for codec: %T\n", codec)
+						return nil
+					}
+				}
+			}
+
+		} else {
+			pts = data.PES.Header.OptionalHeader.PTS.Base
+		}
 
 		var dts int64
 		if data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorBothPresent {
