@@ -102,11 +102,11 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 	// the integrity of the reference pictures.  Values greater than
 	// 00 indicate that the decoding of the NAL unit is required to
 	// maintain the integrity of the reference pictures.
-	var nonZeroNalRefIdFound = false
+	nonZeroNalRefIDFound := false
 
 	for _, nalu := range au {
 		typ := NALUType(nalu[0] & 0x1F)
-		nonZeroNalRefIdFound = nonZeroNalRefIdFound || (uint8(nalu[0]&0x60) > 0)
+		nonZeroNalRefIDFound = nonZeroNalRefIDFound || ((nalu[0] & 0x60) > 0)
 		switch typ {
 		case NALUTypeSPS:
 			if !bytes.Equal(d.sps, nalu) {
@@ -211,7 +211,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 
 		return d.prevDTS + (pts-d.prevDTS)/time.Duration(pocDiff+d.reorderedFrames+1), false, nil
 
-	case !nonZeroNalRefIdFound:
+	case !nonZeroNalRefIDFound:
 		return d.prevDTS, false, nil
 
 	default:
