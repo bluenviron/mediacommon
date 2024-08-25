@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	streamIDVideo = 224
-	streamIDAudio = 192
+	streamIDVideo        = 224
+	streamIDAudio        = 192
+	streamIDSyncMetadata = 252
 
 	// PCR is needed to read H265 tracks with VLC+VDPAU hardware encoder
 	// (and is probably needed by other combinations too)
@@ -198,6 +199,15 @@ func (w *Writer) WriteOpus(
 	return w.writeAudio(track, pts, enc)
 }
 
+// WriteKLV writes KLV packets.
+func (w *Writer) WriteKLV(
+	track *Track,
+	pts int64,
+	data []byte,
+) error {
+	return w.writeData(track, pts, data) //packet)
+}
+
 // WriteMPEG4Audio writes MPEG-4 Audio access units.
 func (w *Writer) WriteMPEG4Audio(
 	track *Track,
@@ -354,6 +364,53 @@ func (w *Writer) writeAudio(track *Track, pts int64, data []byte) error {
 				StreamID: streamIDAudio,
 			},
 			Data: data,
+		},
+	})
+	return err
+}
+
+func (w *Writer) writeData(track *Track, pts int64, data []byte) error {
+	if !w.leadingTrackChosen {
+		w.leadingTrackChosen = true
+		track.isLeading = true
+		w.mux.SetPCRPID(track.PID)
+	}
+
+	af := &astits.PacketAdaptationField{
+		RandomAccessIndicator: true,
+	}
+
+	if track.isLeading {
+		if w.pcrCounter == 0 {
+			af.HasPCR = true
+			af.PCR = &astits.ClockReference{Base: pts - dtsPCRDiff}
+			w.pcrCounter = 3
+		}
+		w.pcrCounter--
+	}
+	klvCodec := track.Codec.(*CodecKLV)
+
+	oh := &astits.PESOptionalHeader{
+		MarkerBits:      2,
+		PTSDTSIndicator: klvCodec.PTSDTSIndicator,
+		PTS:             nil,
+	}
+
+	if klvCodec.PTSDTSIndicator == astits.PTSDTSIndicatorOnlyPTS {
+		oh.PTS = &astits.ClockReference{Base: pts}
+	}
+
+	header := &astits.PESHeader{
+		StreamID:       klvCodec.StreamID,
+		OptionalHeader: oh,
+	}
+
+	_, err := w.mux.WriteData(&astits.MuxerData{
+		PID:             track.PID,
+		AdaptationField: af,
+		PES: &astits.PESData{
+			Header: header,
+			Data:   data,
 		},
 	})
 	return err

@@ -13,6 +13,7 @@ const (
 	h264Identifier = 'H'<<24 | 'D'<<16 | 'M'<<8 | 'V'
 	h265Identifier = 'H'<<24 | 'E'<<16 | 'V'<<8 | 'C'
 	opusIdentifier = 'O'<<24 | 'p'<<16 | 'u'<<8 | 's'
+	klvaIdentifier = 'K'<<24 | 'L'<<16 | 'V'<<8 | 'A'
 )
 
 var errUnsupportedCodec = errors.New("unsupported codec")
@@ -104,6 +105,18 @@ func findOpusCodec(descriptors []*astits.Descriptor) *CodecOpus {
 	return &CodecOpus{
 		ChannelCount: channelCount,
 	}
+
+}
+
+func findKLVARegistration(descriptors []*astits.Descriptor) bool {
+	for _, sd := range descriptors {
+		if sd.Registration != nil {
+			if sd.Registration.FormatIdentifier == klvaIdentifier {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // Track is a MPEG-TS track.
@@ -171,7 +184,39 @@ func (t *Track) unmarshal(dem *astits.Demuxer, es *astits.PMTElementaryStream) e
 		if codec != nil {
 			t.Codec = codec
 			return nil
+		} else if findKLVARegistration(es.ElementaryStreamDescriptors) {
+
+			for {
+				data, err := dem.NextData()
+
+				if err != nil {
+					return err
+				}
+
+				if data.PES == nil || data.PID != t.PID {
+					continue
+				}
+				t.Codec = &CodecKLV{
+					StreamType:      astits.StreamTypePrivateData,
+					PTSDTSIndicator: data.PES.Header.OptionalHeader.PTSDTSIndicator,
+					StreamID:        data.PES.Header.StreamID,
+				}
+
+				break
+			}
+
+			return nil
 		}
+
+	case astits.StreamTypeMetadata:
+		codec := &CodecKLV{
+			StreamType:      astits.StreamTypeMetadata,
+			StreamID:        0xFC,
+			PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+		}
+		t.Codec = codec
+
+		return nil
 	}
 
 	return errUnsupportedCodec
