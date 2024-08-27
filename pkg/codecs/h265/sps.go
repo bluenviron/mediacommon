@@ -27,13 +27,6 @@ var subHeightC = []uint32{
 	1,
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 // SPS_ScalingListData is a scaling list data.
 type SPS_ScalingListData struct { //nolint:revive
 	ScalingListPredModeFlag      [4][6]bool
