@@ -1,7 +1,6 @@
 package mpegts
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/asticode/go-astits"
@@ -14,8 +13,6 @@ const (
 	h265Identifier = 'H'<<24 | 'E'<<16 | 'V'<<8 | 'C'
 	opusIdentifier = 'O'<<24 | 'p'<<16 | 'u'<<8 | 's'
 )
-
-var errUnsupportedCodec = errors.New("unsupported codec")
 
 func findMPEG4AudioConfig(dem *astits.Demuxer, pid uint16) (*mpeg4audio.Config, error) {
 	for {
@@ -125,19 +122,15 @@ func (t *Track) unmarshal(dem *astits.Demuxer, es *astits.PMTElementaryStream) e
 	switch es.StreamType {
 	case astits.StreamTypeH265Video:
 		t.Codec = &CodecH265{}
-		return nil
 
 	case astits.StreamTypeH264Video:
 		t.Codec = &CodecH264{}
-		return nil
 
 	case astits.StreamTypeMPEG4Video:
 		t.Codec = &CodecMPEG4Video{}
-		return nil
 
 	case astits.StreamTypeMPEG2Video, astits.StreamTypeMPEG1Video:
 		t.Codec = &CodecMPEG1Video{}
-		return nil
 
 	case astits.StreamTypeAACAudio:
 		conf, err := findMPEG4AudioConfig(dem, es.ElementaryPID)
@@ -148,11 +141,9 @@ func (t *Track) unmarshal(dem *astits.Demuxer, es *astits.PMTElementaryStream) e
 		t.Codec = &CodecMPEG4Audio{
 			Config: *conf,
 		}
-		return nil
 
 	case astits.StreamTypeMPEG1Audio:
 		t.Codec = &CodecMPEG1Audio{}
-		return nil
 
 	case astits.StreamTypeAC3Audio:
 		sampleRate, channelCount, err := findAC3Parameters(dem, es.ElementaryPID)
@@ -164,15 +155,18 @@ func (t *Track) unmarshal(dem *astits.Demuxer, es *astits.PMTElementaryStream) e
 			SampleRate:   sampleRate,
 			ChannelCount: channelCount,
 		}
-		return nil
 
 	case astits.StreamTypePrivateData:
 		codec := findOpusCodec(es.ElementaryStreamDescriptors)
 		if codec != nil {
 			t.Codec = codec
-			return nil
+		} else {
+			t.Codec = &CodecUnsupported{}
 		}
+
+	default:
+		t.Codec = &CodecUnsupported{}
 	}
 
-	return errUnsupportedCodec
+	return nil
 }
