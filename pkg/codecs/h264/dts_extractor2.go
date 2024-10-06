@@ -3,33 +3,96 @@ package h264
 import (
 	"bytes"
 	"fmt"
-	"time"
+
+	"github.com/bluenviron/mediacommon/pkg/bits"
 )
 
-// DTSExtractor allows to extract DTS from PTS.
-//
-// Deprecated: replaced by DTSExtractor2.
-type DTSExtractor struct {
+const (
+	maxReorderedFrames = 10
+	/*
+		(max_size(first_mb_in_slice) + max_size(slice_type) + max_size(pic_parameter_set_id) +
+		max_size(frame_num) + max_size(pic_order_cnt_lsb)) * 4 / 3 =
+		(3 * max_size(golomb) + (max(Log2MaxFrameNumMinus4) + 4) / 8 + (max(Log2MaxPicOrderCntLsbMinus4) + 4) / 8) * 4 / 3 =
+		(3 * 4 + 2 + 2) * 4 / 3 = 22
+	*/
+	maxBytesToGetPOC = 22
+)
+
+func getPictureOrderCount(buf []byte, sps *SPS, idr bool) (uint32, error) {
+	buf = buf[1:]
+	lb := len(buf)
+
+	if lb > maxBytesToGetPOC {
+		lb = maxBytesToGetPOC
+	}
+
+	buf = EmulationPreventionRemove(buf[:lb])
+	pos := 0
+
+	_, err := bits.ReadGolombUnsigned(buf, &pos) // first_mb_in_slice
+	if err != nil {
+		return 0, err
+	}
+
+	_, err = bits.ReadGolombUnsigned(buf, &pos) // slice_type
+	if err != nil {
+		return 0, err
+	}
+
+	_, err = bits.ReadGolombUnsigned(buf, &pos) // pic_parameter_set_id
+	if err != nil {
+		return 0, err
+	}
+
+	_, err = bits.ReadBits(buf, &pos, int(sps.Log2MaxFrameNumMinus4+4)) // frame_num
+	if err != nil {
+		return 0, err
+	}
+
+	if idr {
+		_, err = bits.ReadGolombUnsigned(buf, &pos) // idr_pic_id
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	picOrderCntLsb, err := bits.ReadBits(buf, &pos, int(sps.Log2MaxPicOrderCntLsbMinus4+4))
+	if err != nil {
+		return 0, err
+	}
+
+	return uint32(picOrderCntLsb), nil
+}
+
+func getPictureOrderCountDiff(a uint32, b uint32, sps *SPS) int32 {
+	max := uint32(1 << (sps.Log2MaxPicOrderCntLsbMinus4 + 4))
+	d := (a - b) & (max - 1)
+	if d > (max / 2) {
+		return int32(d) - int32(max)
+	}
+	return int32(d)
+}
+
+// DTSExtractor2 computes DTS from PTS.
+type DTSExtractor2 struct {
 	sps             []byte
 	spsp            *SPS
 	prevDTSFilled   bool
-	prevDTS         time.Duration
+	prevDTS         int64
 	expectedPOC     uint32
 	reorderedFrames int
 	pauseDTS        int
 	pocIncrement    int
 }
 
-// NewDTSExtractor allocates a DTSExtractor.
-//
-// Deprecated: replaced by NewDTSExtractor2.
-func NewDTSExtractor() *DTSExtractor {
-	return &DTSExtractor{
+// NewDTSExtractor2 allocates a DTSExtractor.
+func NewDTSExtractor2() *DTSExtractor2 {
+	return &DTSExtractor2{
 		pocIncrement: 2,
 	}
 }
 
-func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Duration, bool, error) {
+func (d *DTSExtractor2) extractInner(au [][]byte, pts int64) (int64, bool, error) {
 	var idr []byte
 	var nonIDR []byte
 	// a value of 00 indicates that the content of the NAL unit is not
@@ -94,7 +157,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 			return pts, false, nil
 		}
 
-		return d.prevDTS + (pts-d.prevDTS)/time.Duration(d.reorderedFrames+1), false, nil
+		return d.prevDTS + (pts-d.prevDTS)/int64(d.reorderedFrames+1), false, nil
 
 	case nonIDR != nil:
 		d.expectedPOC += uint32(d.pocIncrement)
@@ -102,7 +165,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 
 		if d.pauseDTS > 0 {
 			d.pauseDTS--
-			return d.prevDTS + 1*time.Millisecond, true, nil
+			return d.prevDTS + 90, true, nil
 		}
 
 		poc, err := getPictureOrderCount(nonIDR, d.spsp, false)
@@ -127,7 +190,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 
 			d.reorderedFrames += increase
 			d.pauseDTS = increase
-			return d.prevDTS + 1*time.Millisecond, true, nil
+			return d.prevDTS + 90, true, nil
 		}
 
 		if pocDiff == limit {
@@ -142,10 +205,10 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 
 			d.reorderedFrames += increase
 			d.pauseDTS = increase - 1
-			return d.prevDTS + 1*time.Millisecond, false, nil
+			return d.prevDTS + 90, false, nil
 		}
 
-		return d.prevDTS + (pts-d.prevDTS)/time.Duration(pocDiff+d.reorderedFrames+1), false, nil
+		return d.prevDTS + (pts-d.prevDTS)/int64(pocDiff+d.reorderedFrames+1), false, nil
 
 	case !nonZeroNalRefIDFound:
 		return d.prevDTS, false, nil
@@ -156,7 +219,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts time.Duration) (time.Durati
 }
 
 // Extract extracts the DTS of an access unit.
-func (d *DTSExtractor) Extract(au [][]byte, pts time.Duration) (time.Duration, error) {
+func (d *DTSExtractor2) Extract(au [][]byte, pts int64) (int64, error) {
 	dts, skipChecks, err := d.extractInner(au, pts)
 	if err != nil {
 		return 0, err
