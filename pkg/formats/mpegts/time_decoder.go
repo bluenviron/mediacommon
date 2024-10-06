@@ -5,9 +5,7 @@ import (
 )
 
 const (
-	maximum           = 0x1FFFFFFFF // 33 bits
-	negativeThreshold = 0x1FFFFFFFF / 2
-	clockRate         = 90000
+	clockRate = 90000
 )
 
 // avoid an int64 overflow and preserve resolution by splitting division into two parts:
@@ -19,31 +17,22 @@ func multiplyAndDivide(v, m, d time.Duration) time.Duration {
 }
 
 // TimeDecoder is a MPEG-TS timestamp decoder.
+//
+// Deprecated: replaced by TimeDecoder2
 type TimeDecoder struct {
-	overall time.Duration
-	prev    int64
+	wrapped *TimeDecoder2
 }
 
 // NewTimeDecoder allocates a TimeDecoder.
+//
+// Deprecated: replaced by NewTimeDecoder2
 func NewTimeDecoder(start int64) *TimeDecoder {
 	return &TimeDecoder{
-		prev: start,
+		wrapped: NewTimeDecoder2(start),
 	}
 }
 
 // Decode decodes a MPEG-TS timestamp.
 func (d *TimeDecoder) Decode(ts int64) time.Duration {
-	diff := (ts - d.prev) & maximum
-
-	// negative difference
-	if diff > negativeThreshold {
-		diff = (d.prev - ts) & maximum
-		d.prev = ts
-		d.overall -= time.Duration(diff)
-	} else {
-		d.prev = ts
-		d.overall += time.Duration(diff)
-	}
-
-	return multiplyAndDivide(d.overall, time.Second, clockRate)
+	return multiplyAndDivide(time.Duration(d.wrapped.Decode(ts)), time.Second, clockRate)
 }
