@@ -2,138 +2,12 @@ package h265
 
 import (
 	"fmt"
-	"math"
 	"time"
-
-	"github.com/bluenviron/mediacommon/pkg/bits"
-	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
 )
 
-const (
-	maxBytesToGetPOC = 12
-)
-
-func getPTSDTSDiff(buf []byte, sps *SPS, pps *PPS) (uint32, error) {
-	typ := NALUType((buf[0] >> 1) & 0b111111)
-
-	buf = buf[1:]
-	lb := len(buf)
-
-	if lb > maxBytesToGetPOC {
-		lb = maxBytesToGetPOC
-	}
-
-	buf = h264.EmulationPreventionRemove(buf[:lb])
-	pos := 8
-
-	firstSliceSegmentInPicFlag, err := bits.ReadFlag(buf, &pos)
-	if err != nil {
-		return 0, err
-	}
-
-	if !firstSliceSegmentInPicFlag {
-		return 0, fmt.Errorf("first_slice_segment_in_pic_flag = 0 is not supported")
-	}
-
-	if typ >= NALUType_BLA_W_LP && typ <= NALUType_RSV_IRAP_VCL23 {
-		_, err = bits.ReadFlag(buf, &pos) // no_output_of_prior_pics_flag
-		if err != nil {
-			return 0, err
-		}
-	}
-
-	_, err = bits.ReadGolombUnsigned(buf, &pos) // slice_pic_parameter_set_id
-	if err != nil {
-		return 0, err
-	}
-
-	if pps.NumExtraSliceHeaderBits > 0 {
-		err = bits.HasSpace(buf, pos, int(pps.NumExtraSliceHeaderBits))
-		if err != nil {
-			return 0, err
-		}
-		pos += int(pps.NumExtraSliceHeaderBits)
-	}
-
-	sliceType, err := bits.ReadGolombUnsigned(buf, &pos) // slice_type
-	if err != nil {
-		return 0, err
-	}
-
-	if pps.OutputFlagPresentFlag {
-		_, err = bits.ReadFlag(buf, &pos) // pic_output_flag
-		if err != nil {
-			return 0, err
-		}
-	}
-
-	if sps.SeparateColourPlaneFlag {
-		_, err = bits.ReadBits(buf, &pos, 2) // colour_plane_id
-		if err != nil {
-			return 0, err
-		}
-	}
-
-	_, err = bits.ReadBits(buf, &pos, int(sps.Log2MaxPicOrderCntLsbMinus4+4)) // pic_order_cnt_lsb
-	if err != nil {
-		return 0, err
-	}
-
-	shortTermRefPicSetSpsFlag, err := bits.ReadFlag(buf, &pos)
-	if err != nil {
-		return 0, err
-	}
-
-	var rps *SPS_ShortTermRefPicSet
-
-	if !shortTermRefPicSetSpsFlag {
-		rps = &SPS_ShortTermRefPicSet{}
-		err = rps.unmarshal(buf, &pos, uint32(len(sps.ShortTermRefPicSets)),
-			uint32(len(sps.ShortTermRefPicSets)), sps.ShortTermRefPicSets)
-		if err != nil {
-			return 0, err
-		}
-	} else {
-		if len(sps.ShortTermRefPicSets) == 0 {
-			return 0, fmt.Errorf("invalid short_term_ref_pic_set_idx")
-		}
-
-		b := int(math.Ceil(math.Log2(float64(len(sps.ShortTermRefPicSets)))))
-		tmp, err := bits.ReadBits(buf, &pos, b)
-		if err != nil {
-			return 0, err
-		}
-		shortTermRefPicSetIdx := int(tmp)
-
-		if len(sps.ShortTermRefPicSets) <= shortTermRefPicSetIdx {
-			return 0, fmt.Errorf("invalid short_term_ref_pic_set_idx")
-		}
-
-		rps = sps.ShortTermRefPicSets[shortTermRefPicSetIdx]
-	}
-
-	var v uint32
-
-	if sliceType == 0 { // B-frame
-		if typ == NALUType_TRAIL_N || typ == NALUType_RASL_N {
-			v = sps.MaxNumReorderPics[0] - uint32(len(rps.DeltaPocS1))
-		} else if typ == NALUType_TRAIL_R || typ == NALUType_RASL_R {
-			if len(rps.DeltaPocS0) == 0 {
-				return 0, fmt.Errorf("invalid DeltaPocS0")
-			}
-			v = uint32(-rps.DeltaPocS0[0]-1+int32(sps.MaxNumReorderPics[0])) - uint32(len(rps.DeltaPocS1))
-		}
-	} else { // I or P-frame
-		if len(rps.DeltaPocS0) == 0 {
-			return 0, fmt.Errorf("invalid DeltaPocS0")
-		}
-		v = uint32(-rps.DeltaPocS0[0] - 1 + int32(sps.MaxNumReorderPics[0]))
-	}
-
-	return v, nil
-}
-
-// DTSExtractor allows to extract DTS from PTS.
+// DTSExtractor computes DTS from PTS.
+//
+// Deprecated: replaced by DTSExtractor2.
 type DTSExtractor struct {
 	spsp          *SPS
 	ppsp          *PPS
@@ -142,6 +16,8 @@ type DTSExtractor struct {
 }
 
 // NewDTSExtractor allocates a DTSExtractor.
+//
+// Deprecated: replaced by NewDTSExtractor2.
 func NewDTSExtractor() *DTSExtractor {
 	return &DTSExtractor{}
 }

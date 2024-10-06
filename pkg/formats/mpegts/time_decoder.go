@@ -18,14 +18,14 @@ func multiplyAndDivide(v, m, d time.Duration) time.Duration {
 
 // TimeDecoder is a MPEG-TS timestamp decoder.
 //
-// Deprecated: replaced by TimeDecoder2
+// Deprecated: replaced by TimeDecoder2.
 type TimeDecoder struct {
 	wrapped *TimeDecoder2
 }
 
 // NewTimeDecoder allocates a TimeDecoder.
 //
-// Deprecated: replaced by NewTimeDecoder2
+// Deprecated: replaced by NewTimeDecoder2.
 func NewTimeDecoder(start int64) *TimeDecoder {
 	return &TimeDecoder{
 		wrapped: NewTimeDecoder2(start),

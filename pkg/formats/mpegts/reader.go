@@ -110,7 +110,7 @@ func (r *Reader) OnDecodeError(cb ReaderOnDecodeErrorFunc) {
 
 // OnDataH26x sets a callback that is called when data from an H265 or H264 track is received.
 //
-// Deprecated: replaced by OnDataH264, OnDataH265
+// Deprecated: replaced by OnDataH264, OnDataH265.
 func (r *Reader) OnDataH26x(track *Track, cb ReaderOnDataH26xFunc) {
 	if _, ok := track.Codec.(*CodecH265); ok {
 		r.OnDataH265(track, cb)
