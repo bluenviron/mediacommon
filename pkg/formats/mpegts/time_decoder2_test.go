@@ -7,9 +7,12 @@ import (
 )
 
 func TestTimeDecoder2NegativeDiff(t *testing.T) {
-	d := NewTimeDecoder2(64523434)
+	d := NewTimeDecoder2()
 
-	ts := d.Decode(64523434 - 90000)
+	ts := d.Decode(64523434)
+	require.Equal(t, int64(0), ts)
+
+	ts = d.Decode(64523434 - 90000)
 	require.Equal(t, int64(-90000), ts)
 
 	ts = d.Decode(64523434)
@@ -23,7 +26,10 @@ func TestTimeDecoder2NegativeDiff(t *testing.T) {
 }
 
 func TestTimeDecoder2Overflow(t *testing.T) {
-	d := NewTimeDecoder2(0x1FFFFFFFF - 20)
+	d := NewTimeDecoder2()
+
+	ts := d.Decode(0x1FFFFFFFF - 20)
+	require.Equal(t, int64(0), ts)
 
 	i := int64(0x1FFFFFFFF - 20)
 	secs := int64(0)
@@ -49,9 +55,12 @@ func TestTimeDecoder2Overflow(t *testing.T) {
 }
 
 func TestTimeDecoder2OverflowAndBack(t *testing.T) {
-	d := NewTimeDecoder2(0x1FFFFFFFF - 90000 + 1)
+	d := NewTimeDecoder2()
 
 	ts := d.Decode(0x1FFFFFFFF - 90000 + 1)
+	require.Equal(t, int64(0), ts)
+
+	ts = d.Decode(0x1FFFFFFFF - 90000 + 1)
 	require.Equal(t, int64(0), ts)
 
 	ts = d.Decode(90000)
