@@ -7,19 +7,23 @@ const (
 
 // TimeDecoder2 is a MPEG-TS timestamp decoder.
 type TimeDecoder2 struct {
-	overall int64
-	prev    int64
+	initialized bool
+	overall     int64
+	prev        int64
 }
 
 // NewTimeDecoder2 allocates a TimeDecoder.
-func NewTimeDecoder2(start int64) *TimeDecoder2 {
-	return &TimeDecoder2{
-		prev: start,
-	}
+func NewTimeDecoder2() *TimeDecoder2 {
+	return &TimeDecoder2{}
 }
 
 // Decode decodes a MPEG-TS timestamp.
 func (d *TimeDecoder2) Decode(ts int64) int64 {
+	if !d.initialized {
+		d.initialized = true
+		d.prev = ts
+	}
+
 	diff := (ts - d.prev) & maximum
 
 	// negative difference

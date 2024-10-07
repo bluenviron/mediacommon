@@ -27,8 +27,11 @@ type TimeDecoder struct {
 //
 // Deprecated: replaced by NewTimeDecoder2.
 func NewTimeDecoder(start int64) *TimeDecoder {
+	td := NewTimeDecoder2()
+	td.Decode(start)
+
 	return &TimeDecoder{
-		wrapped: NewTimeDecoder2(start),
+		wrapped: td,
 	}
 }
 
