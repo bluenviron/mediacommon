@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var casesEmulationPreventionRemove = []struct {
+var casesEmulationPrevention = []struct {
 	name   string
 	unproc []byte
 	proc   []byte
@@ -33,8 +33,8 @@ var casesEmulationPreventionRemove = []struct {
 			0x00, 0x00,
 		},
 		[]byte{
-			0x00, 0x00, 0x03,
 			0x00, 0x00, 0x03, 0x00,
+			0x00, 0x03, 0x00,
 		},
 	},
 	{
@@ -49,7 +49,7 @@ var casesEmulationPreventionRemove = []struct {
 }
 
 func TestEmulationPreventionRemove(t *testing.T) {
-	for _, ca := range casesEmulationPreventionRemove {
+	for _, ca := range casesEmulationPrevention {
 		t.Run(ca.name, func(t *testing.T) {
 			unproc := EmulationPreventionRemove(ca.proc)
 			require.Equal(t, ca.unproc, unproc)
@@ -57,8 +57,16 @@ func TestEmulationPreventionRemove(t *testing.T) {
 	}
 }
 
+func TestEmulationPreventionAdd(t *testing.T) {
+	for _, ca := range casesEmulationPrevention {
+		t.Run(ca.name, func(t *testing.T) {
+			proc := EmulationPreventionAdd(ca.unproc)
+			require.Equal(t, ca.proc, proc)
+		})
+	}
+}
 func FuzzEmulationPreventionRemove(f *testing.F) {
-	for _, ca := range casesEmulationPreventionRemove {
+	for _, ca := range casesEmulationPrevention {
 		f.Add(ca.proc)
 	}
 

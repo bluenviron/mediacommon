@@ -30,11 +30,39 @@ func TestReadBitsError(t *testing.T) {
 	require.EqualError(t, err, "not enough bits")
 }
 
+var casesGolomb = []struct {
+	dec     uint32
+	enc     []byte
+	bitSize int
+}{
+	{
+		0,
+		[]byte{0b10000000},
+		1,
+	},
+	{
+		1,
+		[]byte{0b01000000},
+		3,
+	},
+	{
+		6,
+		[]byte{0b00111000},
+		5,
+	},
+	{
+		8,
+		[]byte{0b00010010},
+		7,
+	},
+}
+
 func TestReadGolombUnsigned(t *testing.T) {
-	buf := []byte{0x38}
-	pos := 0
-	v, _ := ReadGolombUnsigned(buf, &pos)
-	require.Equal(t, uint32(6), v)
+	for _, ca := range casesGolomb {
+		pos := 0
+		v, _ := ReadGolombUnsigned(ca.enc, &pos)
+		require.Equal(t, ca.dec, v)
+	}
 }
 
 func TestReadGolombUnsignedErrors(t *testing.T) {
