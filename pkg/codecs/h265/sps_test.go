@@ -261,7 +261,7 @@ var casesSPS = []struct {
 			ChromaFormatIdc:        1,
 			PicWidthInLumaSamples:  1920,
 			PicHeightInLumaSamples: 1088,
-			ConformanceWindow: &SPS_ConformanceWindow{
+			ConformanceWindow: &SPS_Window{
 				BottomOffset: 4,
 			},
 			Log2MaxPicOrderCntLsbMinus4:          4,
@@ -327,7 +327,7 @@ var casesSPS = []struct {
 			ChromaFormatIdc:                      1,
 			PicWidthInLumaSamples:                3072,
 			PicHeightInLumaSamples:               1728,
-			ConformanceWindow:                    &SPS_ConformanceWindow{},
+			ConformanceWindow:                    &SPS_Window{},
 			Log2MaxPicOrderCntLsbMinus4:          12,
 			SubLayerOrderingInfoPresentFlag:      true,
 			MaxDecPicBufferingMinus1:             []uint32{1},
