@@ -86,14 +86,19 @@ func (d *SPS_ScalingListData) unmarshal(buf []byte, pos *int) error {
 }
 
 // SPS_DefaultDisplayWindow is a default display window.
-type SPS_DefaultDisplayWindow struct { //nolint:revive
+//
+// Deprecated: replaced by SPS_Window
+type SPS_DefaultDisplayWindow = SPS_Window //nolint:revive
+
+// SPS_Window is a window.
+type SPS_Window struct { //nolint:revive
 	LeftOffset   uint32
 	RightOffset  uint32
 	TopOffset    uint32
 	BottomOffset uint32
 }
 
-func (w *SPS_DefaultDisplayWindow) unmarshal(buf []byte, pos *int) error {
+func (w *SPS_Window) unmarshal(buf []byte, pos *int) error {
 	var err error
 	w.LeftOffset, err = bits.ReadGolombUnsigned(buf, pos)
 	if err != nil {
@@ -182,7 +187,7 @@ type SPS_VUI struct { //nolint:revive
 	NeutralChromaIndicationFlag bool
 	FieldSeqFlag                bool
 	FrameFieldInfoPresentFlag   bool
-	DefaultDisplayWindow        *SPS_DefaultDisplayWindow
+	DefaultDisplayWindow        *SPS_Window
 	TimingInfo                  *SPS_TimingInfo
 }
 
@@ -289,7 +294,7 @@ func (v *SPS_VUI) unmarshal(buf []byte, pos *int) error {
 	}
 
 	if defaultDisplayWindowFlag {
-		v.DefaultDisplayWindow = &SPS_DefaultDisplayWindow{}
+		v.DefaultDisplayWindow = &SPS_Window{}
 		err = v.DefaultDisplayWindow.unmarshal(buf, pos)
 		if err != nil {
 			return err
@@ -423,37 +428,9 @@ func (p *SPS_ProfileTierLevel) unmarshal(buf []byte, pos *int, maxSubLayersMinus
 }
 
 // SPS_ConformanceWindow is a conformance window of a SPS.
-type SPS_ConformanceWindow struct { //nolint:revive
-	LeftOffset   uint32
-	RightOffset  uint32
-	TopOffset    uint32
-	BottomOffset uint32
-}
-
-func (c *SPS_ConformanceWindow) unmarshal(buf []byte, pos *int) error {
-	var err error
-	c.LeftOffset, err = bits.ReadGolombUnsigned(buf, pos)
-	if err != nil {
-		return err
-	}
-
-	c.RightOffset, err = bits.ReadGolombUnsigned(buf, pos)
-	if err != nil {
-		return err
-	}
-
-	c.TopOffset, err = bits.ReadGolombUnsigned(buf, pos)
-	if err != nil {
-		return err
-	}
-
-	c.BottomOffset, err = bits.ReadGolombUnsigned(buf, pos)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
+//
+// Deprecated: replaced by SPS_Window
+type SPS_ConformanceWindow = SPS_Window //nolint:revive
 
 // SPS_ShortTermRefPicSet is a short-term reference picture set.
 type SPS_ShortTermRefPicSet struct { //nolint:revive
@@ -669,7 +646,7 @@ type SPS struct {
 	SeparateColourPlaneFlag              bool
 	PicWidthInLumaSamples                uint32
 	PicHeightInLumaSamples               uint32
-	ConformanceWindow                    *SPS_ConformanceWindow
+	ConformanceWindow                    *SPS_Window
 	BitDepthLumaMinus8                   uint32
 	BitDepthChromaMinus8                 uint32
 	Log2MaxPicOrderCntLsbMinus4          uint32
@@ -769,7 +746,7 @@ func (s *SPS) Unmarshal(buf []byte) error {
 	}
 
 	if conformanceWindowFlag {
-		s.ConformanceWindow = &SPS_ConformanceWindow{}
+		s.ConformanceWindow = &SPS_Window{}
 		err = s.ConformanceWindow.unmarshal(buf, &pos)
 		if err != nil {
 			return err
