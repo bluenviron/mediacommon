@@ -65,6 +65,10 @@ func (h *SPS_HRD) unmarshal(buf []byte, pos *int) error {
 		return err
 	}
 
+	if h.CpbCntMinus1 > 31 {
+		return fmt.Errorf("invalid cpb_cnt_minus1")
+	}
+
 	h.BitRateScale = uint8(bits.ReadBitsUnsafe(buf, pos, 4))
 	h.CpbSizeScale = uint8(bits.ReadBitsUnsafe(buf, pos, 4))
 
