@@ -202,17 +202,17 @@ func (c AudioSpecificConfig) Marshal() ([]byte, error) {
 
 func (c AudioSpecificConfig) marshalTo(buf []byte, pos *int) error {
 	if c.ExtensionType == ObjectTypeSBR || c.ExtensionType == ObjectTypePS {
-		bits.WriteBits(buf, pos, uint64(c.ExtensionType), 5)
+		bits.WriteBitsUnsafe(buf, pos, uint64(c.ExtensionType), 5)
 	} else {
-		bits.WriteBits(buf, pos, uint64(c.Type), 5)
+		bits.WriteBitsUnsafe(buf, pos, uint64(c.Type), 5)
 	}
 
 	sampleRateIndex, ok := reverseSampleRates[c.SampleRate]
 	if !ok {
-		bits.WriteBits(buf, pos, uint64(15), 4)
-		bits.WriteBits(buf, pos, uint64(c.SampleRate), 24)
+		bits.WriteBitsUnsafe(buf, pos, uint64(15), 4)
+		bits.WriteBitsUnsafe(buf, pos, uint64(c.SampleRate), 24)
 	} else {
-		bits.WriteBits(buf, pos, uint64(sampleRateIndex), 4)
+		bits.WriteBitsUnsafe(buf, pos, uint64(sampleRateIndex), 4)
 	}
 
 	var channelConfig int
@@ -226,33 +226,33 @@ func (c AudioSpecificConfig) marshalTo(buf []byte, pos *int) error {
 	default:
 		return fmt.Errorf("invalid channel count (%d)", c.ChannelCount)
 	}
-	bits.WriteBits(buf, pos, uint64(channelConfig), 4)
+	bits.WriteBitsUnsafe(buf, pos, uint64(channelConfig), 4)
 
 	if c.ExtensionType == ObjectTypeSBR || c.ExtensionType == ObjectTypePS {
 		sampleRateIndex, ok := reverseSampleRates[c.ExtensionSampleRate]
 		if !ok {
-			bits.WriteBits(buf, pos, uint64(0x0F), 4)
-			bits.WriteBits(buf, pos, uint64(c.ExtensionSampleRate), 24)
+			bits.WriteBitsUnsafe(buf, pos, uint64(0x0F), 4)
+			bits.WriteBitsUnsafe(buf, pos, uint64(c.ExtensionSampleRate), 24)
 		} else {
-			bits.WriteBits(buf, pos, uint64(sampleRateIndex), 4)
+			bits.WriteBitsUnsafe(buf, pos, uint64(sampleRateIndex), 4)
 		}
-		bits.WriteBits(buf, pos, uint64(c.Type), 5)
+		bits.WriteBitsUnsafe(buf, pos, uint64(c.Type), 5)
 	}
 
 	if c.FrameLengthFlag {
-		bits.WriteBits(buf, pos, 1, 1)
+		bits.WriteBitsUnsafe(buf, pos, 1, 1)
 	} else {
-		bits.WriteBits(buf, pos, 0, 1)
+		bits.WriteBitsUnsafe(buf, pos, 0, 1)
 	}
 
 	if c.DependsOnCoreCoder {
-		bits.WriteBits(buf, pos, 1, 1)
+		bits.WriteBitsUnsafe(buf, pos, 1, 1)
 	} else {
-		bits.WriteBits(buf, pos, 0, 1)
+		bits.WriteBitsUnsafe(buf, pos, 0, 1)
 	}
 
 	if c.DependsOnCoreCoder {
-		bits.WriteBits(buf, pos, uint64(c.CoreCoderDelay), 14)
+		bits.WriteBitsUnsafe(buf, pos, uint64(c.CoreCoderDelay), 14)
 	}
 
 	*pos++ // extensionFlag
