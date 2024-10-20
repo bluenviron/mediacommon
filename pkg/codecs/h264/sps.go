@@ -68,26 +68,25 @@ func (h *SPS_HRD) unmarshal(buf []byte, pos *int) error {
 	h.BitRateScale = uint8(bits.ReadBitsUnsafe(buf, pos, 4))
 	h.CpbSizeScale = uint8(bits.ReadBitsUnsafe(buf, pos, 4))
 
+	h.BitRateValueMinus1 = make([]uint32, h.CpbCntMinus1+1)
+	h.CpbSizeValueMinus1 = make([]uint32, h.CpbCntMinus1+1)
+	h.CbrFlag = make([]bool, h.CpbCntMinus1+1)
+
 	for i := uint32(0); i <= h.CpbCntMinus1; i++ {
-		var v uint32
-		v, err = bits.ReadGolombUnsigned(buf, pos)
+		h.BitRateValueMinus1[i], err = bits.ReadGolombUnsigned(buf, pos)
 		if err != nil {
 			return err
 		}
-		h.BitRateValueMinus1 = append(h.BitRateValueMinus1, v)
 
-		v, err = bits.ReadGolombUnsigned(buf, pos)
+		h.CpbSizeValueMinus1[i], err = bits.ReadGolombUnsigned(buf, pos)
 		if err != nil {
 			return err
 		}
-		h.CpbSizeValueMinus1 = append(h.CpbSizeValueMinus1, v)
 
-		var vb bool
-		vb, err = bits.ReadFlag(buf, pos)
+		h.CbrFlag[i], err = bits.ReadFlag(buf, pos)
 		if err != nil {
 			return err
 		}
-		h.CbrFlag = append(h.CbrFlag, vb)
 	}
 
 	err = bits.HasSpace(buf, *pos, 5+5+5+5)
