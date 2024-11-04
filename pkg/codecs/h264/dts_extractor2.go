@@ -65,10 +65,10 @@ func getPictureOrderCount(buf []byte, sps *SPS, idr bool) (uint32, error) {
 }
 
 func getPictureOrderCountDiff(a uint32, b uint32, sps *SPS) int32 {
-	max := uint32(1 << (sps.Log2MaxPicOrderCntLsbMinus4 + 4))
-	d := (a - b) & (max - 1)
-	if d > (max / 2) {
-		return int32(d) - int32(max)
+	maxVal := uint32(1 << (sps.Log2MaxPicOrderCntLsbMinus4 + 4))
+	d := (a - b) & (maxVal - 1)
+	if d > (maxVal / 2) {
+		return int32(d) - int32(maxVal)
 	}
 	return int32(d)
 }
