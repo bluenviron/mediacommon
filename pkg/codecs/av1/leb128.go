@@ -4,6 +4,29 @@ import (
 	"fmt"
 )
 
+// LEB128Unmarshal decodes an unsigned integer from the LEB128 format.
+//
+// Deprecated: replaced by LEB128.Unmarshal
+func LEB128Unmarshal(buf []byte) (uint, int, error) {
+	var v LEB128
+	n, err := v.Unmarshal(buf)
+	return uint(v), n, err
+}
+
+// LEB128MarshalSize returns the marshal size of an unsigned integer in LEB128 format.
+//
+// Deprecated: replaced by LEB128.MarshalSize
+func LEB128MarshalSize(v uint) int {
+	return LEB128(v).MarshalSize()
+}
+
+// LEB128MarshalTo encodes an unsigned integer with the LEB128 format.
+//
+// Deprecated: replaced by LEB128.MarshalTo
+func LEB128MarshalTo(v uint, buf []byte) int {
+	return LEB128(v).MarshalTo(buf)
+}
+
 // LEB128 is a unsigned integer that can be decoded/encoded from/to the LEB128 format.
 // Specification: https://aomediacodec.github.io/av1-spec/#leb128
 type LEB128 uint32
