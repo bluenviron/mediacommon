@@ -184,13 +184,43 @@ func (c *SequenceHeader_ColorConfig) unmarshal(seqProfile uint8, buf []byte, pos
 	return nil
 }
 
+// SequenceHeader_TimingInfo is the timing_info() struct in the AV1 specification.
+type SequenceHeader_TimingInfo struct { //nolint:revive
+	NumUnitsInDisplayTick    uint32
+	TimeScale                uint32
+	EqualPictureInterval     bool
+	NumTicksPerPictureMinus1 uint32
+}
+
+func (t *SequenceHeader_TimingInfo) unmarshal(buf []byte, pos *int) error {
+	err := bits.HasSpace(buf, *pos, 65)
+	if err != nil {
+		return err
+	}
+
+	t.NumUnitsInDisplayTick = uint32(bits.ReadBitsUnsafe(buf, pos, 32))
+	t.TimeScale = uint32(bits.ReadBitsUnsafe(buf, pos, 32))
+	t.EqualPictureInterval = bits.ReadFlagUnsafe(buf, pos)
+
+	if t.EqualPictureInterval {
+		t.NumTicksPerPictureMinus1, err = bits.ReadGolombUnsigned(buf, pos)
+		if err != nil {
+			return err
+		}
+	} else {
+		t.NumTicksPerPictureMinus1 = 0
+	}
+
+	return nil
+}
+
 // SequenceHeader is a AV1 Sequence header OBU.
 // Specification: https://aomediacodec.github.io/av1-spec/#sequence-header-obu-syntax
 type SequenceHeader struct {
 	SeqProfile                     uint8
 	StillPicture                   bool
 	ReducedStillPictureHeader      bool
-	TimingInfoPresentFlag          bool
+	TimingInfo                     *SequenceHeader_TimingInfo
 	DecoderModelInfoPresentFlag    bool
 	InitialDisplayDelayPresentFlag bool
 	OperatingPointsCntMinus1       uint8
@@ -203,6 +233,8 @@ type SequenceHeader struct {
 	MaxFrameWidthMinus1            uint32
 	MaxFrameHeightMinus1           uint32
 	FrameIDNumbersPresentFlag      bool
+	DeltaFrameIDLengthMinus2       uint8
+	AdditionalFrameIDLengthMinus1  uint8
 	Use128x128Superblock           bool
 	EnableFilterIntra              bool
 	EnableIntraEdgeFilter          bool
@@ -259,7 +291,7 @@ func (h *SequenceHeader) Unmarshal(buf []byte) error {
 	h.ReducedStillPictureHeader = bits.ReadFlagUnsafe(buf, &pos)
 
 	if h.ReducedStillPictureHeader {
-		h.TimingInfoPresentFlag = false
+		h.TimingInfo = nil
 		h.DecoderModelInfoPresentFlag = false
 		h.InitialDisplayDelayPresentFlag = false
 		h.OperatingPointsCntMinus1 = 0
@@ -275,15 +307,30 @@ func (h *SequenceHeader) Unmarshal(buf []byte) error {
 		h.DecoderModelPresentForThisOp = []bool{false}
 		h.InitialDisplayPresentForThisOp = []bool{false}
 	} else {
-		h.TimingInfoPresentFlag, err = bits.ReadFlag(buf, &pos)
+		var timingInfoPresentFlag bool
+		timingInfoPresentFlag, err = bits.ReadFlag(buf, &pos)
 		if err != nil {
 			return err
 		}
 
-		if h.TimingInfoPresentFlag {
-			return fmt.Errorf("timing_info_present_flag is not supported yet")
+		if timingInfoPresentFlag {
+			h.TimingInfo = &SequenceHeader_TimingInfo{}
+			err = h.TimingInfo.unmarshal(buf, &pos)
+			if err != nil {
+				return err
+			}
+
+			h.DecoderModelInfoPresentFlag, err = bits.ReadFlag(buf, &pos)
+			if err != nil {
+				return err
+			}
+			if h.DecoderModelInfoPresentFlag {
+				return fmt.Errorf("decoder_model_info_present_flag is not supported yet")
+			}
+		} else {
+			h.TimingInfo = nil
+			h.DecoderModelInfoPresentFlag = false
 		}
-		h.DecoderModelInfoPresentFlag = false
 
 		err = bits.HasSpace(buf, pos, 6)
 		if err != nil {
@@ -370,7 +417,13 @@ func (h *SequenceHeader) Unmarshal(buf []byte) error {
 		}
 
 		if h.FrameIDNumbersPresentFlag {
-			return fmt.Errorf("frame_id_numbers_present_flag is not supported yet")
+			err = bits.HasSpace(buf, pos, 7)
+			if err != nil {
+				return err
+			}
+
+			h.DeltaFrameIDLengthMinus2 = uint8(bits.ReadBitsUnsafe(buf, &pos, 4))
+			h.AdditionalFrameIDLengthMinus1 = uint8(bits.ReadBitsUnsafe(buf, &pos, 3))
 		}
 	}
 
