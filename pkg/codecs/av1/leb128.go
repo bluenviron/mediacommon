@@ -4,42 +4,44 @@ import (
 	"fmt"
 )
 
-// LEB128Unmarshal decodes an unsigned integer from the LEB128 format.
+// LEB128 is a unsigned integer that can be decoded/encoded from/to the LEB128 format.
 // Specification: https://aomediacodec.github.io/av1-spec/#leb128
-func LEB128Unmarshal(buf []byte) (uint, int, error) {
-	v := uint(0)
+type LEB128 uint32
+
+// Unmarshal decodes an unsigned integer from the LEB128 format.
+// It returns the number of consumed bytes.
+func (l *LEB128) Unmarshal(buf []byte) (int, error) {
+	*l = 0
 	n := 0
 
 	for i := 0; i < 8; i++ {
 		if len(buf) == 0 {
-			return 0, 0, fmt.Errorf("not enough bytes")
+			return 0, fmt.Errorf("not enough bytes")
 		}
 
-		b := buf[0]
+		var b byte
+		b, buf = buf[0], buf[1:]
 
-		v |= (uint(b&0b01111111) << (i * 7))
+		*l |= (LEB128(b&0b01111111) << (i * 7))
 		n++
 
 		if (b & 0b10000000) == 0 {
 			break
 		}
-
-		buf = buf[1:]
 	}
 
-	return v, n, nil
+	return n, nil
 }
 
-// LEB128MarshalSize returns the marshal size of an unsigned integer in LEB128 format.
-// Specification: https://aomediacodec.github.io/av1-spec/#leb128
-func LEB128MarshalSize(v uint) int {
+// MarshalSize returns the marshal size in bytes of the unsigned integer in LEB128 format.
+func (l LEB128) MarshalSize() int {
 	n := 0
 
 	for {
-		v >>= 7
+		l >>= 7
 		n++
 
-		if v <= 0 {
+		if l <= 0 {
 			break
 		}
 	}
@@ -47,16 +49,16 @@ func LEB128MarshalSize(v uint) int {
 	return n
 }
 
-// LEB128MarshalTo encodes an unsigned integer with the LEB128 format.
-// Specification: https://aomediacodec.github.io/av1-spec/#leb128
-func LEB128MarshalTo(v uint, buf []byte) int {
+// MarshalTo encodes the unsigned integer with the LEB128 format.
+// It returns the number of consumed bytes.
+func (l LEB128) MarshalTo(buf []byte) int {
 	n := 0
 
 	for {
-		curbyte := byte(v) & 0b01111111
-		v >>= 7
+		curbyte := byte(l) & 0b01111111
+		l >>= 7
 
-		if v <= 0 {
+		if l <= 0 {
 			buf[n] = curbyte
 			n++
 			break

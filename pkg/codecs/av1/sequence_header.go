@@ -234,14 +234,14 @@ func (h *SequenceHeader) Unmarshal(buf []byte) error {
 	buf = buf[1:]
 
 	if oh.HasSize {
-		var size uint
-		var sizeN int
-		size, sizeN, err = LEB128Unmarshal(buf)
+		var size LEB128
+		var n int
+		n, err = size.Unmarshal(buf)
 		if err != nil {
 			return err
 		}
 
-		buf = buf[sizeN:]
+		buf = buf[n:]
 		if len(buf) != int(size) {
 			return fmt.Errorf("wrong buffer size: expected %d, got %d", size, len(buf))
 		}

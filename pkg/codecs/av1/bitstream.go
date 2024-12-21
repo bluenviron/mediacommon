@@ -28,12 +28,13 @@ func BitstreamUnmarshal(bs []byte, removeSizeField bool) ([][]byte, error) {
 			return nil, fmt.Errorf("OBU size not present")
 		}
 
-		size, sizeN, err := LEB128Unmarshal(bs[1:])
+		var size LEB128
+		n, err := size.Unmarshal(bs[1:])
 		if err != nil {
 			return nil, err
 		}
 
-		obuLen := 1 + sizeN + int(size)
+		obuLen := 1 + n + int(size)
 		if len(bs) < obuLen {
 			return nil, fmt.Errorf("not enough bytes")
 		}
@@ -41,7 +42,7 @@ func BitstreamUnmarshal(bs []byte, removeSizeField bool) ([][]byte, error) {
 		obu := bs[:obuLen]
 
 		if removeSizeField {
-			obu = obuRemoveSize(&h, sizeN, obu)
+			obu = obuRemoveSize(&h, n, obu)
 		}
 
 		ret = append(ret, obu)
@@ -71,7 +72,7 @@ func BitstreamMarshal(tu [][]byte) ([]byte, error) {
 
 		if !h.HasSize {
 			size := len(obu) - 1
-			n += LEB128MarshalSize(uint(size))
+			n += LEB128(uint32(size)).MarshalSize()
 		}
 	}
 
@@ -86,7 +87,7 @@ func BitstreamMarshal(tu [][]byte) ([]byte, error) {
 			buf[n] = obu[0] | 0b00000010
 			n++
 			size := len(obu) - 1
-			n += LEB128MarshalTo(uint(size), buf[n:])
+			n += LEB128(uint32(size)).MarshalTo(buf[n:])
 			n += copy(buf[n:], obu[1:])
 		}
 	}
