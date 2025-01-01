@@ -5,7 +5,12 @@ import (
 )
 
 // CodecUnsupported is an unsupported codec.
-type CodecUnsupported struct{}
+type CodecUnsupported struct {
+	// in Go, empty structs share the same pointer,
+	// therefore they cannot be used as map keys
+	// or in equality operations. Prevent this.
+	unused int //nolint:unused
+}
 
 // IsVideo implements Codec.
 func (CodecUnsupported) IsVideo() bool {
