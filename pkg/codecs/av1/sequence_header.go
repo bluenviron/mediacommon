@@ -254,6 +254,7 @@ type SequenceHeader struct {
 	EnableCdef                     bool
 	EnableRestoration              bool
 	ColorConfig                    SequenceHeader_ColorConfig
+	FilmGrainParamsPresent         bool
 }
 
 // Unmarshal decodes a SequenceHeader.
@@ -523,7 +524,19 @@ func (h *SequenceHeader) Unmarshal(buf []byte) error {
 	h.EnableCdef = bits.ReadFlagUnsafe(buf, &pos)
 	h.EnableRestoration = bits.ReadFlagUnsafe(buf, &pos)
 
-	return h.ColorConfig.unmarshal(h.SeqProfile, buf, &pos)
+	err = h.ColorConfig.unmarshal(h.SeqProfile, buf, &pos)
+	if err != nil {
+		return err
+	}
+
+	err = bits.HasSpace(buf, pos, 1)
+	if err != nil {
+		return err
+	}
+
+	h.FilmGrainParamsPresent = bits.ReadFlagUnsafe(buf, &pos)
+
+	return nil
 }
 
 // Width returns the video width.
