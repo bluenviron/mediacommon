@@ -5,7 +5,12 @@ import (
 )
 
 // CodecMPEG1Audio is a MPEG-1 Audio codec.
-type CodecMPEG1Audio struct{}
+type CodecMPEG1Audio struct {
+	// in Go, empty structs share the same pointer,
+	// therefore they cannot be used as map keys
+	// or in equality operations. Prevent this.
+	unused int //nolint:unused
+}
 
 // IsVideo implements Codec.
 func (CodecMPEG1Audio) IsVideo() bool {

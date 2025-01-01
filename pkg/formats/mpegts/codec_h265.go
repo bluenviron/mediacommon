@@ -5,7 +5,12 @@ import (
 )
 
 // CodecH265 is a H265 codec.
-type CodecH265 struct{}
+type CodecH265 struct {
+	// in Go, empty structs share the same pointer,
+	// therefore they cannot be used as map keys
+	// or in equality operations. Prevent this.
+	unused int //nolint:unused
+}
 
 // IsVideo implements Codec.
 func (CodecH265) IsVideo() bool {
