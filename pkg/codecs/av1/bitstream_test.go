@@ -9,7 +9,7 @@ import (
 var casesBitstream = []struct {
 	name string
 	enc  []byte
-	dec  [][]byte
+	dec  Bitstream
 }{
 	{
 		"standard",
@@ -21,12 +21,12 @@ var casesBitstream = []struct {
 		},
 		[][]byte{
 			{
-				0x08, 0x00, 0x00, 0x00, 0x4a, 0xab, 0xbf, 0xc3,
-				0x77, 0x6b, 0xe4, 0x40, 0x40, 0x40, 0x41,
+				0x0a, 0x0e, 0x00, 0x00, 0x00, 0x4a, 0xab, 0xbf,
+				0xc3, 0x77, 0x6b, 0xe4, 0x40, 0x40, 0x40, 0x41,
 			},
 			{
-				0x08, 0x00, 0x00, 0x00, 0x4a, 0xab, 0xbf, 0xc3,
-				0x77, 0x6b, 0xe4, 0x40, 0x40, 0x40, 0x41,
+				0x0a, 0x0e, 0x00, 0x00, 0x00, 0x4a, 0xab, 0xbf,
+				0xc3, 0x77, 0x6b, 0xe4, 0x40, 0x40, 0x40, 0x41,
 			},
 		},
 	},
@@ -35,7 +35,8 @@ var casesBitstream = []struct {
 func TestBitstreamUnmarshal(t *testing.T) {
 	for _, ca := range casesBitstream {
 		t.Run(ca.name, func(t *testing.T) {
-			dec, err := BitstreamUnmarshal(ca.enc, true)
+			var dec Bitstream
+			err := dec.Unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, ca.dec, dec)
 		})
@@ -45,7 +46,29 @@ func TestBitstreamUnmarshal(t *testing.T) {
 func TestBitstreamMarshal(t *testing.T) {
 	for _, ca := range casesBitstream {
 		t.Run(ca.name, func(t *testing.T) {
-			enc, err := BitstreamMarshal(ca.dec)
+			enc, err := ca.dec.Marshal()
+			require.NoError(t, err)
+			require.Equal(t, ca.enc, enc)
+		})
+	}
+}
+
+func TestBitstreamMarshalWithoutSize(t *testing.T) {
+	for _, ca := range casesBitstream {
+		t.Run(ca.name, func(t *testing.T) {
+			var tu Bitstream
+			for _, obu := range ca.dec {
+				var size LEB128
+				n, err := size.Unmarshal(obu[1:])
+				require.NoError(t, err)
+
+				newObu := make([]byte, len(obu)-n)
+				newObu[0] = obu[0] & 0b01111000
+				copy(newObu[1:], obu[1+n:])
+				tu = append(tu, newObu)
+			}
+
+			enc, err := tu.Marshal()
 			require.NoError(t, err)
 			require.Equal(t, ca.enc, enc)
 		})
@@ -58,9 +81,10 @@ func FuzzBitstreamUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		tu, err := BitstreamUnmarshal(b, true)
+		var tu Bitstream
+		err := tu.Unmarshal(b)
 		if err == nil {
-			BitstreamMarshal(tu) //nolint:errcheck
+			tu.Marshal() //nolint:errcheck
 		}
 	})
 }
