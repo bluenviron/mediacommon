@@ -26,8 +26,9 @@ const (
 	streamTypeAudioStream  = 0x05
 )
 
-func av1FindSequenceHeader(bs []byte) ([]byte, error) {
-	tu, err := av1.BitstreamUnmarshal(bs, true)
+func av1FindSequenceHeader(buf []byte) ([]byte, error) {
+	var tu av1.Bitstream
+	err := tu.Unmarshal(buf)
 	if err != nil {
 		return nil, err
 	}

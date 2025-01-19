@@ -333,8 +333,8 @@ func (it *InitTrack) marshal(w *mp4Writer) error {
 			return err
 		}
 
-		var bs []byte
-		bs, err = av1.BitstreamMarshal([][]byte{codec.SequenceHeader})
+		var enc []byte
+		enc, err = av1.Bitstream([][]byte{codec.SequenceHeader}).Marshal()
 		if err != nil {
 			return err
 		}
@@ -351,7 +351,7 @@ func (it *InitTrack) marshal(w *mp4Writer) error {
 			ChromaSubsamplingX:   boolToUint8(av1SequenceHeader.ColorConfig.SubsamplingX),
 			ChromaSubsamplingY:   boolToUint8(av1SequenceHeader.ColorConfig.SubsamplingY),
 			ChromaSamplePosition: uint8(av1SequenceHeader.ColorConfig.ChromaSamplePosition),
-			ConfigOBUs:           bs,
+			ConfigOBUs:           enc,
 		})
 		if err != nil {
 			return err

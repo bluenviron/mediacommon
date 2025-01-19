@@ -4,64 +4,69 @@ import (
 	"fmt"
 )
 
-func obuRemoveSize(h *OBUHeader, sizeN int, ob []byte) []byte {
-	newOBU := make([]byte, len(ob)-sizeN)
-	newOBU[0] = (byte(h.Type) << 3)
-	copy(newOBU[1:], ob[1+sizeN:])
-	return newOBU
-}
-
 // BitstreamUnmarshal extracts a temporal unit from a bitstream.
 // Optionally, it also removes the size field from OBUs.
-// Specification: https://aomediacodec.github.io/av1-spec/#low-overhead-bitstream-format
-func BitstreamUnmarshal(bs []byte, removeSizeField bool) ([][]byte, error) {
-	var ret [][]byte
+//
+// Deprecated: replacted by Bitstream.Unmarshal. The removeSizeField has no effect anymore.
+func BitstreamUnmarshal(buf []byte, _ bool) ([][]byte, error) {
+	var b Bitstream
+	err := b.Unmarshal(buf)
+	return b, err
+}
 
+// BitstreamMarshal encodes a temporal unit into a bitstream.
+//
+// Deprecated: replacted by Bitstream.Marshal
+func BitstreamMarshal(tu [][]byte) ([]byte, error) {
+	return Bitstream(tu).Marshal()
+}
+
+// Bitstream is an AV1 bitstream.
+// Specification: https://aomediacodec.github.io/av1-spec/#low-overhead-bitstream-format
+type Bitstream [][]byte
+
+// Unmarshal decodes a Bitstream.
+func (bs *Bitstream) Unmarshal(buf []byte) error {
 	for {
 		var h OBUHeader
-		err := h.Unmarshal(bs)
+		err := h.Unmarshal(buf)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		if !h.HasSize {
-			return nil, fmt.Errorf("OBU size not present")
+			return fmt.Errorf("OBU size not present")
 		}
 
 		var size LEB128
-		n, err := size.Unmarshal(bs[1:])
+		n, err := size.Unmarshal(buf[1:])
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		obuLen := 1 + n + int(size)
-		if len(bs) < obuLen {
-			return nil, fmt.Errorf("not enough bytes")
+		if len(buf) < obuLen {
+			return fmt.Errorf("not enough bytes")
 		}
 
-		obu := bs[:obuLen]
+		var obu []byte
+		obu, buf = buf[:obuLen], buf[obuLen:]
 
-		if removeSizeField {
-			obu = obuRemoveSize(&h, n, obu)
-		}
+		*bs = append(*bs, obu)
 
-		ret = append(ret, obu)
-		bs = bs[obuLen:]
-
-		if len(bs) == 0 {
+		if len(buf) == 0 {
 			break
 		}
 	}
 
-	return ret, nil
+	return nil
 }
 
-// BitstreamMarshal encodes a temporal unit into a bitstream.
-// Specification: https://aomediacodec.github.io/av1-spec/#low-overhead-bitstream-format
-func BitstreamMarshal(tu [][]byte) ([]byte, error) {
+// Marshal encodes a Bitstream.
+func (bs Bitstream) Marshal() ([]byte, error) {
 	n := 0
 
-	for _, obu := range tu {
+	for _, obu := range bs {
 		n += len(obu)
 
 		var h OBUHeader
@@ -79,7 +84,7 @@ func BitstreamMarshal(tu [][]byte) ([]byte, error) {
 	buf := make([]byte, n)
 	n = 0
 
-	for _, obu := range tu {
+	for _, obu := range bs {
 		var h OBUHeader
 		h.Unmarshal(obu) //nolint:errcheck
 
@@ -89,6 +94,8 @@ func BitstreamMarshal(tu [][]byte) ([]byte, error) {
 			size := len(obu) - 1
 			n += LEB128(uint32(size)).MarshalTo(buf[n:])
 			n += copy(buf[n:], obu[1:])
+		} else {
+			n += copy(buf[n:], obu)
 		}
 	}
 
