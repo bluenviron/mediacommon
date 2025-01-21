@@ -9,21 +9,7 @@ import (
 
 	"github.com/asticode/go-astits"
 	"github.com/stretchr/testify/require"
-
-	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
-	"github.com/bluenviron/mediacommon/pkg/codecs/h265"
 )
-
-func h265RandomAccessPresent(au [][]byte) bool {
-	for _, nalu := range au {
-		typ := h265.NALUType((nalu[0] >> 1) & 0b111111)
-		switch typ {
-		case h265.NALUType_IDR_W_RADL, h265.NALUType_IDR_N_LP, h265.NALUType_CRA_NUT:
-			return true
-		}
-	}
-	return false
-}
 
 func TestWriter(t *testing.T) {
 	for _, ca := range casesReadWriter {
@@ -34,11 +20,11 @@ func TestWriter(t *testing.T) {
 			for _, sample := range ca.samples {
 				switch ca.track.Codec.(type) {
 				case *CodecH265:
-					err := w.WriteH26x(ca.track, sample.pts, sample.dts, h265RandomAccessPresent(sample.data), sample.data)
+					err := w.WriteH2652(ca.track, sample.pts, sample.dts, sample.data)
 					require.NoError(t, err)
 
 				case *CodecH264:
-					err := w.WriteH26x(ca.track, sample.pts, sample.dts, h264.IDRPresent(sample.data), sample.data)
+					err := w.WriteH2642(ca.track, sample.pts, sample.dts, sample.data)
 					require.NoError(t, err)
 
 				case *CodecMPEG4Video:
