@@ -105,12 +105,11 @@ func (w *Writer) WriteH26x(
 	return w.WriteH264(track, pts, dts, randomAccess, au)
 }
 
-// WriteH265 writes a H265 access unit.
-func (w *Writer) WriteH265(
+// WriteH2652 writes a H265 access unit.
+func (w *Writer) WriteH2652(
 	track *Track,
 	pts int64,
 	dts int64,
-	randomAccess bool,
 	au [][]byte,
 ) error {
 	// prepend an AUD. This is required by video.js, iOS, QuickTime
@@ -125,15 +124,29 @@ func (w *Writer) WriteH265(
 		return err
 	}
 
+	randomAccess := h265.IsRandomAccess(au)
+
 	return w.writeVideo(track, pts, dts, randomAccess, enc)
 }
 
-// WriteH264 writes a H264 access unit.
-func (w *Writer) WriteH264(
+// WriteH265 writes a H265 access unit.
+//
+// Deprecated: replaced by WriteH2652
+func (w *Writer) WriteH265(
 	track *Track,
 	pts int64,
 	dts int64,
-	randomAccess bool,
+	_ bool,
+	au [][]byte,
+) error {
+	return w.WriteH2652(track, pts, dts, au)
+}
+
+// WriteH2642 writes a H264 access unit.
+func (w *Writer) WriteH2642(
+	track *Track,
+	pts int64,
+	dts int64,
 	au [][]byte,
 ) error {
 	// prepend an AUD. This is required by video.js, iOS, QuickTime
@@ -148,7 +161,22 @@ func (w *Writer) WriteH264(
 		return err
 	}
 
+	randomAccess := h264.IDRPresent(au)
+
 	return w.writeVideo(track, pts, dts, randomAccess, enc)
+}
+
+// WriteH264 writes a H264 access unit.
+//
+// Deprecated: replaced by WriteH2642
+func (w *Writer) WriteH264(
+	track *Track,
+	pts int64,
+	dts int64,
+	_ bool,
+	au [][]byte,
+) error {
+	return w.WriteH2642(track, pts, dts, au)
 }
 
 // WriteMPEG4Video writes a MPEG-4 Video frame.
