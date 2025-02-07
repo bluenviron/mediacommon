@@ -119,7 +119,7 @@ func (w *Writer) WriteH2652(
 		}, au...)
 	}
 
-	enc, err := h264.AnnexBMarshal(au)
+	enc, err := h264.AnnexB(au).Marshal()
 	if err != nil {
 		return err
 	}
@@ -156,7 +156,7 @@ func (w *Writer) WriteH2642(
 		}, au...)
 	}
 
-	enc, err := h264.AnnexBMarshal(au)
+	enc, err := h264.AnnexB(au).Marshal()
 	if err != nil {
 		return err
 	}

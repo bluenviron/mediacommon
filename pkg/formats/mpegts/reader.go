@@ -19,7 +19,15 @@ import (
 // ReaderOnDecodeErrorFunc is the prototype of the callback passed to OnDecodeError.
 type ReaderOnDecodeErrorFunc func(err error)
 
+// ReaderOnDataH264Func is the prototype of the callback passed to OnDataH264.
+type ReaderOnDataH264Func func(pts int64, dts int64, au [][]byte) error
+
+// ReaderOnDataH265Func is the prototype of the callback passed to OnDataH265.
+type ReaderOnDataH265Func func(pts int64, dts int64, au [][]byte) error
+
 // ReaderOnDataH26xFunc is the prototype of the callback passed to OnDataH26x.
+//
+// Deprecated: replaced by ReaderOnDataH264Func and ReaderOnDataH265Func
 type ReaderOnDataH26xFunc func(pts int64, dts int64, au [][]byte) error
 
 // ReaderOnDataMPEGxVideoFunc is the prototype of the callback passed to OnDataMPEGxVideo.
@@ -113,16 +121,17 @@ func (r *Reader) OnDecodeError(cb ReaderOnDecodeErrorFunc) {
 // Deprecated: replaced by OnDataH264, OnDataH265.
 func (r *Reader) OnDataH26x(track *Track, cb ReaderOnDataH26xFunc) {
 	if _, ok := track.Codec.(*CodecH265); ok {
-		r.OnDataH265(track, cb)
+		r.OnDataH265(track, ReaderOnDataH265Func(cb))
 	} else {
-		r.OnDataH264(track, cb)
+		r.OnDataH264(track, ReaderOnDataH264Func(cb))
 	}
 }
 
 // OnDataH265 sets a callback that is called when data from an H265 track is received.
-func (r *Reader) OnDataH265(track *Track, cb ReaderOnDataH26xFunc) {
+func (r *Reader) OnDataH265(track *Track, cb ReaderOnDataH265Func) {
 	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
-		au, err := h264.AnnexBUnmarshal(data)
+		var au h264.AnnexB
+		err := au.Unmarshal(data)
 		if err != nil {
 			r.onDecodeError(err)
 			return nil
@@ -137,9 +146,10 @@ func (r *Reader) OnDataH265(track *Track, cb ReaderOnDataH26xFunc) {
 }
 
 // OnDataH264 sets a callback that is called when data from an H264 track is received.
-func (r *Reader) OnDataH264(track *Track, cb ReaderOnDataH26xFunc) {
+func (r *Reader) OnDataH264(track *Track, cb ReaderOnDataH264Func) {
 	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
-		au, err := h264.AnnexBUnmarshal(data)
+		var au h264.AnnexB
+		err := au.Unmarshal(data)
 		if err != nil {
 			r.onDecodeError(err)
 			return nil
