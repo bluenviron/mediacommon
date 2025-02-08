@@ -4,13 +4,13 @@
 [![Lint](https://github.com/bluenviron/mediacommon/workflows/lint/badge.svg)](https://github.com/bluenviron/mediacommon/actions?query=workflow:lint)
 [![Go Report Card](https://goreportcard.com/badge/github.com/bluenviron/mediacommon)](https://goreportcard.com/report/github.com/bluenviron/mediacommon)
 [![CodeCov](https://codecov.io/gh/bluenviron/mediacommon/branch/main/graph/badge.svg)](https://app.codecov.io/gh/bluenviron/mediacommon/tree/main)
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/bluenviron/mediacommon)](https://pkg.go.dev/github.com/bluenviron/mediacommon#pkg-index)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/bluenviron/mediacommon/v2)](https://pkg.go.dev/github.com/bluenviron/mediacommon/v2#pkg-index)
 
 Definitions and functions shared between [gortsplib](https://github.com/bluenviron/gortsplib), [gohlslib](https://github.com/bluenviron/gohlslib) and [MediaMTX](https://github.com/bluenviron/mediamtx), in particular:
 
-* [Codec utilities](https://pkg.go.dev/github.com/bluenviron/mediacommon/pkg/codecs)
-* [Format utilities](https://pkg.go.dev/github.com/bluenviron/mediacommon/pkg/formats)
-* [Bit reader and writer](https://pkg.go.dev/github.com/bluenviron/mediacommon/pkg/bits)
+* [Codec utilities](https://pkg.go.dev/github.com/bluenviron/mediacommon/v2/pkg/codecs)
+* [Format utilities](https://pkg.go.dev/github.com/bluenviron/mediacommon/v2/pkg/formats)
+* [Bit reader and writer](https://pkg.go.dev/github.com/bluenviron/mediacommon/v2/pkg/bits)
 
 ## Specifications
 

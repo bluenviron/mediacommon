@@ -20,11 +20,11 @@ func TestWriter(t *testing.T) {
 			for _, sample := range ca.samples {
 				switch ca.track.Codec.(type) {
 				case *CodecH265:
-					err := w.WriteH2652(ca.track, sample.pts, sample.dts, sample.data)
+					err := w.WriteH265(ca.track, sample.pts, sample.dts, sample.data)
 					require.NoError(t, err)
 
 				case *CodecH264:
-					err := w.WriteH2642(ca.track, sample.pts, sample.dts, sample.data)
+					err := w.WriteH264(ca.track, sample.pts, sample.dts, sample.data)
 					require.NoError(t, err)
 
 				case *CodecMPEG4Video:

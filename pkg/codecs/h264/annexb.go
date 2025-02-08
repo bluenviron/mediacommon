@@ -68,24 +68,6 @@ func hasInitialDelimiter(buf []byte) bool {
 	return buf[0] == 0x00 && buf[1] == 0x00 && (buf[2] == 0x00 && buf[3] == 0x01) || (buf[2] == 0x01)
 }
 
-// AnnexBUnmarshal decodes an access unit from the Annex-B stream format.
-// Specification: ITU-T Rec. H.264, Annex B
-//
-// Deprecated: replaced by AnnexB.Unmarshal
-func AnnexBUnmarshal(buf []byte) ([][]byte, error) {
-	var b AnnexB
-	err := b.Unmarshal(buf)
-	return [][]byte(b), err
-}
-
-// AnnexBMarshal encodes an access unit into the Annex-B stream format.
-// Specification: ITU-T Rec. H.264, Annex B
-//
-// Deprecated: replaced by AnnexB.Marshal
-func AnnexBMarshal(au [][]byte) ([]byte, error) {
-	return AnnexB(au).Marshal()
-}
-
 // AnnexB is an access unit that can be decoded/encoded from/to the Annex-B stream format.
 // Specification: ITU-T Rec. H.264, Annex B
 type AnnexB [][]byte

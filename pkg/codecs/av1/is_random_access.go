@@ -4,8 +4,8 @@ import (
 	"fmt"
 )
 
-// ContainsKeyFrame checks whether a temporal unit contain a key frame.
-func ContainsKeyFrame(tu [][]byte) (bool, error) {
+// IsRandomAccess checks whether a temporal unit can be randomly accessed.
+func IsRandomAccess(tu [][]byte) (bool, error) {
 	if len(tu) == 0 {
 		return false, fmt.Errorf("temporal unit is empty")
 	}

@@ -3,8 +3,8 @@ package h265
 import (
 	"fmt"
 
-	"github.com/bluenviron/mediacommon/pkg/bits"
-	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
+	"github.com/bluenviron/mediacommon/v2/pkg/bits"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
 )
 
 const (
@@ -77,11 +77,6 @@ func (d *SPS_ScalingListData) unmarshal(buf []byte, pos *int) error {
 
 	return nil
 }
-
-// SPS_DefaultDisplayWindow is a default display window.
-//
-// Deprecated: replaced by SPS_Window
-type SPS_DefaultDisplayWindow = SPS_Window //nolint:revive
 
 // SPS_Window is a window.
 type SPS_Window struct { //nolint:revive
@@ -419,11 +414,6 @@ func (p *SPS_ProfileTierLevel) unmarshal(buf []byte, pos *int, maxSubLayersMinus
 
 	return nil
 }
-
-// SPS_ConformanceWindow is a conformance window of a SPS.
-//
-// Deprecated: replaced by SPS_Window
-type SPS_ConformanceWindow = SPS_Window //nolint:revive
 
 // SPS_ShortTermRefPicSet is a short-term reference picture set.
 type SPS_ShortTermRefPicSet struct { //nolint:revive

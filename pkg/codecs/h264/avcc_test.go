@@ -9,7 +9,7 @@ import (
 var casesAVCC = []struct {
 	name string
 	enc  []byte
-	dec  [][]byte
+	dec  AVCC
 }{
 	{
 		"single",
@@ -42,7 +42,8 @@ var casesAVCC = []struct {
 func TestAVCCUnmarshal(t *testing.T) {
 	for _, ca := range casesAVCC {
 		t.Run(ca.name, func(t *testing.T) {
-			dec, err := AVCCUnmarshal(ca.enc)
+			var dec AVCC
+			err := dec.Unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, ca.dec, dec)
 		})
@@ -51,19 +52,20 @@ func TestAVCCUnmarshal(t *testing.T) {
 
 // issue mediamtx/2375
 func TestAVCCUnmarshalEmpty(t *testing.T) {
-	dec, err := AVCCUnmarshal([]byte{
+	var dec AVCC
+	err := dec.Unmarshal([]byte{
 		0x0, 0x0, 0x0, 0x0,
 	})
 
 	require.Equal(t, ErrAVCCNoNALUs, err)
-	require.Equal(t, [][]byte(nil), dec)
+	require.Equal(t, AVCC(nil), dec)
 
-	dec, err = AVCCUnmarshal([]byte{
+	err = dec.Unmarshal([]byte{
 		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x3, 0x1, 0x2, 0x3,
 	})
 
 	require.NoError(t, err)
-	require.Equal(t, [][]byte{
+	require.Equal(t, AVCC{
 		{1, 2, 3},
 	}, dec)
 }
@@ -71,7 +73,7 @@ func TestAVCCUnmarshalEmpty(t *testing.T) {
 func TestAVCCMarshal(t *testing.T) {
 	for _, ca := range casesAVCC {
 		t.Run(ca.name, func(t *testing.T) {
-			enc, err := AVCCMarshal(ca.dec)
+			enc, err := ca.dec.Marshal()
 			require.NoError(t, err)
 			require.Equal(t, ca.enc, enc)
 		})
@@ -84,9 +86,10 @@ func FuzzAVCCUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		au, err := AVCCUnmarshal(b)
+		var au AVCC
+		err := au.Unmarshal(b)
 		if err == nil {
-			AVCCMarshal(au) //nolint:errcheck
+			au.Marshal() //nolint:errcheck
 		}
 	})
 }

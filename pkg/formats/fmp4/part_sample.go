@@ -1,9 +1,9 @@
 package fmp4
 
 import (
-	"github.com/bluenviron/mediacommon/pkg/codecs/av1"
-	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
-	"github.com/bluenviron/mediacommon/pkg/codecs/h265"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/av1"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h265"
 )
 
 // PartSample is a sample of a PartTrack.
@@ -14,16 +14,9 @@ type PartSample struct {
 	Payload         []byte
 }
 
-// NewPartSampleAV1 creates a sample with AV1 data.
-//
-// Deprecated: replaced by NewPartSampleAV12
-func NewPartSampleAV1(_ bool, tu [][]byte) (*PartSample, error) {
-	return NewPartSampleAV12(tu)
-}
-
 // NewPartSampleAV12 creates a sample with AV1 data.
 func NewPartSampleAV12(tu [][]byte) (*PartSample, error) {
-	randomAccess, err := av1.ContainsKeyFrame(tu)
+	randomAccess, err := av1.IsRandomAccess(tu)
 	if err != nil {
 		return nil, err
 	}
@@ -39,22 +32,6 @@ func NewPartSampleAV12(tu [][]byte) (*PartSample, error) {
 	}, nil
 }
 
-// NewPartSampleH26x creates a sample with H26x data.
-//
-// Deprecated: replaced by NewPartSampleH264 and NewPartSampleH265
-func NewPartSampleH26x(ptsOffset int32, randomAccessPresent bool, au [][]byte) (*PartSample, error) {
-	avcc, err := h264.AVCCMarshal(au)
-	if err != nil {
-		return nil, err
-	}
-
-	return &PartSample{
-		PTSOffset:       ptsOffset,
-		IsNonSyncSample: !randomAccessPresent,
-		Payload:         avcc,
-	}, nil
-}
-
 // NewPartSampleH264 creates a sample with H264 data.
 func NewPartSampleH264(ptsOffset int32, au [][]byte) (*PartSample, error) {
 	avcc, err := h264.AVCC(au).Marshal()
@@ -64,7 +41,7 @@ func NewPartSampleH264(ptsOffset int32, au [][]byte) (*PartSample, error) {
 
 	return &PartSample{
 		PTSOffset:       ptsOffset,
-		IsNonSyncSample: !h264.IDRPresent(au),
+		IsNonSyncSample: !h264.IsRandomAccess(au),
 		Payload:         avcc,
 	}, nil
 }
@@ -92,13 +69,6 @@ func (ps PartSample) GetAV1() ([][]byte, error) {
 	}
 
 	return tu, nil
-}
-
-// GetH26x gets H26x data from the sample.
-//
-// Deprecated: replaced by GetH264 and GetH265
-func (ps PartSample) GetH26x() ([][]byte, error) {
-	return ps.GetH264()
 }
 
 // GetH264 gets H264 data from the sample.

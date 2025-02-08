@@ -1,12 +1,5 @@
 package bits
 
-// WriteBits writes N bits.
-//
-// Deprecated: replaced by WriteBitsUnsafe.
-func WriteBits(buf []byte, pos *int, v uint64, n int) {
-	WriteBitsUnsafe(buf, pos, v, n)
-}
-
 // WriteBitsUnsafe writes N bits.
 func WriteBitsUnsafe(buf []byte, pos *int, v uint64, n int) {
 	res := 8 - (*pos & 0x07)

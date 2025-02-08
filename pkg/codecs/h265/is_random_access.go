@@ -1,6 +1,6 @@
 package h265
 
-// IsRandomAccess checks whether the access unit is a random access point.
+// IsRandomAccess checks whether the access unit can be randomly accessed.
 func IsRandomAccess(au [][]byte) bool {
 	for _, nalu := range au {
 		typ := NALUType((nalu[0] >> 1) & 0b111111)
