@@ -10,8 +10,8 @@ import (
 func TestDTSExtractor(t *testing.T) {
 	type sequenceSample struct {
 		au  [][]byte
-		pts time.Duration
-		dts time.Duration
+		pts int64
+		dts int64
 	}
 
 	for _, ca := range []struct {
@@ -44,7 +44,7 @@ func TestDTSExtractor(t *testing.T) {
 						},
 					},
 					0,
-					-66666666 * time.Nanosecond,
+					-6000,
 				},
 				{
 					[][]byte{{ // TRAIL_R
@@ -52,8 +52,8 @@ func TestDTSExtractor(t *testing.T) {
 						0x49, 0x20, 0x40, 0x11, 0x16, 0x92, 0x93, 0xea,
 						0x54, 0x57, 0x4e, 0x0a,
 					}},
-					100 * time.Millisecond,
-					-33333333 * time.Nanosecond,
+					int64(100 * time.Millisecond * 90000 / time.Second),
+					-3000,
 				},
 				{
 					[][]byte{{ // TRAIL_R
@@ -61,8 +61,8 @@ func TestDTSExtractor(t *testing.T) {
 						0x44, 0x52, 0x62, 0x7a, 0x1b, 0x88, 0x0b, 0x21,
 						0x26, 0x5f, 0x10, 0x9c,
 					}},
-					66666666 * time.Nanosecond,
-					0,
+					int64(66666666 * time.Nanosecond * 90000 / time.Second),
+					-1,
 				},
 				{
 					[][]byte{{ // TRAIL_N
@@ -70,8 +70,8 @@ func TestDTSExtractor(t *testing.T) {
 						0x42, 0x25, 0x8c, 0x18, 0xe6, 0x1c, 0xea, 0x5a,
 						0x5d, 0x07, 0xc1, 0x8f,
 					}},
-					33333333 * time.Nanosecond,
-					33333333 * time.Nanosecond,
+					int64(33333333 * time.Nanosecond * 90000 / time.Second),
+					int64(33333333 * time.Nanosecond * 90000 / time.Second),
 				},
 				{
 					[][]byte{{ // TRAIL_R
@@ -79,8 +79,8 @@ func TestDTSExtractor(t *testing.T) {
 						0x0c, 0x10, 0x11, 0x11, 0x20, 0x42, 0x11, 0x18,
 						0x63, 0xa5, 0x18, 0x55,
 					}},
-					200 * time.Millisecond,
-					66666667 * time.Nanosecond,
+					int64(200 * time.Millisecond * 90000 / time.Second),
+					int64(66666667 * time.Nanosecond * 90000 / time.Second),
 				},
 				{
 					[][]byte{{ // TRAIL_R
@@ -88,8 +88,8 @@ func TestDTSExtractor(t *testing.T) {
 						0x12, 0x04, 0x45, 0xa1, 0x83, 0xc0, 0x97, 0x53,
 						0xa3, 0x5e, 0x78, 0x14,
 					}},
-					166666666 * time.Nanosecond,
-					100 * time.Millisecond,
+					int64(166666666 * time.Nanosecond * 90000 / time.Second),
+					8999,
 				},
 				{
 					[][]byte{{ // TRAIL_N
@@ -97,8 +97,8 @@ func TestDTSExtractor(t *testing.T) {
 						0x02, 0x90, 0x88, 0xa3, 0x0c, 0x7d, 0x27, 0x0c,
 						0xd4, 0xd9, 0xc2, 0xa5,
 					}},
-					133333333 * time.Nanosecond,
-					133333333 * time.Nanosecond,
+					int64(133333333 * time.Nanosecond * 90000 / time.Second),
+					int64(133333333 * time.Nanosecond * 90000 / time.Second),
 				},
 			},
 		},
@@ -124,8 +124,8 @@ func TestDTSExtractor(t *testing.T) {
 							byte(NALUType_CRA_NUT) << 1,
 						},
 					},
-					1 * time.Second,
-					1 * time.Second,
+					int64(1 * time.Second * 90000 / time.Second),
+					int64(1 * time.Second * 90000 / time.Second),
 				},
 			},
 		},
@@ -157,8 +157,8 @@ func TestDTSExtractor(t *testing.T) {
 							0x67, 0x2f, 0x62, 0x69,
 						},
 					},
-					1113436 * time.Nanosecond,
-					-48886564 * time.Nanosecond,
+					int64(1113436 * time.Nanosecond * 90000 / time.Second),
+					-4400,
 				},
 				{
 					[][]byte{
@@ -168,8 +168,8 @@ func TestDTSExtractor(t *testing.T) {
 							0x66, 0xf6, 0x21, 0x59,
 						},
 					},
-					68113436 * time.Nanosecond,
-					18113436 * time.Nanosecond,
+					int64(68113436 * time.Nanosecond * 90000 / time.Second),
+					1630,
 				},
 				{
 					[][]byte{
@@ -179,8 +179,8 @@ func TestDTSExtractor(t *testing.T) {
 							0xb0, 0x95, 0x67, 0xb2,
 						},
 					},
-					101113436 * time.Nanosecond,
-					51113436 * time.Nanosecond,
+					int64(101113436 * time.Nanosecond * 90000 / time.Second),
+					int64(51113436 * time.Nanosecond * 90000 / time.Second),
 				},
 			},
 		},
@@ -224,8 +224,8 @@ func TestDTSExtractor(t *testing.T) {
 							0x5d, 0x4c, 0x54, 0xa1, 0xd9, 0x5b, 0x1b, 0xba,
 						},
 					},
-					2033333333 * time.Nanosecond,
-					2000000000 * time.Nanosecond,
+					int64(2033333333 * time.Nanosecond * 90000 / time.Second),
+					179999,
 				},
 				{
 					[][]byte{
@@ -242,8 +242,8 @@ func TestDTSExtractor(t *testing.T) {
 							0xa8, 0x1f, 0x66, 0x62, 0x5b, 0xfe, 0x1f, 0xf9,
 						},
 					},
-					2099999999 * time.Nanosecond,
-					2016666666 * time.Nanosecond,
+					int64(2099999999 * time.Nanosecond * 90000 / time.Second),
+					int64(2016666666 * time.Nanosecond * 90000 / time.Second),
 				},
 				{
 					[][]byte{
@@ -260,8 +260,8 @@ func TestDTSExtractor(t *testing.T) {
 							0xb7, 0x2a, 0x04, 0xac, 0x2e, 0x94, 0x1e, 0x22,
 						},
 					},
-					2066666666 * time.Nanosecond,
-					2033333333 * time.Nanosecond,
+					int64(2066666666 * time.Nanosecond * 90000 / time.Second),
+					int64(2033333333 * time.Nanosecond * 90000 / time.Second),
 				},
 				{
 					[][]byte{
@@ -278,8 +278,8 @@ func TestDTSExtractor(t *testing.T) {
 							0x03, 0x3c, 0x92, 0x11, 0x50, 0x98, 0xd6, 0x13,
 						},
 					},
-					2049999999 * time.Nanosecond,
-					2049999999 * time.Nanosecond,
+					int64(2049999999 * time.Nanosecond * 90000 / time.Second),
+					int64(2049999999 * time.Nanosecond * 90000 / time.Second),
 				},
 			},
 		},
@@ -360,6 +360,6 @@ func FuzzDTSExtractorSecondAU(f *testing.F) { //nolint:dupl
 			require.NoError(t, err)
 		}
 
-		ex.Extract([][]byte{a}, 1*time.Second) //nolint:errcheck
+		ex.Extract([][]byte{a}, 90000) //nolint:errcheck
 	})
 }

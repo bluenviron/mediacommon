@@ -4,23 +4,6 @@ import (
 	"fmt"
 )
 
-// BitstreamUnmarshal extracts a temporal unit from a bitstream.
-// Optionally, it also removes the size field from OBUs.
-//
-// Deprecated: replacted by Bitstream.Unmarshal. The removeSizeField has no effect anymore.
-func BitstreamUnmarshal(buf []byte, _ bool) ([][]byte, error) {
-	var b Bitstream
-	err := b.Unmarshal(buf)
-	return b, err
-}
-
-// BitstreamMarshal encodes a temporal unit into a bitstream.
-//
-// Deprecated: replacted by Bitstream.Marshal
-func BitstreamMarshal(tu [][]byte) ([]byte, error) {
-	return Bitstream(tu).Marshal()
-}
-
 // Bitstream is an AV1 bitstream.
 // Specification: https://aomediacodec.github.io/av1-spec/#low-overhead-bitstream-format
 type Bitstream [][]byte

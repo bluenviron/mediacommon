@@ -10,7 +10,7 @@ var casesAnnexB = []struct {
 	name   string
 	encin  []byte
 	encout []byte
-	dec    [][]byte
+	dec    AnnexB
 }{
 	{
 		"2 zeros",
@@ -101,7 +101,8 @@ var casesAnnexB = []struct {
 func TestAnnexBUnmarshal(t *testing.T) {
 	for _, ca := range casesAnnexB {
 		t.Run(ca.name, func(t *testing.T) {
-			dec, err := AnnexBUnmarshal(ca.encin)
+			var dec AnnexB
+			err := dec.Unmarshal(ca.encin)
 			require.NoError(t, err)
 			require.Equal(t, ca.dec, dec)
 		})
@@ -110,19 +111,20 @@ func TestAnnexBUnmarshal(t *testing.T) {
 
 func TestAnnexBUnmarshalEmpty(t *testing.T) {
 	buf := []byte{0, 0, 0, 1, 0, 0, 0, 1}
-	_, err := AnnexBUnmarshal(buf)
+	var dec AnnexB
+	err := dec.Unmarshal(buf)
 	require.Equal(t, ErrAnnexBNoNALUs, err)
 
 	buf = []byte{0, 0, 0, 1, 0, 0, 0, 1, 1}
-	dec, err := AnnexBUnmarshal(buf)
+	err = dec.Unmarshal(buf)
 	require.NoError(t, err)
-	require.Equal(t, [][]byte{{1}}, dec)
+	require.Equal(t, AnnexB{{1}}, dec)
 }
 
 func TestAnnexBMarshal(t *testing.T) {
 	for _, ca := range casesAnnexB {
 		t.Run(ca.name, func(t *testing.T) {
-			enc, err := AnnexBMarshal(ca.dec)
+			enc, err := ca.dec.Marshal()
 			require.NoError(t, err)
 			require.Equal(t, ca.encout, enc)
 		})
@@ -131,7 +133,8 @@ func TestAnnexBMarshal(t *testing.T) {
 
 func BenchmarkAnnexBUnmarshal(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		AnnexBUnmarshal([]byte{ //nolint:errcheck
+		var dec AnnexB
+		dec.Unmarshal([]byte{ //nolint:errcheck
 			0x00, 0x00, 0x00, 0x01,
 			0x01, 0x02, 0x03, 0x04,
 			0x00, 0x00, 0x00, 0x01,
@@ -158,9 +161,10 @@ func FuzzAnnexBUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		au, err := AnnexBUnmarshal(b)
+		var au AnnexB
+		err := au.Unmarshal(b)
 		if err == nil {
-			AnnexBMarshal(au) //nolint:errcheck
+			au.Marshal() //nolint:errcheck
 		}
 	})
 }

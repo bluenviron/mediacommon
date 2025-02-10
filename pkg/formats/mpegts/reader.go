@@ -9,11 +9,11 @@ import (
 
 	"github.com/asticode/go-astits"
 
-	"github.com/bluenviron/mediacommon/pkg/codecs/ac3"
-	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
-	"github.com/bluenviron/mediacommon/pkg/codecs/h265"
-	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg1audio"
-	"github.com/bluenviron/mediacommon/pkg/codecs/mpeg4audio"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/ac3"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h265"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg1audio"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 )
 
 // ReaderOnDecodeErrorFunc is the prototype of the callback passed to OnDecodeError.
@@ -24,11 +24,6 @@ type ReaderOnDataH264Func func(pts int64, dts int64, au [][]byte) error
 
 // ReaderOnDataH265Func is the prototype of the callback passed to OnDataH265.
 type ReaderOnDataH265Func func(pts int64, dts int64, au [][]byte) error
-
-// ReaderOnDataH26xFunc is the prototype of the callback passed to OnDataH26x.
-//
-// Deprecated: replaced by ReaderOnDataH264Func and ReaderOnDataH265Func
-type ReaderOnDataH26xFunc func(pts int64, dts int64, au [][]byte) error
 
 // ReaderOnDataMPEGxVideoFunc is the prototype of the callback passed to OnDataMPEGxVideo.
 type ReaderOnDataMPEGxVideoFunc func(pts int64, frame []byte) error
@@ -114,17 +109,6 @@ func (r *Reader) Tracks() []*Track {
 // OnDecodeError sets a callback that is called when a non-fatal decode error occurs.
 func (r *Reader) OnDecodeError(cb ReaderOnDecodeErrorFunc) {
 	r.onDecodeError = cb
-}
-
-// OnDataH26x sets a callback that is called when data from an H265 or H264 track is received.
-//
-// Deprecated: replaced by OnDataH264, OnDataH265.
-func (r *Reader) OnDataH26x(track *Track, cb ReaderOnDataH26xFunc) {
-	if _, ok := track.Codec.(*CodecH265); ok {
-		r.OnDataH265(track, ReaderOnDataH265Func(cb))
-	} else {
-		r.OnDataH264(track, ReaderOnDataH264Func(cb))
-	}
 }
 
 // OnDataH265 sets a callback that is called when data from an H265 track is received.

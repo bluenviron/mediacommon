@@ -1,41 +1,40 @@
 package mpegts
 
-import (
-	"time"
-)
-
 const (
-	clockRate = 90000
+	maximum           = 0x1FFFFFFFF // 33 bits
+	negativeThreshold = 0x1FFFFFFFF / 2
 )
-
-// avoid an int64 overflow and preserve resolution by splitting division into two parts:
-// first add the integer part, then the decimal part.
-func multiplyAndDivide(v, m, d time.Duration) time.Duration {
-	secs := v / d
-	dec := v % d
-	return (secs*m + dec*m/d)
-}
 
 // TimeDecoder is a MPEG-TS timestamp decoder.
-//
-// Deprecated: replaced by TimeDecoder2.
 type TimeDecoder struct {
-	wrapped *TimeDecoder2
+	initialized bool
+	overall     int64
+	prev        int64
 }
 
 // NewTimeDecoder allocates a TimeDecoder.
-//
-// Deprecated: replaced by NewTimeDecoder2.
-func NewTimeDecoder(start int64) *TimeDecoder {
-	td := NewTimeDecoder2()
-	td.Decode(start)
-
-	return &TimeDecoder{
-		wrapped: td,
-	}
+func NewTimeDecoder() *TimeDecoder {
+	return &TimeDecoder{}
 }
 
 // Decode decodes a MPEG-TS timestamp.
-func (d *TimeDecoder) Decode(ts int64) time.Duration {
-	return multiplyAndDivide(time.Duration(d.wrapped.Decode(ts)), time.Second, clockRate)
+func (d *TimeDecoder) Decode(ts int64) int64 {
+	if !d.initialized {
+		d.initialized = true
+		d.prev = ts
+	}
+
+	diff := (ts - d.prev) & maximum
+
+	// negative difference
+	if diff > negativeThreshold {
+		diff = (d.prev - ts) & maximum
+		d.prev = ts
+		d.overall -= diff
+	} else {
+		d.prev = ts
+		d.overall += diff
+	}
+
+	return d.overall
 }

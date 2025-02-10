@@ -8,24 +8,6 @@ import (
 // ErrAVCCNoNALUs is returned by AVCCUnmarshal when no NALUs have been decoded.
 var ErrAVCCNoNALUs = errors.New("AVCC unit doesn't contain any NALU")
 
-// AVCCUnmarshal decodes an access unit from the AVCC stream format.
-// Specification: ISO 14496-15, section 5.3.4.2.1
-//
-// Deprecated: replaced by AVCC.Unmarshal
-func AVCCUnmarshal(buf []byte) ([][]byte, error) {
-	var a AVCC
-	err := a.Unmarshal(buf)
-	return [][]byte(a), err
-}
-
-// AVCCMarshal encodes an access unit into the AVCC stream format.
-// Specification: ISO 14496-15, section 5.3.4.2.1
-//
-// Deprecated: replaced by AVCC.Marshal
-func AVCCMarshal(au [][]byte) ([]byte, error) {
-	return AVCC(au).Marshal()
-}
-
 // AVCC is an access unit that can be decoded/encoded from/to the Annex-B stream format.
 // Specification: ISO 14496-15, section 5.3.4.2.1
 type AVCC [][]byte

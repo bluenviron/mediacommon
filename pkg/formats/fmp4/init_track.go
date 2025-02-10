@@ -5,9 +5,9 @@ import (
 
 	"github.com/abema/go-mp4"
 
-	"github.com/bluenviron/mediacommon/pkg/codecs/av1"
-	"github.com/bluenviron/mediacommon/pkg/codecs/h264"
-	"github.com/bluenviron/mediacommon/pkg/codecs/h265"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/av1"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h265"
 )
 
 func boolToUint8(v bool) uint8 {
