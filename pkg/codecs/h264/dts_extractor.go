@@ -85,11 +85,18 @@ type DTSExtractor struct {
 	pocIncrement    int
 }
 
+// Initialize initializes a DTSExtractor.
+func (d *DTSExtractor) Initialize() {
+	d.pocIncrement = 2
+}
+
 // NewDTSExtractor allocates a DTSExtractor.
+//
+// Deprecated: replaced by DTSExtractor.Initialize.
 func NewDTSExtractor() *DTSExtractor {
-	return &DTSExtractor{
-		pocIncrement: 2,
-	}
+	d := &DTSExtractor{}
+	d.Initialize()
+	return d
 }
 
 func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, bool, error) {

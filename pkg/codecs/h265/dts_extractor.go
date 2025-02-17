@@ -140,7 +140,13 @@ type DTSExtractor struct {
 	prevDTS       int64
 }
 
+// Initialize initializes a DTSExtractor.
+func (d *DTSExtractor) Initialize() {
+}
+
 // NewDTSExtractor allocates a DTSExtractor.
+//
+// Deprecated: replaced by DTSExtractor.Initialize.
 func NewDTSExtractor() *DTSExtractor {
 	return &DTSExtractor{}
 }

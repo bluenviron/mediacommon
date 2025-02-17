@@ -48,26 +48,24 @@ func mpeg1AudioMarshalSize(frames [][]byte) int {
 
 // Writer is a MPEG-TS writer.
 type Writer struct {
+	W      io.Writer
+	Tracks []*Track
+
 	nextPID            uint16
 	mux                *astits.Muxer
 	pcrCounter         int
 	leadingTrackChosen bool
 }
 
-// NewWriter allocates a Writer.
-func NewWriter(
-	bw io.Writer,
-	tracks []*Track,
-) *Writer {
-	w := &Writer{
-		nextPID: 256,
-	}
+// Initialize initializes a Writer.
+func (w *Writer) Initialize() {
+	w.nextPID = 256
 
 	w.mux = astits.NewMuxer(
 		context.Background(),
-		bw)
+		w.W)
 
-	for _, track := range tracks {
+	for _, track := range w.Tracks {
 		if track.PID == 0 {
 			track.PID = w.nextPID
 			w.nextPID++
@@ -85,7 +83,20 @@ func NewWriter(
 	// * PID == PCRPID
 	// * AdaptationField != nil
 	// * RandomAccessIndicator = true
+}
 
+// NewWriter allocates a Writer.
+//
+// Deprecated: replaced by Writer.Initialize().
+func NewWriter(
+	bw io.Writer,
+	tracks []*Track,
+) *Writer {
+	w := &Writer{
+		W:      bw,
+		Tracks: tracks,
+	}
+	w.Initialize()
 	return w
 }
 

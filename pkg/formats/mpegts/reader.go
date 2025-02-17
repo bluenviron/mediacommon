@@ -55,15 +55,17 @@ func findPMT(dem *astits.Demuxer) (*astits.PMTData, error) {
 
 // Reader is a MPEG-TS reader.
 type Reader struct {
+	R io.Reader
+
 	tracks        []*Track
 	dem           *astits.Demuxer
 	onDecodeError ReaderOnDecodeErrorFunc
 	onData        map[uint16]func(int64, int64, []byte) error
 }
 
-// NewReader allocates a Reader.
-func NewReader(br io.Reader) (*Reader, error) {
-	rr := &recordReader{r: br}
+// Initialize initializes a Reader.
+func (r *Reader) Initialize() error {
+	rr := &recordReader{r: r.R}
 
 	dem := astits.NewDemuxer(
 		context.Background(),
@@ -72,7 +74,7 @@ func NewReader(br io.Reader) (*Reader, error) {
 
 	pmt, err := findPMT(dem)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	var tracks []*Track //nolint:prealloc
@@ -81,7 +83,7 @@ func NewReader(br io.Reader) (*Reader, error) {
 		var track Track
 		err := track.unmarshal(dem, es)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		tracks = append(tracks, &track)
@@ -90,15 +92,26 @@ func NewReader(br io.Reader) (*Reader, error) {
 	// rewind demuxer
 	dem = astits.NewDemuxer(
 		context.Background(),
-		&playbackReader{r: br, buf: rr.buf},
+		&playbackReader{r: r.R, buf: rr.buf},
 		astits.DemuxerOptPacketSize(188))
 
-	return &Reader{
-		tracks:        tracks,
-		dem:           dem,
-		onDecodeError: func(error) {},
-		onData:        make(map[uint16]func(int64, int64, []byte) error),
-	}, nil
+	r.tracks = tracks
+	r.dem = dem
+	r.onDecodeError = func(error) {}
+	r.onData = make(map[uint16]func(int64, int64, []byte) error)
+
+	return nil
+}
+
+// NewReader allocates a Reader.
+//
+// Deprecated: replaced by Reader.Initialize.
+func NewReader(br io.Reader) (*Reader, error) {
+	r := &Reader{
+		R: br,
+	}
+	err := r.Initialize()
+	return r, err
 }
 
 // Tracks returns detected tracks.
