@@ -13,8 +13,14 @@ type TimeDecoder struct {
 }
 
 // NewTimeDecoder allocates a TimeDecoder.
+//
+// Deprecated: replaced by TimeDecoder.Initialize().
 func NewTimeDecoder() *TimeDecoder {
 	return &TimeDecoder{}
+}
+
+// Initialize initializes a TimeDecoder.
+func (d *TimeDecoder) Initialize() {
 }
 
 // Decode decodes a MPEG-TS timestamp.
