@@ -4,7 +4,24 @@ import (
 	"fmt"
 )
 
+// IsRandomAccess2 checks whether a temporal unit can be randomly accessed.
+func IsRandomAccess2(tu [][]byte) bool {
+	if len(tu) == 0 {
+		return false
+	}
+
+	var h OBUHeader
+	err := h.Unmarshal(tu[0])
+	if err != nil {
+		return false
+	}
+
+	return (h.Type == OBUTypeSequenceHeader)
+}
+
 // IsRandomAccess checks whether a temporal unit can be randomly accessed.
+//
+// Deprecated: replaced by IsRandomAccess2.
 func IsRandomAccess(tu [][]byte) (bool, error) {
 	if len(tu) == 0 {
 		return false, fmt.Errorf("temporal unit is empty")

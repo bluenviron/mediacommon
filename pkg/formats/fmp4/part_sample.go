@@ -16,18 +16,13 @@ type PartSample struct {
 
 // NewPartSampleAV12 creates a sample with AV1 data.
 func NewPartSampleAV12(tu [][]byte) (*PartSample, error) {
-	randomAccess, err := av1.IsRandomAccess(tu)
-	if err != nil {
-		return nil, err
-	}
-
 	bs, err := av1.Bitstream(tu).Marshal()
 	if err != nil {
 		return nil, err
 	}
 
 	return &PartSample{
-		IsNonSyncSample: !randomAccess,
+		IsNonSyncSample: !av1.IsRandomAccess2(tu),
 		Payload:         bs,
 	}, nil
 }
