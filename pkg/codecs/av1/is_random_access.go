@@ -6,17 +6,15 @@ import (
 
 // IsRandomAccess2 checks whether a temporal unit can be randomly accessed.
 func IsRandomAccess2(tu [][]byte) bool {
-	if len(tu) == 0 {
-		return false
+	for _, obu := range tu {
+		var h OBUHeader
+		err := h.Unmarshal(obu)
+		if err == nil && h.Type == OBUTypeSequenceHeader {
+			return true
+		}
 	}
 
-	var h OBUHeader
-	err := h.Unmarshal(tu[0])
-	if err != nil {
-		return false
-	}
-
-	return (h.Type == OBUTypeSequenceHeader)
+	return false
 }
 
 // IsRandomAccess checks whether a temporal unit can be randomly accessed.
