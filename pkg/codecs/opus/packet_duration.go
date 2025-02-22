@@ -17,15 +17,22 @@ var frameSizes = [32]int{
 }
 
 // PacketDuration returns the duration of an Opus packet.
-// Specification: RFC6716, 3.1
+//
+// Deprecated: replaced by PacketDuration2
 func PacketDuration(pkt []byte) time.Duration {
+	return (time.Duration(PacketDuration2(pkt)) * time.Second) / 48000
+}
+
+// PacketDuration2 returns the duration of an Opus packet, in 1/48000 seconds.
+// Specification: RFC6716, 3.1
+func PacketDuration2(pkt []byte) int64 {
 	if len(pkt) == 0 {
 		return 0
 	}
 
-	frameDuration := frameSizes[pkt[0]>>3]
+	frameDuration := int64(frameSizes[pkt[0]>>3])
 
-	frameCount := 0
+	frameCount := int64(0)
 	switch pkt[0] & 3 {
 	case 0:
 		frameCount = 1
@@ -37,8 +44,8 @@ func PacketDuration(pkt []byte) time.Duration {
 		if len(pkt) < 2 {
 			return 0
 		}
-		frameCount = int(pkt[1] & 63)
+		frameCount = int64(pkt[1] & 63)
 	}
 
-	return (time.Duration(frameDuration) * time.Duration(frameCount) * time.Millisecond) / 48
+	return frameDuration * frameCount
 }
