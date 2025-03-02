@@ -12,6 +12,8 @@ Definitions and functions shared between [gortsplib](https://github.com/bluenvir
 * [Format utilities](https://pkg.go.dev/github.com/bluenviron/mediacommon/v2/pkg/formats)
 * [Bit reader and writer](https://pkg.go.dev/github.com/bluenviron/mediacommon/v2/pkg/bits)
 
+Go &ge; 1.21 is required.
+
 ## Specifications
 
 |name|area|
