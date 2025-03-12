@@ -1,7 +1,7 @@
 # mediacommon
 
-[![Test](https://github.com/bluenviron/mediacommon/workflows/test/badge.svg)](https://github.com/bluenviron/mediacommon/actions?query=workflow:test)
-[![Lint](https://github.com/bluenviron/mediacommon/workflows/lint/badge.svg)](https://github.com/bluenviron/mediacommon/actions?query=workflow:lint)
+[![Test](https://github.com/bluenviron/mediacommon/actions/workflows/test.yml/badge.svg)](https://github.com/bluenviron/mediacommon/actions/workflows/test.yml)
+[![Lint](https://github.com/bluenviron/mediacommon/actions/workflows/lint.yml/badge.svg)](https://github.com/bluenviron/mediacommon/actions/workflows/lint.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/bluenviron/mediacommon)](https://goreportcard.com/report/github.com/bluenviron/mediacommon)
 [![CodeCov](https://codecov.io/gh/bluenviron/mediacommon/branch/main/graph/badge.svg)](https://app.codecov.io/gh/bluenviron/mediacommon/tree/main)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/bluenviron/mediacommon/v2)](https://pkg.go.dev/github.com/bluenviron/mediacommon/v2#pkg-index)
