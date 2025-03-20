@@ -160,10 +160,21 @@ func FuzzAnnexBUnmarshal(f *testing.F) {
 		f.Add(ca.encin)
 	}
 
-	f.Fuzz(func(_ *testing.T, b []byte) {
+	f.Fuzz(func(t *testing.T, b []byte) {
 		var au AnnexB
 		err := au.Unmarshal(b)
+
 		if err == nil {
+			if len(au) == 0 {
+				t.Errorf("should not happen")
+			}
+
+			for _, nalu := range au {
+				if len(nalu) == 0 {
+					t.Errorf("should not happen")
+				}
+			}
+
 			au.Marshal() //nolint:errcheck
 		}
 	})
