@@ -80,10 +80,21 @@ func FuzzBitstreamUnmarshal(f *testing.F) {
 		f.Add(ca.enc)
 	}
 
-	f.Fuzz(func(_ *testing.T, b []byte) {
+	f.Fuzz(func(t *testing.T, b []byte) {
 		var tu Bitstream
 		err := tu.Unmarshal(b)
+
 		if err == nil {
+			if len(tu) == 0 {
+				t.Errorf("should not happen")
+			}
+
+			for _, obu := range tu {
+				if len(obu) == 0 {
+					t.Errorf("should not happen")
+				}
+			}
+
 			tu.Marshal() //nolint:errcheck
 		}
 	})
