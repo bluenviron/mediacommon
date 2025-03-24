@@ -58,7 +58,7 @@ type Writer struct {
 }
 
 // Initialize initializes a Writer.
-func (w *Writer) Initialize() {
+func (w *Writer) Initialize() error {
 	w.nextPID = 256
 
 	w.mux = astits.NewMuxer(
@@ -74,7 +74,7 @@ func (w *Writer) Initialize() {
 
 		err := w.mux.AddElementaryStream(*es)
 		if err != nil {
-			panic(err) // TODO: return error instead of panicking
+			return err
 		}
 	}
 
@@ -83,6 +83,8 @@ func (w *Writer) Initialize() {
 	// * PID == PCRPID
 	// * AdaptationField != nil
 	// * RandomAccessIndicator = true
+
+	return nil
 }
 
 // NewWriter allocates a Writer.
@@ -96,7 +98,10 @@ func NewWriter(
 		W:      bw,
 		Tracks: tracks,
 	}
-	w.Initialize()
+	err := w.Initialize()
+	if err != nil {
+		panic(err)
+	}
 	return w
 }
 

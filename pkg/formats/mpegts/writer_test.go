@@ -93,3 +93,22 @@ func TestWriterAutomaticPID(t *testing.T) {
 	NewWriter(&buf, []*Track{track})
 	require.NotEqual(t, 0, track.PID)
 }
+
+func TestWriterError(t *testing.T) {
+	var buf bytes.Buffer
+	w := &Writer{
+		W: &buf,
+		Tracks: []*Track{
+			{
+				PID:   11,
+				Codec: &CodecH265{},
+			},
+			{
+				PID:   11,
+				Codec: &CodecH265{},
+			},
+		},
+	}
+	err := w.Initialize()
+	require.Error(t, err)
+}
