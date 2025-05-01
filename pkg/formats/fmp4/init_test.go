@@ -2132,13 +2132,21 @@ func FuzzInitUnmarshal(f *testing.F) {
 		f.Add(ca.enc)
 	}
 
-	f.Fuzz(func(_ *testing.T, b []byte) {
+	f.Fuzz(func(t *testing.T, b []byte) {
 		var init Init
 		err := init.Unmarshal(bytes.NewReader(b))
-		if err == nil {
-			var buf seekablebuffer.Buffer
-			init.Marshal(&buf) //nolint:errcheck
+		if err != nil {
+			return
 		}
+
+		require.NotZero(t, len(init.Tracks))
+
+		for _, track := range init.Tracks {
+			require.NotZero(t, track.TimeScale)
+		}
+
+		var buf seekablebuffer.Buffer
+		init.Marshal(&buf) //nolint:errcheck
 	})
 }
 
