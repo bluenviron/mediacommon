@@ -77,16 +77,16 @@ func (r *Reader) Initialize() error {
 		return err
 	}
 
-	var tracks []*Track //nolint:prealloc
+	tracks := make([]*Track, len(pmt.ElementaryStreams))
 
-	for _, es := range pmt.ElementaryStreams {
+	for i, es := range pmt.ElementaryStreams {
 		var track Track
 		err := track.unmarshal(dem, es)
 		if err != nil {
 			return err
 		}
 
-		tracks = append(tracks, &track)
+		tracks[i] = &track
 	}
 
 	// rewind demuxer
