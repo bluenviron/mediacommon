@@ -1436,7 +1436,13 @@ func FuzzReader(f *testing.F) {
 		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 	})
 
-	f.Fuzz(func(_ *testing.T, b []byte) {
-		NewReader(bytes.NewReader(b)) //nolint:errcheck
+	f.Fuzz(func(t *testing.T, b []byte) {
+		r := &Reader{R: bytes.NewReader(b)}
+		err := r.Initialize()
+		if err != nil {
+			return
+		}
+
+		require.NotZero(t, len(r.Tracks()))
 	})
 }
