@@ -93,7 +93,7 @@ func getPTSDTSDiff(buf []byte, sps *SPS, pps *PPS) (uint32, error) {
 			return 0, err
 		}
 	} else {
-		if len(sps.ShortTermRefPicSets) == 0 {
+		if len(sps.ShortTermRefPicSets) <= 1 {
 			return 0, fmt.Errorf("invalid short_term_ref_pic_set_idx")
 		}
 
@@ -164,6 +164,11 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, error) {
 			if err != nil {
 				return 0, fmt.Errorf("invalid SPS: %w", err)
 			}
+
+			if spsp.VUI != nil && spsp.VUI.TimingInfo != nil && spsp.VUI.TimingInfo.TimeScale == 0 {
+				return 0, fmt.Errorf("invalid SPS VUI TimeScale")
+			}
+
 			d.spsp = &spsp
 
 		case NALUType_PPS_NUT:
