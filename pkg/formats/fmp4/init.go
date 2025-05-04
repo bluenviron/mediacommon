@@ -7,6 +7,7 @@ import (
 	"github.com/abema/go-mp4"
 
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/av1"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h265"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 )
@@ -41,11 +42,17 @@ func av1FindSequenceHeader(buf []byte) ([]byte, error) {
 		}
 
 		if h.Type == av1.OBUTypeSequenceHeader {
+			var parsed av1.SequenceHeader
+			err = parsed.Unmarshal(obu)
+			if err != nil {
+				return nil, err
+			}
+
 			return obu, nil
 		}
 	}
 
-	return nil, fmt.Errorf("sequence header not found")
+	return nil, fmt.Errorf("AV1 sequence header not found")
 }
 
 func h265FindParams(params []mp4.HEVCNaluArray) ([]byte, []byte, []byte, error) {
@@ -57,54 +64,67 @@ func h265FindParams(params []mp4.HEVCNaluArray) ([]byte, []byte, []byte, error) 
 		switch h265.NALUType(arr.NaluType) {
 		case h265.NALUType_VPS_NUT, h265.NALUType_SPS_NUT, h265.NALUType_PPS_NUT:
 			if arr.NumNalus != 1 {
-				return nil, nil, nil, fmt.Errorf("multiple VPS/SPS/PPS are not supported")
+				return nil, nil, nil, fmt.Errorf("multiple H265 VPS/SPS/PPS are not supported")
+			}
+
+			switch h265.NALUType(arr.NaluType) {
+			case h265.NALUType_VPS_NUT:
+				vps = arr.Nalus[0].NALUnit
+
+			case h265.NALUType_SPS_NUT:
+				sps = arr.Nalus[0].NALUnit
+
+				var spsp h265.SPS
+				err := spsp.Unmarshal(sps)
+				if err != nil {
+					return nil, nil, nil, fmt.Errorf("unable to parse H265 SPS: %w", err)
+				}
+
+			case h265.NALUType_PPS_NUT:
+				pps = arr.Nalus[0].NALUnit
 			}
 		}
-
-		switch h265.NALUType(arr.NaluType) {
-		case h265.NALUType_VPS_NUT:
-			vps = arr.Nalus[0].NALUnit
-
-		case h265.NALUType_SPS_NUT:
-			sps = arr.Nalus[0].NALUnit
-
-		case h265.NALUType_PPS_NUT:
-			pps = arr.Nalus[0].NALUnit
-		}
 	}
 
-	if vps == nil {
-		return nil, nil, nil, fmt.Errorf("VPS not provided")
+	if len(vps) == 0 {
+		return nil, nil, nil, fmt.Errorf("H265 VPS not provided")
 	}
 
-	if sps == nil {
-		return nil, nil, nil, fmt.Errorf("SPS not provided")
+	if len(sps) == 0 {
+		return nil, nil, nil, fmt.Errorf("H265 SPS not provided")
 	}
 
-	if pps == nil {
-		return nil, nil, nil, fmt.Errorf("PPS not provided")
+	if len(pps) == 0 {
+		return nil, nil, nil, fmt.Errorf("H265 PPS not provided")
 	}
 
 	return vps, sps, pps, nil
 }
 
 func h264FindParams(avcc *mp4.AVCDecoderConfiguration) ([]byte, []byte, error) {
+	if len(avcc.SequenceParameterSets) == 0 {
+		return nil, nil, fmt.Errorf("H264 SPS not provided")
+	}
 	if len(avcc.SequenceParameterSets) > 1 {
-		return nil, nil, fmt.Errorf("multiple SPS are not supported")
+		return nil, nil, fmt.Errorf("multiple H264 SPS are not supported")
 	}
-
-	var sps []byte
-	if len(avcc.SequenceParameterSets) == 1 {
-		sps = avcc.SequenceParameterSets[0].NALUnit
+	if len(avcc.PictureParameterSets) == 0 {
+		return nil, nil, fmt.Errorf("H264 PPS not provided")
 	}
-
 	if len(avcc.PictureParameterSets) > 1 {
-		return nil, nil, fmt.Errorf("multiple PPS are not supported")
+		return nil, nil, fmt.Errorf("multiple H264 PPS are not supported")
 	}
 
-	var pps []byte
-	if len(avcc.PictureParameterSets) == 1 {
-		pps = avcc.PictureParameterSets[0].NALUnit
+	sps := avcc.SequenceParameterSets[0].NALUnit
+	var spsp h264.SPS
+	err := spsp.Unmarshal(sps)
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to parse H264 SPS: %w", err)
+	}
+
+	pps := avcc.PictureParameterSets[0].NALUnit
+	if len(pps) == 0 {
+		return nil, nil, fmt.Errorf("invalid H264 PPS")
 	}
 
 	return sps, pps, nil
@@ -258,6 +278,10 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 					return nil, err
 				}
 				vp09 := box.(*mp4.VisualSampleEntry)
+
+				if vp09.Width == 0 || vp09.Height == 0 {
+					return nil, fmt.Errorf("VP9 parameters not provided")
+				}
 
 				width = int(vp09.Width)
 				height = int(vp09.Height)
@@ -418,7 +442,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 					switch conf.ObjectTypeIndication {
 					case objectTypeIndicationVisualISO14496part2:
 						spec := esdsFindDecoderSpecificInfo(esds.Descriptors)
-						if spec == nil {
+						if len(spec) == 0 {
 							return nil, fmt.Errorf("unable to find decoder specific info")
 						}
 
@@ -428,7 +452,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 
 					case objectTypeIndicationVisualISO1318part2Main:
 						spec := esdsFindDecoderSpecificInfo(esds.Descriptors)
-						if spec == nil {
+						if len(spec) == 0 {
 							return nil, fmt.Errorf("unable to find decoder specific info")
 						}
 
@@ -437,6 +461,10 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 						}
 
 					case objectTypeIndicationVisualISO10918part1:
+						if width == 0 || height == 0 {
+							return nil, fmt.Errorf("M-JPEG parameters not provided")
+						}
+
 						curTrack.Codec = &CodecMJPEG{
 							Width:  width,
 							Height: height,
@@ -452,7 +480,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 					switch conf.ObjectTypeIndication {
 					case objectTypeIndicationAudioISO14496part3:
 						spec := esdsFindDecoderSpecificInfo(esds.Descriptors)
-						if spec == nil {
+						if len(spec) == 0 {
 							return nil, fmt.Errorf("unable to find decoder specific info")
 						}
 

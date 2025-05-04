@@ -73,11 +73,14 @@ func FuzzADTSUnmarshal(f *testing.F) {
 		f.Add(ca.byts)
 	}
 
-	f.Fuzz(func(_ *testing.T, b []byte) {
+	f.Fuzz(func(t *testing.T, b []byte) {
 		var pkts ADTSPackets
 		err := pkts.Unmarshal(b)
-		if err == nil {
-			pkts.Marshal() //nolint:errcheck
+		if err != nil {
+			return
 		}
+
+		_, err = pkts.Marshal()
+		require.NoError(t, err)
 	})
 }

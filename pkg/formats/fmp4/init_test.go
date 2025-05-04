@@ -2146,7 +2146,8 @@ func FuzzInitUnmarshal(f *testing.F) {
 		}
 
 		var buf seekablebuffer.Buffer
-		init.Marshal(&buf) //nolint:errcheck
+		err = init.Marshal(&buf)
+		require.NoError(t, err)
 	})
 }
 
