@@ -83,19 +83,17 @@ func FuzzBitstreamUnmarshal(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte) {
 		var tu Bitstream
 		err := tu.Unmarshal(b)
-
-		if err == nil {
-			if len(tu) == 0 {
-				t.Errorf("should not happen")
-			}
-
-			for _, obu := range tu {
-				if len(obu) == 0 {
-					t.Errorf("should not happen")
-				}
-			}
-
-			tu.Marshal() //nolint:errcheck
+		if err != nil {
+			return
 		}
+
+		require.NotZero(t, len(tu))
+
+		for _, obu := range tu {
+			require.NotZero(t, len(obu))
+		}
+
+		_, err = tu.Marshal()
+		require.NoError(t, err)
 	})
 }

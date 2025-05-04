@@ -567,10 +567,12 @@ func FuzzSPSUnmarshal(f *testing.F) {
 	f.Fuzz(func(_ *testing.T, b []byte) {
 		var sps SPS
 		err := sps.Unmarshal(b)
-		if err == nil {
-			sps.Width()
-			sps.Height()
-			sps.FPS()
+		if err != nil {
+			return
 		}
+
+		sps.Width()
+		sps.Height()
+		sps.FPS()
 	})
 }
