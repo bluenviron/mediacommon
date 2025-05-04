@@ -209,6 +209,10 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 				}
 				mdhd := box.(*mp4.Mdhd)
 
+				if mdhd.Timescale == 0 {
+					return nil, fmt.Errorf("invalid timescale")
+				}
+
 				curTrack.TimeScale = mdhd.Timescale
 				state = waitingCodec
 
