@@ -1,0 +1,4 @@
+go test fuzz v1
+[]byte("&0000")
+[]byte("\xc40000")
+[]byte("B00000000000000\xf0\xaf77\xad2X\xc9\v\x940000\x00\x00\x00\x00")
