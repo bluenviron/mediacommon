@@ -1010,6 +1010,8 @@ func (t *Track) marshalSTTS(w *mp4Writer) error {
 }
 
 func (t *Track) marshalSTSS(w *mp4Writer) error {
+	// ISO 14496-12 2015:
+	// "If the sync sample box is not present, every sample is a sync sample."
 	if allSamplesAreSync(t.Samples) {
 		return nil
 	}
