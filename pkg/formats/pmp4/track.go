@@ -1034,23 +1034,23 @@ func (t *Track) marshalSTSS(w *mp4Writer) error {
 func (t *Track) marshalCTTS(w *mp4Writer) error {
 	entries := []mp4.CttsEntry{{
 		SampleCount:    1,
-		SampleOffsetV0: uint32(t.Samples[0].PTSOffset),
+		SampleOffsetV1: t.Samples[0].PTSOffset,
 	}}
 
 	for _, sa := range t.Samples[1:] {
-		if uint32(sa.PTSOffset) == entries[len(entries)-1].SampleOffsetV0 {
+		if sa.PTSOffset == entries[len(entries)-1].SampleOffsetV1 {
 			entries[len(entries)-1].SampleCount++
 		} else {
 			entries = append(entries, mp4.CttsEntry{
 				SampleCount:    1,
-				SampleOffsetV0: uint32(sa.PTSOffset),
+				SampleOffsetV1: sa.PTSOffset,
 			})
 		}
 	}
 
 	_, err := w.writeBox(&mp4.Ctts{
 		FullBox: mp4.FullBox{
-			Version: 0,
+			Version: 1,
 		},
 		EntryCount: uint32(len(entries)),
 		Entries:    entries,
