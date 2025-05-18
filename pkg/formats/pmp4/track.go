@@ -32,9 +32,9 @@ func boolToUint8(v bool) uint8 {
 	return 0
 }
 
-func allSamplesAreSync(samples []*Sample) bool {
+func allSamplesAreNonSync(samples []*Sample) bool {
 	for _, sa := range samples {
-		if sa.IsNonSyncSample {
+		if !sa.IsNonSyncSample {
 			return false
 		}
 	}
@@ -1010,7 +1010,7 @@ func (t *Track) marshalSTTS(w *mp4Writer) error {
 }
 
 func (t *Track) marshalSTSS(w *mp4Writer) error {
-	if allSamplesAreSync(t.Samples) {
+	if allSamplesAreNonSync(t.Samples) {
 		return nil
 	}
 
