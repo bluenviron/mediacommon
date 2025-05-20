@@ -128,7 +128,8 @@ var casesInit = []struct {
 				TimeScale: 90000,
 				Codec: &CodecAV1{
 					SequenceHeader: []byte{
-						0x0a, 0x0b, 0, 0, 0, 66, 167, 191, 228, 96, 13, 0, 64,
+						0x08, 0x00, 0x00, 0x00, 0x42, 0xa7, 0xbf, 0xe4,
+						0x60, 0x0d, 0x00, 0x40,
 					},
 				},
 			}},

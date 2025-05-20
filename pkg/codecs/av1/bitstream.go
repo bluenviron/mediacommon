@@ -27,13 +27,16 @@ func (bs *Bitstream) Unmarshal(buf []byte) error {
 			return err
 		}
 
-		obuLen := 1 + n + int(size)
-		if len(buf) < obuLen {
+		obuAndSizeLen := 1 + int(size) + n
+		if len(buf) < obuAndSizeLen {
 			return fmt.Errorf("not enough bytes")
 		}
 
-		var obu []byte
-		obu, buf = buf[:obuLen], buf[obuLen:]
+		obu := make([]byte, 1+int(size))
+		obu[0] = buf[0] & 0b11111101
+		copy(obu[1:], buf[1+n:])
+
+		buf = buf[obuAndSizeLen:]
 
 		*bs = append(*bs, obu)
 
