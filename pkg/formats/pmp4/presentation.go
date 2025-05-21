@@ -1,17 +1,146 @@
-// Package pmp4 contains a MP4 presentation muxer.
+// Package pmp4 contains a MP4 presentation reader and writer.
 package pmp4
 
 import (
+	"fmt"
 	"io"
 	"time"
 
 	"github.com/abema/go-mp4"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/av1"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h265"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/fmp4"
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/fmp4/seekablebuffer"
 )
 
 const (
 	globalTimescale = 1000
+	maxSamples      = 30 * 60 * 60 * 48 // 30 fps @ 2 days
+	maxChunks       = maxSamples
 )
+
+func av1FindSequenceHeader(buf []byte) ([]byte, error) {
+	var tu av1.Bitstream
+	err := tu.Unmarshal(buf)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, obu := range tu {
+		var h av1.OBUHeader
+		err := h.Unmarshal(obu)
+		if err != nil {
+			return nil, err
+		}
+
+		if h.Type == av1.OBUTypeSequenceHeader {
+			var parsed av1.SequenceHeader
+			err = parsed.Unmarshal(obu)
+			if err != nil {
+				return nil, err
+			}
+
+			return obu, nil
+		}
+	}
+
+	return nil, fmt.Errorf("AV1 sequence header not found")
+}
+
+func h264FindParams(avcc *mp4.AVCDecoderConfiguration) ([]byte, []byte, error) {
+	if len(avcc.SequenceParameterSets) == 0 {
+		return nil, nil, fmt.Errorf("H264 SPS not provided")
+	}
+	if len(avcc.SequenceParameterSets) > 1 {
+		return nil, nil, fmt.Errorf("multiple H264 SPS are not supported")
+	}
+	if len(avcc.PictureParameterSets) == 0 {
+		return nil, nil, fmt.Errorf("H264 PPS not provided")
+	}
+	if len(avcc.PictureParameterSets) > 1 {
+		return nil, nil, fmt.Errorf("multiple H264 PPS are not supported")
+	}
+
+	sps := avcc.SequenceParameterSets[0].NALUnit
+	var spsp h264.SPS
+	err := spsp.Unmarshal(sps)
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to parse H264 SPS: %w", err)
+	}
+
+	pps := avcc.PictureParameterSets[0].NALUnit
+	if len(pps) == 0 {
+		return nil, nil, fmt.Errorf("invalid H264 PPS")
+	}
+
+	return sps, pps, nil
+}
+
+func h265FindParams(params []mp4.HEVCNaluArray) ([]byte, []byte, []byte, error) {
+	var vps []byte
+	var sps []byte
+	var pps []byte
+
+	for _, arr := range params {
+		switch h265.NALUType(arr.NaluType) {
+		case h265.NALUType_VPS_NUT, h265.NALUType_SPS_NUT, h265.NALUType_PPS_NUT:
+			if arr.NumNalus != 1 {
+				return nil, nil, nil, fmt.Errorf("multiple H265 VPS/SPS/PPS are not supported")
+			}
+
+			switch h265.NALUType(arr.NaluType) {
+			case h265.NALUType_VPS_NUT:
+				vps = arr.Nalus[0].NALUnit
+
+			case h265.NALUType_SPS_NUT:
+				sps = arr.Nalus[0].NALUnit
+
+				var spsp h265.SPS
+				err := spsp.Unmarshal(sps)
+				if err != nil {
+					return nil, nil, nil, fmt.Errorf("unable to parse H265 SPS: %w", err)
+				}
+
+			case h265.NALUType_PPS_NUT:
+				pps = arr.Nalus[0].NALUnit
+			}
+		}
+	}
+
+	if len(vps) == 0 {
+		return nil, nil, nil, fmt.Errorf("H265 VPS not provided")
+	}
+
+	if len(sps) == 0 {
+		return nil, nil, nil, fmt.Errorf("H265 SPS not provided")
+	}
+
+	if len(pps) == 0 {
+		return nil, nil, nil, fmt.Errorf("H265 PPS not provided")
+	}
+
+	return vps, sps, pps, nil
+}
+
+func esdsFindDecoderConf(descriptors []mp4.Descriptor) *mp4.DecoderConfigDescriptor {
+	for _, desc := range descriptors {
+		if desc.Tag == mp4.DecoderConfigDescrTag {
+			return desc.DecoderConfigDescriptor
+		}
+	}
+	return nil
+}
+
+func esdsFindDecoderSpecificInfo(descriptors []mp4.Descriptor) []byte {
+	for _, desc := range descriptors {
+		if desc.Tag == mp4.DecSpecificInfoTag {
+			return desc.Data
+		}
+	}
+	return nil
+}
 
 func durationMp4ToGo(v int64, timeScale uint32) time.Duration {
 	timeScale64 := int64(timeScale)
@@ -23,6 +152,701 @@ func durationMp4ToGo(v int64, timeScale uint32) time.Duration {
 // Presentation is timed sequence of video/audio samples.
 type Presentation struct {
 	Tracks []*Track
+}
+
+// Unmarshal decodes a Presentation.
+func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
+	type readState int
+
+	const (
+		waitingMoov readState = iota
+		waitingMvhd
+		waitingTrak
+		waitingElst
+		waitingTkhd
+		waitingMdhd
+		waitingCodec
+		waitingAv1C
+		waitingVpcC
+		waitingHvcC
+		waitingAvcC
+		waitingVideoEsds
+		waitingAudioEsds
+		waitingDOps
+		waitingDac3
+		waitingPcmC
+		waitingStts
+		mdat
+	)
+
+	state := waitingMoov
+	var trackDuration uint32
+	var curTrack *Track
+	var width int
+	var height int
+	var sampleRate int
+	var channelCount int
+
+	type chunk struct {
+		sampleCount int
+		offset      uint32
+	}
+
+	var curChunks []*chunk
+	var curSampleSizes []uint32
+
+	_, err := mp4.ReadBoxStructure(r, func(h *mp4.ReadHandle) (interface{}, error) {
+		switch h.BoxInfo.Type.String() {
+		case "ftyp", "hdlr", "vmhd", "dinf", "smhd":
+
+		case "moov":
+			if state != waitingMoov {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			state = waitingMvhd
+			return h.Expand()
+
+		case "mvhd":
+			if state != waitingMvhd {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			state = waitingTrak
+			return h.Expand()
+
+		case "trak":
+			if state != waitingTrak {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			curTrack = &Track{}
+			curChunks = nil
+			curSampleSizes = nil
+			p.Tracks = append(p.Tracks, curTrack)
+			state = waitingTkhd
+			return h.Expand()
+
+		case "tkhd":
+			if state != waitingTkhd {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			tkhd := box.(*mp4.Tkhd)
+
+			curTrack.ID = int(tkhd.TrackID)
+			state = waitingElst
+
+		case "edts":
+			return h.Expand()
+
+		case "elst":
+			if state != waitingElst {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			state = waitingMdhd
+
+		case "mdia":
+			return h.Expand()
+
+		case "mdhd":
+			if state != waitingMdhd {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			mdhd := box.(*mp4.Mdhd)
+
+			if mdhd.Timescale == 0 {
+				return nil, fmt.Errorf("invalid timescale")
+			}
+
+			curTrack.TimeScale = mdhd.Timescale
+			trackDuration = mdhd.DurationV0
+			state = waitingCodec
+
+		case "minf", "stbl", "stsd":
+			return h.Expand()
+
+		case "avc1":
+			if state != waitingCodec {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+			state = waitingAvcC
+			return h.Expand()
+
+		case "avcC":
+			if state != waitingAvcC {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			avcc := box.(*mp4.AVCDecoderConfiguration)
+
+			sps, pps, err := h264FindParams(avcc)
+			if err != nil {
+				return nil, err
+			}
+
+			curTrack.Codec = &fmp4.CodecH264{
+				SPS: sps,
+				PPS: pps,
+			}
+			state = waitingStts
+
+		case "vp09":
+			if state != waitingCodec {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			vp09 := box.(*mp4.VisualSampleEntry)
+
+			if vp09.Width == 0 || vp09.Height == 0 {
+				return nil, fmt.Errorf("VP9 parameters not provided")
+			}
+
+			width = int(vp09.Width)
+			height = int(vp09.Height)
+			state = waitingVpcC
+			return h.Expand()
+
+		case "vpcC":
+			if state != waitingVpcC {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			vpcc := box.(*mp4.VpcC)
+
+			curTrack.Codec = &fmp4.CodecVP9{
+				Width:             width,
+				Height:            height,
+				Profile:           vpcc.Profile,
+				BitDepth:          vpcc.BitDepth,
+				ChromaSubsampling: vpcc.ChromaSubsampling,
+				ColorRange:        vpcc.VideoFullRangeFlag != 0,
+			}
+			state = waitingStts
+
+		case "vp08": // VP8, not supported yet
+			return nil, nil
+
+		case "hev1", "hvc1":
+			if state != waitingCodec {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+			state = waitingHvcC
+			return h.Expand()
+
+		case "hvcC":
+			if state != waitingHvcC {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			hvcc := box.(*mp4.HvcC)
+
+			vps, sps, pps, err := h265FindParams(hvcc.NaluArrays)
+			if err != nil {
+				return nil, err
+			}
+
+			curTrack.Codec = &fmp4.CodecH265{
+				VPS: vps,
+				SPS: sps,
+				PPS: pps,
+			}
+			state = waitingStts
+
+		case "mp4a":
+			if state != waitingCodec {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			mp4a := box.(*mp4.AudioSampleEntry)
+
+			sampleRate = int(mp4a.SampleRate / 65536)
+			channelCount = int(mp4a.ChannelCount)
+			state = waitingAudioEsds
+			return h.Expand()
+
+		case "av01":
+			if state != waitingCodec {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+			state = waitingAv1C
+			return h.Expand()
+
+		case "av1C":
+			if state != waitingAv1C {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			av1c := box.(*mp4.Av1C)
+
+			sequenceHeader, err := av1FindSequenceHeader(av1c.ConfigOBUs)
+			if err != nil {
+				return nil, err
+			}
+
+			curTrack.Codec = &fmp4.CodecAV1{
+				SequenceHeader: sequenceHeader,
+			}
+			state = waitingStts
+
+		case "Opus":
+			if state != waitingCodec {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+			state = waitingDOps
+			return h.Expand()
+
+		case "dOps":
+			if state != waitingDOps {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			dops := box.(*mp4.DOps)
+
+			curTrack.Codec = &fmp4.CodecOpus{
+				ChannelCount: int(dops.OutputChannelCount),
+			}
+			state = waitingStts
+
+		case "mp4v":
+			if state != waitingCodec {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			mp4v := box.(*mp4.VisualSampleEntry)
+
+			width = int(mp4v.Width)
+			height = int(mp4v.Height)
+			state = waitingVideoEsds
+			return h.Expand()
+
+		case "esds":
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			esds := box.(*mp4.Esds)
+
+			conf := esdsFindDecoderConf(esds.Descriptors)
+			if conf == nil {
+				return nil, fmt.Errorf("unable to find decoder config")
+			}
+
+			switch state {
+			case waitingVideoEsds:
+				switch conf.ObjectTypeIndication {
+				case objectTypeIndicationVisualISO14496part2:
+					spec := esdsFindDecoderSpecificInfo(esds.Descriptors)
+					if len(spec) == 0 {
+						return nil, fmt.Errorf("unable to find decoder specific info")
+					}
+
+					curTrack.Codec = &fmp4.CodecMPEG4Video{
+						Config: spec,
+					}
+
+				case objectTypeIndicationVisualISO1318part2Main:
+					spec := esdsFindDecoderSpecificInfo(esds.Descriptors)
+					if len(spec) == 0 {
+						return nil, fmt.Errorf("unable to find decoder specific info")
+					}
+
+					curTrack.Codec = &fmp4.CodecMPEG1Video{
+						Config: spec,
+					}
+
+				case objectTypeIndicationVisualISO10918part1:
+					if width == 0 || height == 0 {
+						return nil, fmt.Errorf("M-JPEG parameters not provided")
+					}
+
+					curTrack.Codec = &fmp4.CodecMJPEG{
+						Width:  width,
+						Height: height,
+					}
+
+				default:
+					return nil, fmt.Errorf("unsupported object type indication: 0x%.2x", conf.ObjectTypeIndication)
+				}
+
+				state = waitingStts
+
+			case waitingAudioEsds:
+				switch conf.ObjectTypeIndication {
+				case objectTypeIndicationAudioISO14496part3:
+					spec := esdsFindDecoderSpecificInfo(esds.Descriptors)
+					if len(spec) == 0 {
+						return nil, fmt.Errorf("unable to find decoder specific info")
+					}
+
+					var c mpeg4audio.Config
+					err := c.Unmarshal(spec)
+					if err != nil {
+						return nil, fmt.Errorf("invalid MPEG-4 Audio configuration: %w", err)
+					}
+
+					curTrack.Codec = &fmp4.CodecMPEG4Audio{
+						Config: c,
+					}
+
+				case objectTypeIndicationAudioISO11172part3:
+					curTrack.Codec = &fmp4.CodecMPEG1Audio{
+						SampleRate:   sampleRate,
+						ChannelCount: channelCount,
+					}
+
+				default:
+					return nil, fmt.Errorf("unsupported object type indication: 0x%.2x", conf.ObjectTypeIndication)
+				}
+
+			default:
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			state = waitingStts
+
+		case "ac-3":
+			if state != waitingCodec {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			ac3 := box.(*mp4.AudioSampleEntry)
+
+			sampleRate = int(ac3.SampleRate / 65536)
+			channelCount = int(ac3.ChannelCount)
+			state = waitingDac3
+			return h.Expand()
+
+		case "dac3":
+			if state != waitingDac3 {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			dac3 := box.(*mp4.Dac3)
+
+			curTrack.Codec = &fmp4.CodecAC3{
+				SampleRate:   sampleRate,
+				ChannelCount: channelCount,
+				Fscod:        dac3.Fscod,
+				Bsid:         dac3.Bsid,
+				Bsmod:        dac3.Bsmod,
+				Acmod:        dac3.Acmod,
+				LfeOn:        dac3.LfeOn != 0,
+				BitRateCode:  dac3.BitRateCode,
+			}
+			state = waitingStts
+
+		case "ipcm":
+			if state != waitingCodec {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			ac3 := box.(*mp4.AudioSampleEntry)
+
+			sampleRate = int(ac3.SampleRate / 65536)
+			channelCount = int(ac3.ChannelCount)
+			state = waitingPcmC
+			return h.Expand()
+
+		case "pcmC":
+			if state != waitingPcmC {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			pcmc := box.(*mp4.PcmC)
+
+			curTrack.Codec = &fmp4.CodecLPCM{
+				LittleEndian: (pcmc.FormatFlags & 0x01) != 0,
+				BitDepth:     int(pcmc.PCMSampleSize),
+				SampleRate:   sampleRate,
+				ChannelCount: channelCount,
+			}
+			state = waitingStts
+
+		case "stts":
+			if state != waitingStts {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			stts := box.(*mp4.Stts)
+
+			for _, entry := range stts.Entries {
+				if (len(curTrack.Samples) + int(entry.SampleCount)) > maxSamples {
+					return nil, fmt.Errorf("max samples reached")
+				}
+
+				for range entry.SampleCount {
+					curTrack.Samples = append(curTrack.Samples, &Sample{
+						Duration: entry.SampleDelta,
+					})
+				}
+			}
+
+			sampleDuration := uint32(0)
+			for _, sa := range curTrack.Samples {
+				sampleDuration += sa.Duration
+			}
+
+			curTrack.TimeOffset = int32(trackDuration) - int32(sampleDuration)
+
+			state = waitingTrak
+
+		case "stss":
+			if state != waitingTrak || curTrack == nil {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			stss := box.(*mp4.Stss)
+
+			for _, sample := range curTrack.Samples {
+				sample.IsNonSyncSample = true
+			}
+
+			for _, number := range stss.SampleNumber {
+				if int(number-1) >= len(curTrack.Samples) {
+					return nil, fmt.Errorf("invalid stss")
+				}
+				curTrack.Samples[number-1].IsNonSyncSample = false
+			}
+
+		case "ctts":
+			if state != waitingTrak || curTrack == nil {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			ctts := box.(*mp4.Ctts)
+
+			i := 0
+
+			for _, entry := range ctts.Entries {
+				if (i + int(entry.SampleCount)) > len(curTrack.Samples) {
+					return nil, fmt.Errorf("invalid ctts")
+				}
+
+				for range entry.SampleCount {
+					curTrack.Samples[i].PTSOffset = entry.SampleOffsetV1
+					i++
+				}
+			}
+
+		case "stsc":
+			if state != waitingTrak || curTrack == nil {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			stsc := box.(*mp4.Stsc)
+
+			if len(stsc.Entries) == 0 {
+				return nil, fmt.Errorf("invalid stsc")
+			}
+
+			prevFirstChunk := uint32(0)
+			i := 0
+
+			for _, entry := range stsc.Entries {
+				chunkCount := entry.FirstChunk - prevFirstChunk
+
+				if (len(curChunks) + int(chunkCount)) > maxChunks {
+					return nil, fmt.Errorf("invalid stsc")
+				}
+
+				if entry.SamplesPerChunk == 0 {
+					return nil, fmt.Errorf("invalid stsc")
+				}
+
+				for range chunkCount {
+					if (i + int(entry.SamplesPerChunk)) > len(curTrack.Samples) {
+						return nil, fmt.Errorf("invalid stsc")
+					}
+
+					curChunks = append(curChunks, &chunk{
+						sampleCount: int(entry.SamplesPerChunk),
+					})
+
+					i += int(entry.SamplesPerChunk)
+				}
+				prevFirstChunk = entry.FirstChunk
+			}
+
+			if i != len(curTrack.Samples) {
+				remaining := len(curTrack.Samples) - i
+				lastEntry := stsc.Entries[len(stsc.Entries)-1]
+
+				if (remaining % int(lastEntry.SamplesPerChunk)) != 0 {
+					return nil, fmt.Errorf("invalid stsc")
+				}
+
+				count := remaining / int(lastEntry.SamplesPerChunk)
+				for range count {
+					curChunks = append(curChunks, &chunk{
+						sampleCount: int(lastEntry.SamplesPerChunk),
+					})
+				}
+			}
+
+		case "stsz":
+			if state != waitingTrak || curTrack == nil {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			stsz := box.(*mp4.Stsz)
+
+			curSampleSizes = stsz.EntrySize
+
+		case "stco":
+			if state != waitingTrak || curTrack == nil {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			stco := box.(*mp4.Stco)
+
+			if len(stco.ChunkOffset) != len(curChunks) {
+				return nil, fmt.Errorf("invalid stco")
+			}
+
+			for i, chunk := range curChunks {
+				chunk.offset = stco.ChunkOffset[i]
+			}
+
+			if len(curSampleSizes) != len(curTrack.Samples) {
+				return nil, fmt.Errorf("invalid stsz")
+			}
+
+			i := 0
+
+			for _, chunk := range curChunks {
+				off := chunk.offset
+
+				for range chunk.sampleCount {
+					sampleSize := curSampleSizes[i]
+					sampleOffset := off
+
+					curTrack.Samples[i].PayloadSize = sampleSize
+
+					curTrack.Samples[i].GetPayload = func() ([]byte, error) {
+						_, err = r.Seek(int64(sampleOffset), io.SeekStart)
+						if err != nil {
+							return nil, err
+						}
+
+						buf := make([]byte, sampleSize)
+						_, err = io.ReadFull(r, buf)
+						return buf, err
+					}
+
+					off += sampleSize
+					i++
+				}
+			}
+
+		case "mdat":
+			if state != waitingTrak {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
+			state = mdat
+
+		default:
+			return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+		}
+
+		return nil, nil
+	})
+	if err != nil {
+		return err
+	}
+
+	if state != mdat {
+		return fmt.Errorf("parse error")
+	}
+
+	if len(p.Tracks) == 0 {
+		return fmt.Errorf("no tracks found")
+	}
+
+	return nil
 }
 
 // Marshal encodes a Presentation.

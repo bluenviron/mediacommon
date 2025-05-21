@@ -1098,6 +1098,62 @@ var casesPresentation = []struct {
 	},
 }
 
+func getSampleData(t *testing.T, p *Presentation) map[int][][]byte {
+	sampleData := make(map[int][][]byte)
+	for _, track := range p.Tracks {
+		var trackData [][]byte
+		for _, sample := range track.Samples {
+			pl, err := sample.GetPayload()
+			require.NoError(t, err)
+			trackData = append(trackData, pl)
+		}
+		sampleData[track.ID] = trackData
+	}
+	return sampleData
+}
+
+func removeGetPayloads(p *Presentation) []func() ([]byte, error) {
+	var ret []func() ([]byte, error)
+	for _, track := range p.Tracks {
+		for _, sample := range track.Samples {
+			ret = append(ret, sample.GetPayload)
+			sample.GetPayload = nil
+		}
+	}
+	return ret
+}
+
+func restoreGetPayloads(p *Presentation, getPayloads []func() ([]byte, error)) {
+	i := 0
+	for _, track := range p.Tracks {
+		for _, sample := range track.Samples {
+			sample.GetPayload = getPayloads[i]
+			i++
+		}
+	}
+}
+
+func TestPresentationUnmarshal(t *testing.T) {
+	for _, ca := range casesPresentation {
+		t.Run(ca.name, func(t *testing.T) {
+			var p Presentation
+			err := p.Unmarshal(bytes.NewReader(ca.enc))
+			require.NoError(t, err)
+
+			expectedSampleData := getSampleData(t, &ca.dec)
+			sampleData := getSampleData(t, &p)
+
+			removeGetPayloads(&p)
+			getPayloads := removeGetPayloads(&ca.dec)
+
+			require.Equal(t, ca.dec, p)
+			require.Equal(t, expectedSampleData, sampleData)
+
+			restoreGetPayloads(&ca.dec, getPayloads)
+		})
+	}
+}
+
 func TestPresentationMarshal(t *testing.T) {
 	for _, ca := range casesPresentation {
 		t.Run(ca.name, func(t *testing.T) {
@@ -1107,4 +1163,35 @@ func TestPresentationMarshal(t *testing.T) {
 			require.Equal(t, ca.enc, buf.Bytes())
 		})
 	}
+}
+
+func FuzzPresentationUnmarshal(f *testing.F) {
+	for _, ca := range casesPresentation {
+		f.Add(ca.enc)
+	}
+
+	f.Fuzz(func(t *testing.T, b []byte) {
+		var p Presentation
+		err := p.Unmarshal(bytes.NewReader(b))
+		if err != nil {
+			return
+		}
+
+		require.NotZero(t, len(p.Tracks))
+
+		for _, track := range p.Tracks {
+			require.NotZero(t, track.TimeScale)
+
+			for _, sample := range track.Samples {
+				_, err = sample.GetPayload()
+				if err != nil {
+					return
+				}
+			}
+		}
+
+		var buf bytes.Buffer
+		err = p.Marshal(&buf)
+		require.NoError(t, err)
+	})
 }
