@@ -8,6 +8,7 @@ import (
 
 	amp4 "github.com/abema/go-mp4"
 
+	imp4 "github.com/bluenviron/mediacommon/v2/internal/mp4"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/av1"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h265"
@@ -478,7 +479,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			switch state {
 			case waitingVideoEsds:
 				switch conf.ObjectTypeIndication {
-				case objectTypeIndicationVisualISO14496part2:
+				case imp4.ObjectTypeIndicationVisualISO14496part2:
 					spec := esdsFindDecoderSpecificInfo(esds.Descriptors)
 					if len(spec) == 0 {
 						return nil, fmt.Errorf("unable to find decoder specific info")
@@ -488,7 +489,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 						Config: spec,
 					}
 
-				case objectTypeIndicationVisualISO1318part2Main:
+				case imp4.ObjectTypeIndicationVisualISO1318part2Main:
 					spec := esdsFindDecoderSpecificInfo(esds.Descriptors)
 					if len(spec) == 0 {
 						return nil, fmt.Errorf("unable to find decoder specific info")
@@ -498,7 +499,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 						Config: spec,
 					}
 
-				case objectTypeIndicationVisualISO10918part1:
+				case imp4.ObjectTypeIndicationVisualISO10918part1:
 					if width == 0 || height == 0 {
 						return nil, fmt.Errorf("M-JPEG parameters not provided")
 					}
@@ -516,7 +517,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 
 			case waitingAudioEsds:
 				switch conf.ObjectTypeIndication {
-				case objectTypeIndicationAudioISO14496part3:
+				case imp4.ObjectTypeIndicationAudioISO14496part3:
 					spec := esdsFindDecoderSpecificInfo(esds.Descriptors)
 					if len(spec) == 0 {
 						return nil, fmt.Errorf("unable to find decoder specific info")
@@ -532,7 +533,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 						Config: c,
 					}
 
-				case objectTypeIndicationAudioISO11172part3:
+				case imp4.ObjectTypeIndicationAudioISO11172part3:
 					curTrack.Codec = &mp4.CodecMPEG1Audio{
 						SampleRate:   sampleRate,
 						ChannelCount: channelCount,
@@ -922,9 +923,10 @@ func (p *Presentation) sortSamples() (uint32, []*Sample) {
 
 func (p *Presentation) marshalFtypAndMoov(w io.Writer) error {
 	var outBuf seekablebuffer.Buffer
-	mw := newMP4Writer(&outBuf)
+	mw := &imp4.Writer{W: &outBuf}
+	mw.Initialize()
 
-	_, err := mw.writeBox(&amp4.Ftyp{ // <ftyp/>
+	_, err := mw.WriteBox(&amp4.Ftyp{ // <ftyp/>
 		MajorBrand:   [4]byte{'i', 's', 'o', 'm'},
 		MinorVersion: 1,
 		CompatibleBrands: []amp4.CompatibleBrandElem{
@@ -938,7 +940,7 @@ func (p *Presentation) marshalFtypAndMoov(w io.Writer) error {
 		return err
 	}
 
-	_, err = mw.writeBoxStart(&amp4.Moov{}) // <moov>
+	_, err = mw.WriteBoxStart(&amp4.Moov{}) // <moov>
 	if err != nil {
 		return err
 	}
@@ -950,7 +952,7 @@ func (p *Presentation) marshalFtypAndMoov(w io.Writer) error {
 		Matrix:      [9]int32{0x00010000, 0, 0, 0, 0x00010000, 0, 0, 0, 0x40000000},
 		NextTrackID: uint32(len(p.Tracks) + 1),
 	}
-	mvhdOffset, err := mw.writeBox(mvhd)
+	mvhdOffset, err := mw.WriteBox(mvhd)
 	if err != nil {
 		return err
 	}
@@ -973,12 +975,12 @@ func (p *Presentation) marshalFtypAndMoov(w io.Writer) error {
 		}
 	}
 
-	err = mw.rewriteBox(mvhdOffset, mvhd)
+	err = mw.RewriteBox(mvhdOffset, mvhd)
 	if err != nil {
 		return err
 	}
 
-	err = mw.writeBoxEnd() // </moov>
+	err = mw.WriteBoxEnd() // </moov>
 	if err != nil {
 		return err
 	}
@@ -995,7 +997,7 @@ func (p *Presentation) marshalFtypAndMoov(w io.Writer) error {
 			stcos[i].ChunkOffset[j] += uint32(dataOffset)
 		}
 
-		err = mw.rewriteBox(stcosOffsets[i], stcos[i])
+		err = mw.RewriteBox(stcosOffsets[i], stcos[i])
 		if err != nil {
 			return err
 		}

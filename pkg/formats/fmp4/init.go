@@ -6,26 +6,12 @@ import (
 
 	amp4 "github.com/abema/go-mp4"
 
+	imp4 "github.com/bluenviron/mediacommon/v2/internal/mp4"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/av1"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h265"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4"
-)
-
-// Specification: ISO 14496-1, Table 5
-const (
-	objectTypeIndicationVisualISO14496part2    = 0x20
-	objectTypeIndicationAudioISO14496part3     = 0x40
-	objectTypeIndicationVisualISO1318part2Main = 0x61
-	objectTypeIndicationAudioISO11172part3     = 0x6B
-	objectTypeIndicationVisualISO10918part1    = 0x6C
-)
-
-// Specification: ISO 14496-1, Table 6
-const (
-	streamTypeVisualStream = 0x04
-	streamTypeAudioStream  = 0x05
 )
 
 func av1FindSequenceHeader(buf []byte) ([]byte, error) {
@@ -441,7 +427,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 				switch state {
 				case waitingVideoEsds:
 					switch conf.ObjectTypeIndication {
-					case objectTypeIndicationVisualISO14496part2:
+					case imp4.ObjectTypeIndicationVisualISO14496part2:
 						spec := esdsFindDecoderSpecificInfo(esds.Descriptors)
 						if len(spec) == 0 {
 							return nil, fmt.Errorf("unable to find decoder specific info")
@@ -451,7 +437,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 							Config: spec,
 						}
 
-					case objectTypeIndicationVisualISO1318part2Main:
+					case imp4.ObjectTypeIndicationVisualISO1318part2Main:
 						spec := esdsFindDecoderSpecificInfo(esds.Descriptors)
 						if len(spec) == 0 {
 							return nil, fmt.Errorf("unable to find decoder specific info")
@@ -461,7 +447,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 							Config: spec,
 						}
 
-					case objectTypeIndicationVisualISO10918part1:
+					case imp4.ObjectTypeIndicationVisualISO10918part1:
 						if width == 0 || height == 0 {
 							return nil, fmt.Errorf("M-JPEG parameters not provided")
 						}
@@ -479,7 +465,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 
 				case waitingAudioEsds:
 					switch conf.ObjectTypeIndication {
-					case objectTypeIndicationAudioISO14496part3:
+					case imp4.ObjectTypeIndicationAudioISO14496part3:
 						spec := esdsFindDecoderSpecificInfo(esds.Descriptors)
 						if len(spec) == 0 {
 							return nil, fmt.Errorf("unable to find decoder specific info")
@@ -495,7 +481,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 							Config: c,
 						}
 
-					case objectTypeIndicationAudioISO11172part3:
+					case imp4.ObjectTypeIndicationAudioISO11172part3:
 						curTrack.Codec = &mp4.CodecMPEG1Audio{
 							SampleRate:   sampleRate,
 							ChannelCount: channelCount,
@@ -619,9 +605,10 @@ func (i *Init) Marshal(w io.WriteSeeker) error {
 		|    |    |....|
 	*/
 
-	mw := newMP4Writer(w)
+	mw := &imp4.Writer{W: w}
+	mw.Initialize()
 
-	_, err := mw.writeBox(&amp4.Ftyp{ // <ftyp/>
+	_, err := mw.WriteBox(&amp4.Ftyp{ // <ftyp/>
 		MajorBrand:   [4]byte{'m', 'p', '4', '2'},
 		MinorVersion: 1,
 		CompatibleBrands: []amp4.CompatibleBrandElem{
@@ -635,12 +622,12 @@ func (i *Init) Marshal(w io.WriteSeeker) error {
 		return err
 	}
 
-	_, err = mw.writeBoxStart(&amp4.Moov{}) // <moov>
+	_, err = mw.WriteBoxStart(&amp4.Moov{}) // <moov>
 	if err != nil {
 		return err
 	}
 
-	_, err = mw.writeBox(&amp4.Mvhd{ // <mvhd/>
+	_, err = mw.WriteBox(&amp4.Mvhd{ // <mvhd/>
 		Timescale:   1000,
 		Rate:        65536,
 		Volume:      256,
@@ -658,13 +645,13 @@ func (i *Init) Marshal(w io.WriteSeeker) error {
 		}
 	}
 
-	_, err = mw.writeBoxStart(&amp4.Mvex{}) // <mvex>
+	_, err = mw.WriteBoxStart(&amp4.Mvex{}) // <mvex>
 	if err != nil {
 		return err
 	}
 
 	for _, track := range i.Tracks {
-		_, err = mw.writeBox(&amp4.Trex{ // <trex/>
+		_, err = mw.WriteBox(&amp4.Trex{ // <trex/>
 			TrackID:                       uint32(track.ID),
 			DefaultSampleDescriptionIndex: 1,
 		})
@@ -673,12 +660,12 @@ func (i *Init) Marshal(w io.WriteSeeker) error {
 		}
 	}
 
-	err = mw.writeBoxEnd() // </mvex>
+	err = mw.WriteBoxEnd() // </mvex>
 	if err != nil {
 		return err
 	}
 
-	err = mw.writeBoxEnd() // </moov>
+	err = mw.WriteBoxEnd() // </moov>
 	if err != nil {
 		return err
 	}

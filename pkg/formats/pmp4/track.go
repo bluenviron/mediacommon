@@ -5,25 +5,11 @@ import (
 
 	amp4 "github.com/abema/go-mp4"
 
+	imp4 "github.com/bluenviron/mediacommon/v2/internal/mp4"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/av1"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h265"
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4"
-)
-
-// Specification: ISO 14496-1, Table 5
-const (
-	objectTypeIndicationVisualISO14496part2    = 0x20
-	objectTypeIndicationAudioISO14496part3     = 0x40
-	objectTypeIndicationVisualISO1318part2Main = 0x61
-	objectTypeIndicationAudioISO11172part3     = 0x6B
-	objectTypeIndicationVisualISO10918part1    = 0x6C
-)
-
-// Specification: ISO 14496-1, Table 6
-const (
-	streamTypeVisualStream = 0x04
-	streamTypeAudioStream  = 0x05
 )
 
 func boolToUint8(v bool) uint8 {
@@ -57,7 +43,7 @@ type Track struct {
 	Samples    []*Sample
 }
 
-func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
+func (t *Track) marshal(w *imp4.Writer) (*headerTrackMarshalResult, error) {
 	/*
 		|trak|
 		|    |tkhd|
@@ -100,7 +86,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 		|    |    |    |    |stco|
 	*/
 
-	_, err := w.writeBoxStart(&amp4.Trak{}) // <trak>
+	_, err := w.WriteBoxStart(&amp4.Trak{}) // <trak>
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +180,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 	presentationDuration := uint32(((int64(sampleDuration) + int64(t.TimeOffset)) * globalTimescale) / int64(t.TimeScale))
 
 	if t.Codec.IsVideo() {
-		_, err = w.writeBox(&amp4.Tkhd{ // <tkhd/>
+		_, err = w.WriteBox(&amp4.Tkhd{ // <tkhd/>
 			FullBox: amp4.FullBox{
 				Flags: [3]byte{0, 0, 3},
 			},
@@ -208,7 +194,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 			return nil, err
 		}
 	} else {
-		_, err = w.writeBox(&amp4.Tkhd{ // <tkhd/>
+		_, err = w.WriteBox(&amp4.Tkhd{ // <tkhd/>
 			FullBox: amp4.FullBox{
 				Flags: [3]byte{0, 0, 3},
 			},
@@ -223,7 +209,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 		}
 	}
 
-	_, err = w.writeBoxStart(&amp4.Edts{}) // <edts>
+	_, err = w.WriteBoxStart(&amp4.Edts{}) // <edts>
 	if err != nil {
 		return nil, err
 	}
@@ -233,17 +219,17 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 		return nil, err
 	}
 
-	err = w.writeBoxEnd() // </edts>
+	err = w.WriteBoxEnd() // </edts>
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = w.writeBoxStart(&amp4.Mdia{}) // <mdia>
+	_, err = w.WriteBoxStart(&amp4.Mdia{}) // <mdia>
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = w.writeBox(&amp4.Mdhd{ // <mdhd/>
+	_, err = w.WriteBox(&amp4.Mdhd{ // <mdhd/>
 		Timescale:  t.TimeScale,
 		DurationV0: uint32(int64(sampleDuration) + int64(t.TimeOffset)),
 		Language:   [3]byte{'u', 'n', 'd'},
@@ -253,7 +239,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 	}
 
 	if t.Codec.IsVideo() {
-		_, err = w.writeBox(&amp4.Hdlr{ // <hdlr/>
+		_, err = w.WriteBox(&amp4.Hdlr{ // <hdlr/>
 			HandlerType: [4]byte{'v', 'i', 'd', 'e'},
 			Name:        "VideoHandler",
 		})
@@ -261,7 +247,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 			return nil, err
 		}
 	} else {
-		_, err = w.writeBox(&amp4.Hdlr{ // <hdlr/>
+		_, err = w.WriteBox(&amp4.Hdlr{ // <hdlr/>
 			HandlerType: [4]byte{'s', 'o', 'u', 'n'},
 			Name:        "SoundHandler",
 		})
@@ -270,13 +256,13 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 		}
 	}
 
-	_, err = w.writeBoxStart(&amp4.Minf{}) // <minf>
+	_, err = w.WriteBoxStart(&amp4.Minf{}) // <minf>
 	if err != nil {
 		return nil, err
 	}
 
 	if t.Codec.IsVideo() {
-		_, err = w.writeBox(&amp4.Vmhd{ // <vmhd/>
+		_, err = w.WriteBox(&amp4.Vmhd{ // <vmhd/>
 			FullBox: amp4.FullBox{
 				Flags: [3]byte{0, 0, 1},
 			},
@@ -285,25 +271,25 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 			return nil, err
 		}
 	} else {
-		_, err = w.writeBox(&amp4.Smhd{}) // <smhd/>
+		_, err = w.WriteBox(&amp4.Smhd{}) // <smhd/>
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	_, err = w.writeBoxStart(&amp4.Dinf{}) // <dinf>
+	_, err = w.WriteBoxStart(&amp4.Dinf{}) // <dinf>
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = w.writeBoxStart(&amp4.Dref{ // <dref>
+	_, err = w.WriteBoxStart(&amp4.Dref{ // <dref>
 		EntryCount: 1,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = w.writeBox(&amp4.Url{ // <url/>
+	_, err = w.WriteBox(&amp4.Url{ // <url/>
 		FullBox: amp4.FullBox{
 			Flags: [3]byte{0, 0, 1},
 		},
@@ -312,22 +298,22 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 		return nil, err
 	}
 
-	err = w.writeBoxEnd() // </dref>
+	err = w.WriteBoxEnd() // </dref>
 	if err != nil {
 		return nil, err
 	}
 
-	err = w.writeBoxEnd() // </dinf>
+	err = w.WriteBoxEnd() // </dinf>
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = w.writeBoxStart(&amp4.Stbl{}) // <stbl>
+	_, err = w.WriteBoxStart(&amp4.Stbl{}) // <stbl>
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = w.writeBoxStart(&amp4.Stsd{ // <stsd>
+	_, err = w.WriteBoxStart(&amp4.Stsd{ // <stsd>
 		EntryCount: 1,
 	})
 	if err != nil {
@@ -336,7 +322,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 
 	switch codec := t.Codec.(type) {
 	case *mp4.CodecAV1:
-		_, err = w.writeBoxStart(&amp4.VisualSampleEntry{ // <av01>
+		_, err = w.WriteBoxStart(&amp4.VisualSampleEntry{ // <av01>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
 					Type: amp4.BoxTypeAv01(),
@@ -361,7 +347,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 			return nil, err
 		}
 
-		_, err = w.writeBox(&amp4.Av1C{ // <av1C/>
+		_, err = w.WriteBox(&amp4.Av1C{ // <av1C/>
 			Marker:               1,
 			Version:              1,
 			SeqProfile:           av1SequenceHeader.SeqProfile,
@@ -380,7 +366,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 		}
 
 	case *mp4.CodecVP9:
-		_, err = w.writeBoxStart(&amp4.VisualSampleEntry{ // <vp09>
+		_, err = w.WriteBoxStart(&amp4.VisualSampleEntry{ // <vp09>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
 					Type: amp4.BoxTypeVp09(),
@@ -399,7 +385,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 			return nil, err
 		}
 
-		_, err = w.writeBox(&amp4.VpcC{ // <vpcC/>
+		_, err = w.WriteBox(&amp4.VpcC{ // <vpcC/>
 			FullBox: amp4.FullBox{
 				Version: 1,
 			},
@@ -414,7 +400,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 		}
 
 	case *mp4.CodecH265:
-		_, err = w.writeBoxStart(&amp4.VisualSampleEntry{ // <hev1>
+		_, err = w.WriteBoxStart(&amp4.VisualSampleEntry{ // <hev1>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
 					Type: amp4.BoxTypeHev1(),
@@ -433,7 +419,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 			return nil, err
 		}
 
-		_, err = w.writeBox(&amp4.HvcC{ // <hvcC/>
+		_, err = w.WriteBox(&amp4.HvcC{ // <hvcC/>
 			ConfigurationVersion:        1,
 			GeneralProfileIdc:           h265SPS.ProfileTierLevel.GeneralProfileIdc,
 			GeneralProfileCompatibility: h265SPS.ProfileTierLevel.GeneralProfileCompatibilityFlag,
@@ -485,7 +471,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 		}
 
 	case *mp4.CodecH264:
-		_, err = w.writeBoxStart(&amp4.VisualSampleEntry{ // <avc1>
+		_, err = w.WriteBoxStart(&amp4.VisualSampleEntry{ // <avc1>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
 					Type: amp4.BoxTypeAvc1(),
@@ -504,7 +490,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 			return nil, err
 		}
 
-		_, err = w.writeBox(&amp4.AVCDecoderConfiguration{ // <avcc/>
+		_, err = w.WriteBox(&amp4.AVCDecoderConfiguration{ // <avcc/>
 			AnyTypeBox: amp4.AnyTypeBox{
 				Type: amp4.BoxTypeAvcC(),
 			},
@@ -533,7 +519,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 		}
 
 	case *mp4.CodecMPEG4Video: //nolint:dupl
-		_, err = w.writeBoxStart(&amp4.VisualSampleEntry{ // <mp4v>
+		_, err = w.WriteBoxStart(&amp4.VisualSampleEntry{ // <mp4v>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
 					Type: amp4.BoxTypeMp4v(),
@@ -552,7 +538,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 			return nil, err
 		}
 
-		_, err = w.writeBox(&amp4.Esds{ // <esds/>
+		_, err = w.WriteBox(&amp4.Esds{ // <esds/>
 			Descriptors: []amp4.Descriptor{
 				{
 					Tag:  amp4.ESDescrTag,
@@ -565,8 +551,8 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 					Tag:  amp4.DecoderConfigDescrTag,
 					Size: 18 + uint32(len(codec.Config)),
 					DecoderConfigDescriptor: &amp4.DecoderConfigDescriptor{
-						ObjectTypeIndication: objectTypeIndicationVisualISO14496part2,
-						StreamType:           streamTypeVisualStream,
+						ObjectTypeIndication: imp4.ObjectTypeIndicationVisualISO14496part2,
+						StreamType:           imp4.StreamTypeVisualStream,
 						Reserved:             true,
 						MaxBitrate:           1000000,
 						AvgBitrate:           1000000,
@@ -589,7 +575,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 		}
 
 	case *mp4.CodecMPEG1Video: //nolint:dupl
-		_, err = w.writeBoxStart(&amp4.VisualSampleEntry{ // <mp4v>
+		_, err = w.WriteBoxStart(&amp4.VisualSampleEntry{ // <mp4v>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
 					Type: amp4.BoxTypeMp4v(),
@@ -608,7 +594,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 			return nil, err
 		}
 
-		_, err = w.writeBox(&amp4.Esds{ // <esds/>
+		_, err = w.WriteBox(&amp4.Esds{ // <esds/>
 			Descriptors: []amp4.Descriptor{
 				{
 					Tag:  amp4.ESDescrTag,
@@ -621,8 +607,8 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 					Tag:  amp4.DecoderConfigDescrTag,
 					Size: 18 + uint32(len(codec.Config)),
 					DecoderConfigDescriptor: &amp4.DecoderConfigDescriptor{
-						ObjectTypeIndication: objectTypeIndicationVisualISO1318part2Main,
-						StreamType:           streamTypeVisualStream,
+						ObjectTypeIndication: imp4.ObjectTypeIndicationVisualISO1318part2Main,
+						StreamType:           imp4.StreamTypeVisualStream,
 						Reserved:             true,
 						MaxBitrate:           1000000,
 						AvgBitrate:           1000000,
@@ -645,7 +631,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 		}
 
 	case *mp4.CodecMJPEG: //nolint:dupl
-		_, err = w.writeBoxStart(&amp4.VisualSampleEntry{ // <mp4v>
+		_, err = w.WriteBoxStart(&amp4.VisualSampleEntry{ // <mp4v>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
 					Type: amp4.BoxTypeMp4v(),
@@ -664,7 +650,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 			return nil, err
 		}
 
-		_, err = w.writeBox(&amp4.Esds{ // <esds/>
+		_, err = w.WriteBox(&amp4.Esds{ // <esds/>
 			Descriptors: []amp4.Descriptor{
 				{
 					Tag:  amp4.ESDescrTag,
@@ -677,8 +663,8 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 					Tag:  amp4.DecoderConfigDescrTag,
 					Size: 13,
 					DecoderConfigDescriptor: &amp4.DecoderConfigDescriptor{
-						ObjectTypeIndication: objectTypeIndicationVisualISO10918part1,
-						StreamType:           streamTypeVisualStream,
+						ObjectTypeIndication: imp4.ObjectTypeIndicationVisualISO10918part1,
+						StreamType:           imp4.StreamTypeVisualStream,
 						Reserved:             true,
 						MaxBitrate:           1000000,
 						AvgBitrate:           1000000,
@@ -696,7 +682,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 		}
 
 	case *mp4.CodecOpus:
-		_, err = w.writeBoxStart(&amp4.AudioSampleEntry{ // <Opus>
+		_, err = w.WriteBoxStart(&amp4.AudioSampleEntry{ // <Opus>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
 					Type: amp4.BoxTypeOpus(),
@@ -711,7 +697,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 			return nil, err
 		}
 
-		_, err = w.writeBox(&amp4.DOps{ // <dOps/>
+		_, err = w.WriteBox(&amp4.DOps{ // <dOps/>
 			OutputChannelCount: uint8(codec.ChannelCount),
 			PreSkip:            312,
 			InputSampleRate:    48000,
@@ -721,7 +707,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 		}
 
 	case *mp4.CodecMPEG4Audio:
-		_, err = w.writeBoxStart(&amp4.AudioSampleEntry{ // <mp4a>
+		_, err = w.WriteBoxStart(&amp4.AudioSampleEntry{ // <mp4a>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
 					Type: amp4.BoxTypeMp4a(),
@@ -738,7 +724,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 
 		enc, _ := codec.Config.Marshal()
 
-		_, err = w.writeBox(&amp4.Esds{ // <esds/>
+		_, err = w.WriteBox(&amp4.Esds{ // <esds/>
 			Descriptors: []amp4.Descriptor{
 				{
 					Tag:  amp4.ESDescrTag,
@@ -751,8 +737,8 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 					Tag:  amp4.DecoderConfigDescrTag,
 					Size: 18 + uint32(len(enc)),
 					DecoderConfigDescriptor: &amp4.DecoderConfigDescriptor{
-						ObjectTypeIndication: objectTypeIndicationAudioISO14496part3,
-						StreamType:           streamTypeAudioStream,
+						ObjectTypeIndication: imp4.ObjectTypeIndicationAudioISO14496part3,
+						StreamType:           imp4.StreamTypeAudioStream,
 						Reserved:             true,
 						MaxBitrate:           128825,
 						AvgBitrate:           128825,
@@ -775,7 +761,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 		}
 
 	case *mp4.CodecMPEG1Audio:
-		_, err = w.writeBoxStart(&amp4.AudioSampleEntry{ // <mp4a>
+		_, err = w.WriteBoxStart(&amp4.AudioSampleEntry{ // <mp4a>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
 					Type: amp4.BoxTypeMp4a(),
@@ -790,7 +776,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 			return nil, err
 		}
 
-		_, err = w.writeBox(&amp4.Esds{ // <esds/>
+		_, err = w.WriteBox(&amp4.Esds{ // <esds/>
 			Descriptors: []amp4.Descriptor{
 				{
 					Tag:  amp4.ESDescrTag,
@@ -803,8 +789,8 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 					Tag:  amp4.DecoderConfigDescrTag,
 					Size: 13,
 					DecoderConfigDescriptor: &amp4.DecoderConfigDescriptor{
-						ObjectTypeIndication: objectTypeIndicationAudioISO11172part3,
-						StreamType:           streamTypeAudioStream,
+						ObjectTypeIndication: imp4.ObjectTypeIndicationAudioISO11172part3,
+						StreamType:           imp4.StreamTypeAudioStream,
 						Reserved:             true,
 						MaxBitrate:           128825,
 						AvgBitrate:           128825,
@@ -822,7 +808,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 		}
 
 	case *mp4.CodecAC3:
-		_, err = w.writeBoxStart(&amp4.AudioSampleEntry{ // <ac-3>
+		_, err = w.WriteBoxStart(&amp4.AudioSampleEntry{ // <ac-3>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
 					Type: amp4.BoxTypeAC3(),
@@ -837,7 +823,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 			return nil, err
 		}
 
-		_, err = w.writeBox(&amp4.Dac3{ // <dac3/>
+		_, err = w.WriteBox(&amp4.Dac3{ // <dac3/>
 			Fscod: codec.Fscod,
 			Bsid:  codec.Bsid,
 			Bsmod: codec.Bsmod,
@@ -855,7 +841,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 		}
 
 	case *mp4.CodecLPCM:
-		_, err = w.writeBoxStart(&amp4.AudioSampleEntry{ // <ipcm>
+		_, err = w.WriteBoxStart(&amp4.AudioSampleEntry{ // <ipcm>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
 					Type: amp4.BoxTypeIpcm(),
@@ -870,7 +856,7 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 			return nil, err
 		}
 
-		_, err = w.writeBox(&amp4.PcmC{ // <pcmC/>
+		_, err = w.WriteBox(&amp4.PcmC{ // <pcmC/>
 			FormatFlags: func() uint8 {
 				if codec.LittleEndian {
 					return 1
@@ -884,12 +870,12 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 		}
 	}
 
-	err = w.writeBoxEnd() // </*>
+	err = w.WriteBoxEnd() // </*>
 	if err != nil {
 		return nil, err
 	}
 
-	err = w.writeBoxEnd() // </stsd>
+	err = w.WriteBoxEnd() // </stsd>
 	if err != nil {
 		return nil, err
 	}
@@ -924,22 +910,22 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 		return nil, err
 	}
 
-	err = w.writeBoxEnd() // </stbl>
+	err = w.WriteBoxEnd() // </stbl>
 	if err != nil {
 		return nil, err
 	}
 
-	err = w.writeBoxEnd() // </minf>
+	err = w.WriteBoxEnd() // </minf>
 	if err != nil {
 		return nil, err
 	}
 
-	err = w.writeBoxEnd() // </mdia>
+	err = w.WriteBoxEnd() // </mdia>
 	if err != nil {
 		return nil, err
 	}
 
-	err = w.writeBoxEnd() // </trak>
+	err = w.WriteBoxEnd() // </trak>
 	if err != nil {
 		return nil, err
 	}
@@ -951,9 +937,9 @@ func (t *Track) marshal(w *mp4Writer) (*headerTrackMarshalResult, error) {
 	}, nil
 }
 
-func (t *Track) marshalELST(w *mp4Writer, sampleDuration uint32) error {
+func (t *Track) marshalELST(w *imp4.Writer, sampleDuration uint32) error {
 	if t.TimeOffset > 0 {
-		_, err := w.writeBox(&amp4.Elst{
+		_, err := w.WriteBox(&amp4.Elst{
 			EntryCount: 2,
 			Entries: []amp4.ElstEntry{
 				{ // pause
@@ -973,7 +959,7 @@ func (t *Track) marshalELST(w *mp4Writer, sampleDuration uint32) error {
 		return err
 	}
 
-	_, err := w.writeBox(&amp4.Elst{
+	_, err := w.WriteBox(&amp4.Elst{
 		EntryCount: 1,
 		Entries: []amp4.ElstEntry{{
 			SegmentDurationV0: uint32(((uint64(sampleDuration) +
@@ -986,7 +972,7 @@ func (t *Track) marshalELST(w *mp4Writer, sampleDuration uint32) error {
 	return err
 }
 
-func (t *Track) marshalSTTS(w *mp4Writer) error {
+func (t *Track) marshalSTTS(w *imp4.Writer) error {
 	entries := []amp4.SttsEntry{{
 		SampleCount: 1,
 		SampleDelta: t.Samples[0].Duration,
@@ -1003,14 +989,14 @@ func (t *Track) marshalSTTS(w *mp4Writer) error {
 		}
 	}
 
-	_, err := w.writeBox(&amp4.Stts{
+	_, err := w.WriteBox(&amp4.Stts{
 		EntryCount: uint32(len(entries)),
 		Entries:    entries,
 	})
 	return err
 }
 
-func (t *Track) marshalSTSS(w *mp4Writer) error {
+func (t *Track) marshalSTSS(w *imp4.Writer) error {
 	// ISO 14496-12 2015:
 	// "If the sync sample box is not present, every sample is a sync sample."
 	if allSamplesAreSync(t.Samples) {
@@ -1025,14 +1011,14 @@ func (t *Track) marshalSTSS(w *mp4Writer) error {
 		}
 	}
 
-	_, err := w.writeBox(&amp4.Stss{
+	_, err := w.WriteBox(&amp4.Stss{
 		EntryCount:   uint32(len(sampleNumbers)),
 		SampleNumber: sampleNumbers,
 	})
 	return err
 }
 
-func (t *Track) marshalCTTS(w *mp4Writer) error {
+func (t *Track) marshalCTTS(w *imp4.Writer) error {
 	entries := []amp4.CttsEntry{{
 		SampleCount:    1,
 		SampleOffsetV1: t.Samples[0].PTSOffset,
@@ -1049,7 +1035,7 @@ func (t *Track) marshalCTTS(w *mp4Writer) error {
 		}
 	}
 
-	_, err := w.writeBox(&amp4.Ctts{
+	_, err := w.WriteBox(&amp4.Ctts{
 		FullBox: amp4.FullBox{
 			Version: 1,
 		},
@@ -1059,7 +1045,7 @@ func (t *Track) marshalCTTS(w *mp4Writer) error {
 	return err
 }
 
-func (t *Track) marshalSTSC(w *mp4Writer) error {
+func (t *Track) marshalSTSC(w *imp4.Writer) error {
 	entries := []amp4.StscEntry{{
 		FirstChunk:             1,
 		SamplesPerChunk:        1,
@@ -1093,21 +1079,21 @@ func (t *Track) marshalSTSC(w *mp4Writer) error {
 		}
 	}
 
-	_, err := w.writeBox(&amp4.Stsc{
+	_, err := w.WriteBox(&amp4.Stsc{
 		EntryCount: uint32(len(entries)),
 		Entries:    entries,
 	})
 	return err
 }
 
-func (t *Track) marshalSTSZ(w *mp4Writer) error {
+func (t *Track) marshalSTSZ(w *imp4.Writer) error {
 	sampleSizes := make([]uint32, len(t.Samples))
 
 	for i, sa := range t.Samples {
 		sampleSizes[i] = sa.PayloadSize
 	}
 
-	_, err := w.writeBox(&amp4.Stsz{
+	_, err := w.WriteBox(&amp4.Stsz{
 		SampleSize:  0,
 		SampleCount: uint32(len(sampleSizes)),
 		EntrySize:   sampleSizes,
@@ -1115,7 +1101,7 @@ func (t *Track) marshalSTSZ(w *mp4Writer) error {
 	return err
 }
 
-func (t *Track) marshalSTCO(w *mp4Writer) (*amp4.Stco, int, error) {
+func (t *Track) marshalSTCO(w *imp4.Writer) (*amp4.Stco, int, error) {
 	firstSample := t.Samples[0]
 	off := firstSample.offset + firstSample.PayloadSize
 
@@ -1133,7 +1119,7 @@ func (t *Track) marshalSTCO(w *mp4Writer) (*amp4.Stco, int, error) {
 		ChunkOffset: entries,
 	}
 
-	offset, err := w.writeBox(stco)
+	offset, err := w.WriteBox(stco)
 	if err != nil {
 		return nil, 0, err
 	}
