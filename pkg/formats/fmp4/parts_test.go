@@ -21,7 +21,7 @@ var casesParts = []struct {
 				{
 					ID:       256,
 					BaseTime: 90000,
-					Samples: []*PartSample{
+					Samples: []*Sample{
 						{
 							Duration:        30,
 							PTSOffset:       0,
@@ -39,7 +39,7 @@ var casesParts = []struct {
 				{
 					ID:       257,
 					BaseTime: 44100,
-					Samples: []*PartSample{
+					Samples: []*Sample{
 						{
 							Duration: 30,
 							Payload:  []byte{5, 6},
@@ -91,7 +91,7 @@ var casesParts = []struct {
 					{
 						ID:       100,
 						BaseTime: 90000,
-						Samples: []*PartSample{
+						Samples: []*Sample{
 							{
 								Duration:        30,
 								PTSOffset:       0,
@@ -108,7 +108,7 @@ var casesParts = []struct {
 					{
 						ID:       100,
 						BaseTime: 180000,
-						Samples: []*PartSample{
+						Samples: []*Sample{
 							{
 								Duration:        30,
 								PTSOffset:       0,
@@ -202,12 +202,12 @@ func BenchmarkPartsMarshal(b *testing.B) {
 	parts := Parts{{
 		Tracks: []*PartTrack{{
 			ID:      1,
-			Samples: make([]*PartSample, 10000),
+			Samples: make([]*Sample, 10000),
 		}},
 	}}
 
 	for i := 0; i < 10000; i++ {
-		parts[0].Tracks[0].Samples[i] = &PartSample{
+		parts[0].Tracks[0].Samples[i] = &Sample{
 			Duration: 90000,
 			Payload:  bytes.Repeat([]byte{1}, 16),
 		}
