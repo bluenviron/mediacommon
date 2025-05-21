@@ -1,4 +1,4 @@
-package fmp4
+package mp4
 
 import (
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"

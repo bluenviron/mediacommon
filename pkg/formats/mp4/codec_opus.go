@@ -1,4 +1,4 @@
-package fmp4
+package mp4
 
 // CodecOpus is the Opus codec.
 type CodecOpus struct {

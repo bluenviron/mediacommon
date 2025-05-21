@@ -1,4 +1,4 @@
-package fmp4
+package mp4
 
 // CodecH264 is the H264 codec.
 type CodecH264 struct {

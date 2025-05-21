@@ -1,4 +1,4 @@
-package fmp4
+package mp4
 
 // CodecAV1 is the AV1 codec.
 type CodecAV1 struct {

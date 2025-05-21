@@ -1,4 +1,4 @@
-package fmp4
+package mp4
 
 // CodecMPEG1Audio is a MPEG-1 Audio codec.
 type CodecMPEG1Audio struct {

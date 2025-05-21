@@ -1,4 +1,4 @@
-package fmp4
+package mp4
 
 // CodecMPEG1Video is a MPEG-1 Video codec.
 type CodecMPEG1Video struct {

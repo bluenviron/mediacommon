@@ -1,7 +1,7 @@
 package fmp4
 
 import (
-	"github.com/abema/go-mp4"
+	amp4 "github.com/abema/go-mp4"
 )
 
 // PartTrack is a track of Part.
@@ -11,7 +11,7 @@ type PartTrack struct {
 	Samples  []*Sample
 }
 
-func (pt *PartTrack) marshal(w *mp4Writer) (*mp4.Trun, int, error) {
+func (pt *PartTrack) marshal(w *mp4Writer) (*amp4.Trun, int, error) {
 	/*
 		|traf|
 		|    |tfhd|
@@ -19,15 +19,15 @@ func (pt *PartTrack) marshal(w *mp4Writer) (*mp4.Trun, int, error) {
 		|    |trun|
 	*/
 
-	_, err := w.writeBoxStart(&mp4.Traf{}) // <traf>
+	_, err := w.writeBoxStart(&amp4.Traf{}) // <traf>
 	if err != nil {
 		return nil, 0, err
 	}
 
 	flags := 0
 
-	_, err = w.writeBox(&mp4.Tfhd{ // <tfhd/>
-		FullBox: mp4.FullBox{
+	_, err = w.writeBox(&amp4.Tfhd{ // <tfhd/>
+		FullBox: amp4.FullBox{
 			Flags: [3]byte{2, byte(flags >> 8), byte(flags)},
 		},
 		TrackID: uint32(pt.ID),
@@ -36,8 +36,8 @@ func (pt *PartTrack) marshal(w *mp4Writer) (*mp4.Trun, int, error) {
 		return nil, 0, err
 	}
 
-	_, err = w.writeBox(&mp4.Tfdt{ // <tfdt/>
-		FullBox: mp4.FullBox{
+	_, err = w.writeBox(&amp4.Tfdt{ // <tfdt/>
+		FullBox: amp4.FullBox{
 			Version: 1,
 		},
 		// sum of decode durations of all earlier samples
@@ -60,8 +60,8 @@ func (pt *PartTrack) marshal(w *mp4Writer) (*mp4.Trun, int, error) {
 		}
 	}
 
-	trun := &mp4.Trun{ // <trun/>
-		FullBox: mp4.FullBox{
+	trun := &amp4.Trun{ // <trun/>
+		FullBox: amp4.FullBox{
 			Version: 1,
 			Flags:   [3]byte{0, byte(flags >> 8), byte(flags)},
 		},
@@ -74,7 +74,7 @@ func (pt *PartTrack) marshal(w *mp4Writer) (*mp4.Trun, int, error) {
 			flags |= sampleFlagIsNonSyncSample
 		}
 
-		trun.Entries = append(trun.Entries, mp4.TrunEntry{
+		trun.Entries = append(trun.Entries, amp4.TrunEntry{
 			SampleDuration:                sample.Duration,
 			SampleSize:                    uint32(len(sample.Payload)),
 			SampleFlags:                   flags,
