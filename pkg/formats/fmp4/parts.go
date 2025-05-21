@@ -131,7 +131,7 @@ func (ps *Parts) Unmarshal(byts []byte) error {
 				}
 
 				existing := len(curTrack.Samples)
-				tmp := make([]*PartSample, existing+len(trun.Entries))
+				tmp := make([]*Sample, existing+len(trun.Entries))
 				copy(tmp, curTrack.Samples)
 				curTrack.Samples = tmp
 
@@ -143,7 +143,7 @@ func (ps *Parts) Unmarshal(byts []byte) error {
 				ptr := byts[pos:]
 
 				for i, e := range trun.Entries {
-					s := &PartSample{}
+					s := &Sample{}
 
 					if (trunFlags & trunFlagSampleDurationPresent) != 0 {
 						s.Duration = e.SampleDuration

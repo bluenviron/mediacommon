@@ -8,7 +8,7 @@ import (
 type PartTrack struct {
 	ID       int
 	BaseTime uint64
-	Samples  []*PartSample
+	Samples  []*Sample
 }
 
 func (pt *PartTrack) marshal(w *mp4Writer) (*mp4.Trun, int, error) {
