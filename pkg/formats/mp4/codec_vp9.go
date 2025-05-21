@@ -1,4 +1,4 @@
-package fmp4
+package mp4
 
 // CodecVP9 is the VP9 codec.
 type CodecVP9 struct {

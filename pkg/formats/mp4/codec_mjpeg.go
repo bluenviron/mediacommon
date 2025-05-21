@@ -1,4 +1,4 @@
-package fmp4
+package mp4
 
 // CodecMJPEG is the M-JPEG codec.
 type CodecMJPEG struct {

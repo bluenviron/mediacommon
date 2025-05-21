@@ -1,4 +1,4 @@
-package fmp4
+package mp4
 
 // CodecAC3 is the AC-3 codec.
 type CodecAC3 struct {

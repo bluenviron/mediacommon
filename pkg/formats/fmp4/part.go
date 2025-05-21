@@ -3,7 +3,7 @@ package fmp4
 import (
 	"io"
 
-	"github.com/abema/go-mp4"
+	amp4 "github.com/abema/go-mp4"
 )
 
 const (
@@ -35,12 +35,12 @@ func (p *Part) Marshal(w io.WriteSeeker) error {
 
 	mw := newMP4Writer(w)
 
-	moofOffset, err := mw.writeBoxStart(&mp4.Moof{}) // <moof>
+	moofOffset, err := mw.writeBoxStart(&amp4.Moof{}) // <moof>
 	if err != nil {
 		return err
 	}
 
-	_, err = mw.writeBox(&mp4.Mfhd{ // <mfhd/>
+	_, err = mw.writeBox(&amp4.Mfhd{ // <mfhd/>
 		SequenceNumber: p.SequenceNumber,
 	})
 	if err != nil {
@@ -48,13 +48,13 @@ func (p *Part) Marshal(w io.WriteSeeker) error {
 	}
 
 	trackLen := len(p.Tracks)
-	truns := make([]*mp4.Trun, trackLen)
+	truns := make([]*amp4.Trun, trackLen)
 	trunOffsets := make([]int, trackLen)
 	dataOffsets := make([]int, trackLen)
 	dataSize := 0
 
 	for i, track := range p.Tracks {
-		var trun *mp4.Trun
+		var trun *amp4.Trun
 		var trunOffset int
 		trun, trunOffset, err = track.marshal(mw)
 		if err != nil {
@@ -76,7 +76,7 @@ func (p *Part) Marshal(w io.WriteSeeker) error {
 		return err
 	}
 
-	mdat := &mp4.Mdat{} // <mdat/>
+	mdat := &amp4.Mdat{} // <mdat/>
 	mdat.Data = make([]byte, dataSize)
 	pos := 0
 

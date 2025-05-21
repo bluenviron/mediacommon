@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/abema/go-mp4"
+	amp4 "github.com/abema/go-mp4"
 )
 
 // Parts is a sequence of fMP4 parts.
@@ -26,10 +26,10 @@ func (ps *Parts) Unmarshal(byts []byte) error {
 	var curPart *Part
 	var moofOffset uint64
 	var curTrack *PartTrack
-	var tfdt *mp4.Tfdt
-	var tfhd *mp4.Tfhd
+	var tfdt *amp4.Tfdt
+	var tfhd *amp4.Tfhd
 
-	_, err := mp4.ReadBoxStructure(bytes.NewReader(byts), func(h *mp4.ReadHandle) (interface{}, error) {
+	_, err := amp4.ReadBoxStructure(bytes.NewReader(byts), func(h *amp4.ReadHandle) (interface{}, error) {
 		if h.BoxInfo.IsSupportedType() {
 			switch h.BoxInfo.Type.String() {
 			case "moof":
@@ -52,7 +52,7 @@ func (ps *Parts) Unmarshal(byts []byte) error {
 				if err != nil {
 					return nil, err
 				}
-				mfhd := box.(*mp4.Mfhd)
+				mfhd := box.(*amp4.Mfhd)
 
 				curPart.SequenceNumber = mfhd.SequenceNumber
 				state = waitingTraf
@@ -84,7 +84,7 @@ func (ps *Parts) Unmarshal(byts []byte) error {
 				if err != nil {
 					return nil, err
 				}
-				tfhd = box.(*mp4.Tfhd)
+				tfhd = box.(*amp4.Tfhd)
 
 				curTrack.ID = int(tfhd.TrackID)
 
@@ -97,7 +97,7 @@ func (ps *Parts) Unmarshal(byts []byte) error {
 				if err != nil {
 					return nil, err
 				}
-				tfdt = box.(*mp4.Tfdt)
+				tfdt = box.(*amp4.Tfdt)
 
 				if tfdt.FullBox.Version != 1 {
 					return nil, fmt.Errorf("unsupported tfdt version")
@@ -123,7 +123,7 @@ func (ps *Parts) Unmarshal(byts []byte) error {
 				if err != nil {
 					return nil, err
 				}
-				trun := box.(*mp4.Trun)
+				trun := box.(*amp4.Trun)
 
 				trunFlags := uint16(trun.Flags[1])<<8 | uint16(trun.Flags[2])
 				if (trunFlags & trunFlagDataOffsetPreset) == 0 {

@@ -3,21 +3,21 @@ package pmp4
 import (
 	"io"
 
-	"github.com/abema/go-mp4"
+	amp4 "github.com/abema/go-mp4"
 )
 
 type mp4Writer struct {
-	w *mp4.Writer
+	w *amp4.Writer
 }
 
 func newMP4Writer(w io.WriteSeeker) *mp4Writer {
 	return &mp4Writer{
-		w: mp4.NewWriter(w),
+		w: amp4.NewWriter(w),
 	}
 }
 
-func (w *mp4Writer) writeBoxStart(box mp4.IImmutableBox) (int, error) {
-	bi := &mp4.BoxInfo{
+func (w *mp4Writer) writeBoxStart(box amp4.IImmutableBox) (int, error) {
+	bi := &amp4.BoxInfo{
 		Type: box.GetType(),
 	}
 	var err error
@@ -26,7 +26,7 @@ func (w *mp4Writer) writeBoxStart(box mp4.IImmutableBox) (int, error) {
 		return 0, err
 	}
 
-	_, err = mp4.Marshal(w.w, box, mp4.Context{})
+	_, err = amp4.Marshal(w.w, box, amp4.Context{})
 	if err != nil {
 		return 0, err
 	}
@@ -39,7 +39,7 @@ func (w *mp4Writer) writeBoxEnd() error {
 	return err
 }
 
-func (w *mp4Writer) writeBox(box mp4.IImmutableBox) (int, error) {
+func (w *mp4Writer) writeBox(box amp4.IImmutableBox) (int, error) {
 	off, err := w.writeBoxStart(box)
 	if err != nil {
 		return 0, err
@@ -53,7 +53,7 @@ func (w *mp4Writer) writeBox(box mp4.IImmutableBox) (int, error) {
 	return off, nil
 }
 
-func (w *mp4Writer) rewriteBox(off int, box mp4.IImmutableBox) error {
+func (w *mp4Writer) rewriteBox(off int, box amp4.IImmutableBox) error {
 	prevOff, err := w.w.Seek(0, io.SeekCurrent)
 	if err != nil {
 		return err

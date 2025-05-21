@@ -6,13 +6,14 @@ import (
 	"io"
 	"time"
 
-	"github.com/abema/go-mp4"
+	amp4 "github.com/abema/go-mp4"
+
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/av1"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h265"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
-	"github.com/bluenviron/mediacommon/v2/pkg/formats/fmp4"
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/fmp4/seekablebuffer"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4"
 )
 
 const (
@@ -49,7 +50,7 @@ func av1FindSequenceHeader(buf []byte) ([]byte, error) {
 	return nil, fmt.Errorf("AV1 sequence header not found")
 }
 
-func h264FindParams(avcc *mp4.AVCDecoderConfiguration) ([]byte, []byte, error) {
+func h264FindParams(avcc *amp4.AVCDecoderConfiguration) ([]byte, []byte, error) {
 	if len(avcc.SequenceParameterSets) == 0 {
 		return nil, nil, fmt.Errorf("H264 SPS not provided")
 	}
@@ -78,7 +79,7 @@ func h264FindParams(avcc *mp4.AVCDecoderConfiguration) ([]byte, []byte, error) {
 	return sps, pps, nil
 }
 
-func h265FindParams(params []mp4.HEVCNaluArray) ([]byte, []byte, []byte, error) {
+func h265FindParams(params []amp4.HEVCNaluArray) ([]byte, []byte, []byte, error) {
 	var vps []byte
 	var sps []byte
 	var pps []byte
@@ -124,18 +125,18 @@ func h265FindParams(params []mp4.HEVCNaluArray) ([]byte, []byte, []byte, error) 
 	return vps, sps, pps, nil
 }
 
-func esdsFindDecoderConf(descriptors []mp4.Descriptor) *mp4.DecoderConfigDescriptor {
+func esdsFindDecoderConf(descriptors []amp4.Descriptor) *amp4.DecoderConfigDescriptor {
 	for _, desc := range descriptors {
-		if desc.Tag == mp4.DecoderConfigDescrTag {
+		if desc.Tag == amp4.DecoderConfigDescrTag {
 			return desc.DecoderConfigDescriptor
 		}
 	}
 	return nil
 }
 
-func esdsFindDecoderSpecificInfo(descriptors []mp4.Descriptor) []byte {
+func esdsFindDecoderSpecificInfo(descriptors []amp4.Descriptor) []byte {
 	for _, desc := range descriptors {
-		if desc.Tag == mp4.DecSpecificInfoTag {
+		if desc.Tag == amp4.DecSpecificInfoTag {
 			return desc.Data
 		}
 	}
@@ -195,7 +196,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 	var curChunks []*chunk
 	var curSampleSizes []uint32
 
-	_, err := mp4.ReadBoxStructure(r, func(h *mp4.ReadHandle) (interface{}, error) {
+	_, err := amp4.ReadBoxStructure(r, func(h *amp4.ReadHandle) (interface{}, error) {
 		switch h.BoxInfo.Type.String() {
 		case "ftyp", "hdlr", "vmhd", "dinf", "smhd":
 
@@ -236,7 +237,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			tkhd := box.(*mp4.Tkhd)
+			tkhd := box.(*amp4.Tkhd)
 
 			curTrack.ID = int(tkhd.TrackID)
 			state = waitingElst
@@ -263,7 +264,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			mdhd := box.(*mp4.Mdhd)
+			mdhd := box.(*amp4.Mdhd)
 
 			if mdhd.Timescale == 0 {
 				return nil, fmt.Errorf("invalid timescale")
@@ -292,14 +293,14 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			avcc := box.(*mp4.AVCDecoderConfiguration)
+			avcc := box.(*amp4.AVCDecoderConfiguration)
 
 			sps, pps, err := h264FindParams(avcc)
 			if err != nil {
 				return nil, err
 			}
 
-			curTrack.Codec = &fmp4.CodecH264{
+			curTrack.Codec = &mp4.CodecH264{
 				SPS: sps,
 				PPS: pps,
 			}
@@ -314,7 +315,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			vp09 := box.(*mp4.VisualSampleEntry)
+			vp09 := box.(*amp4.VisualSampleEntry)
 
 			if vp09.Width == 0 || vp09.Height == 0 {
 				return nil, fmt.Errorf("VP9 parameters not provided")
@@ -334,9 +335,9 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			vpcc := box.(*mp4.VpcC)
+			vpcc := box.(*amp4.VpcC)
 
-			curTrack.Codec = &fmp4.CodecVP9{
+			curTrack.Codec = &mp4.CodecVP9{
 				Width:             width,
 				Height:            height,
 				Profile:           vpcc.Profile,
@@ -365,14 +366,14 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			hvcc := box.(*mp4.HvcC)
+			hvcc := box.(*amp4.HvcC)
 
 			vps, sps, pps, err := h265FindParams(hvcc.NaluArrays)
 			if err != nil {
 				return nil, err
 			}
 
-			curTrack.Codec = &fmp4.CodecH265{
+			curTrack.Codec = &mp4.CodecH265{
 				VPS: vps,
 				SPS: sps,
 				PPS: pps,
@@ -388,7 +389,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			mp4a := box.(*mp4.AudioSampleEntry)
+			mp4a := box.(*amp4.AudioSampleEntry)
 
 			sampleRate = int(mp4a.SampleRate / 65536)
 			channelCount = int(mp4a.ChannelCount)
@@ -411,14 +412,14 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			av1c := box.(*mp4.Av1C)
+			av1c := box.(*amp4.Av1C)
 
 			sequenceHeader, err := av1FindSequenceHeader(av1c.ConfigOBUs)
 			if err != nil {
 				return nil, err
 			}
 
-			curTrack.Codec = &fmp4.CodecAV1{
+			curTrack.Codec = &mp4.CodecAV1{
 				SequenceHeader: sequenceHeader,
 			}
 			state = waitingStts
@@ -439,9 +440,9 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			dops := box.(*mp4.DOps)
+			dops := box.(*amp4.DOps)
 
-			curTrack.Codec = &fmp4.CodecOpus{
+			curTrack.Codec = &mp4.CodecOpus{
 				ChannelCount: int(dops.OutputChannelCount),
 			}
 			state = waitingStts
@@ -455,7 +456,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			mp4v := box.(*mp4.VisualSampleEntry)
+			mp4v := box.(*amp4.VisualSampleEntry)
 
 			width = int(mp4v.Width)
 			height = int(mp4v.Height)
@@ -467,7 +468,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			esds := box.(*mp4.Esds)
+			esds := box.(*amp4.Esds)
 
 			conf := esdsFindDecoderConf(esds.Descriptors)
 			if conf == nil {
@@ -483,7 +484,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 						return nil, fmt.Errorf("unable to find decoder specific info")
 					}
 
-					curTrack.Codec = &fmp4.CodecMPEG4Video{
+					curTrack.Codec = &mp4.CodecMPEG4Video{
 						Config: spec,
 					}
 
@@ -493,7 +494,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 						return nil, fmt.Errorf("unable to find decoder specific info")
 					}
 
-					curTrack.Codec = &fmp4.CodecMPEG1Video{
+					curTrack.Codec = &mp4.CodecMPEG1Video{
 						Config: spec,
 					}
 
@@ -502,7 +503,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 						return nil, fmt.Errorf("M-JPEG parameters not provided")
 					}
 
-					curTrack.Codec = &fmp4.CodecMJPEG{
+					curTrack.Codec = &mp4.CodecMJPEG{
 						Width:  width,
 						Height: height,
 					}
@@ -527,12 +528,12 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 						return nil, fmt.Errorf("invalid MPEG-4 Audio configuration: %w", err)
 					}
 
-					curTrack.Codec = &fmp4.CodecMPEG4Audio{
+					curTrack.Codec = &mp4.CodecMPEG4Audio{
 						Config: c,
 					}
 
 				case objectTypeIndicationAudioISO11172part3:
-					curTrack.Codec = &fmp4.CodecMPEG1Audio{
+					curTrack.Codec = &mp4.CodecMPEG1Audio{
 						SampleRate:   sampleRate,
 						ChannelCount: channelCount,
 					}
@@ -556,7 +557,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			ac3 := box.(*mp4.AudioSampleEntry)
+			ac3 := box.(*amp4.AudioSampleEntry)
 
 			sampleRate = int(ac3.SampleRate / 65536)
 			channelCount = int(ac3.ChannelCount)
@@ -572,9 +573,9 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			dac3 := box.(*mp4.Dac3)
+			dac3 := box.(*amp4.Dac3)
 
-			curTrack.Codec = &fmp4.CodecAC3{
+			curTrack.Codec = &mp4.CodecAC3{
 				SampleRate:   sampleRate,
 				ChannelCount: channelCount,
 				Fscod:        dac3.Fscod,
@@ -595,7 +596,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			ac3 := box.(*mp4.AudioSampleEntry)
+			ac3 := box.(*amp4.AudioSampleEntry)
 
 			sampleRate = int(ac3.SampleRate / 65536)
 			channelCount = int(ac3.ChannelCount)
@@ -611,9 +612,9 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			pcmc := box.(*mp4.PcmC)
+			pcmc := box.(*amp4.PcmC)
 
-			curTrack.Codec = &fmp4.CodecLPCM{
+			curTrack.Codec = &mp4.CodecLPCM{
 				LittleEndian: (pcmc.FormatFlags & 0x01) != 0,
 				BitDepth:     int(pcmc.PCMSampleSize),
 				SampleRate:   sampleRate,
@@ -630,7 +631,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			stts := box.(*mp4.Stts)
+			stts := box.(*amp4.Stts)
 
 			for _, entry := range stts.Entries {
 				if (len(curTrack.Samples) + int(entry.SampleCount)) > maxSamples {
@@ -662,7 +663,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			stss := box.(*mp4.Stss)
+			stss := box.(*amp4.Stss)
 
 			for _, sample := range curTrack.Samples {
 				sample.IsNonSyncSample = true
@@ -684,7 +685,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			ctts := box.(*mp4.Ctts)
+			ctts := box.(*amp4.Ctts)
 
 			i := 0
 
@@ -708,7 +709,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			stsc := box.(*mp4.Stsc)
+			stsc := box.(*amp4.Stsc)
 
 			if len(stsc.Entries) == 0 {
 				return nil, fmt.Errorf("invalid stsc")
@@ -767,7 +768,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			stsz := box.(*mp4.Stsz)
+			stsz := box.(*amp4.Stsz)
 
 			curSampleSizes = stsz.EntrySize
 
@@ -780,7 +781,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			if err != nil {
 				return nil, err
 			}
-			stco := box.(*mp4.Stco)
+			stco := box.(*amp4.Stco)
 
 			if len(stco.ChunkOffset) != len(curChunks) {
 				return nil, fmt.Errorf("invalid stco")
@@ -923,10 +924,10 @@ func (p *Presentation) marshalFtypAndMoov(w io.Writer) error {
 	var outBuf seekablebuffer.Buffer
 	mw := newMP4Writer(&outBuf)
 
-	_, err := mw.writeBox(&mp4.Ftyp{ // <ftyp/>
+	_, err := mw.writeBox(&amp4.Ftyp{ // <ftyp/>
 		MajorBrand:   [4]byte{'i', 's', 'o', 'm'},
 		MinorVersion: 1,
-		CompatibleBrands: []mp4.CompatibleBrandElem{
+		CompatibleBrands: []amp4.CompatibleBrandElem{
 			{CompatibleBrand: [4]byte{'i', 's', 'o', 'm'}},
 			{CompatibleBrand: [4]byte{'i', 's', 'o', '2'}},
 			{CompatibleBrand: [4]byte{'m', 'p', '4', '1'}},
@@ -937,12 +938,12 @@ func (p *Presentation) marshalFtypAndMoov(w io.Writer) error {
 		return err
 	}
 
-	_, err = mw.writeBoxStart(&mp4.Moov{}) // <moov>
+	_, err = mw.writeBoxStart(&amp4.Moov{}) // <moov>
 	if err != nil {
 		return err
 	}
 
-	mvhd := &mp4.Mvhd{ // <mvhd/>
+	mvhd := &amp4.Mvhd{ // <mvhd/>
 		Timescale:   globalTimescale,
 		Rate:        65536,
 		Volume:      256,
@@ -954,7 +955,7 @@ func (p *Presentation) marshalFtypAndMoov(w io.Writer) error {
 		return err
 	}
 
-	stcos := make([]*mp4.Stco, len(p.Tracks))
+	stcos := make([]*amp4.Stco, len(p.Tracks))
 	stcosOffsets := make([]int, len(p.Tracks))
 
 	for i, track := range p.Tracks {
