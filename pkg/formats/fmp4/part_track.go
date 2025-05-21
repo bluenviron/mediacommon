@@ -2,6 +2,7 @@ package fmp4
 
 import (
 	amp4 "github.com/abema/go-mp4"
+	imp4 "github.com/bluenviron/mediacommon/v2/internal/mp4"
 )
 
 // PartTrack is a track of Part.
@@ -11,7 +12,7 @@ type PartTrack struct {
 	Samples  []*Sample
 }
 
-func (pt *PartTrack) marshal(w *mp4Writer) (*amp4.Trun, int, error) {
+func (pt *PartTrack) marshal(w *imp4.Writer) (*amp4.Trun, int, error) {
 	/*
 		|traf|
 		|    |tfhd|
@@ -19,14 +20,14 @@ func (pt *PartTrack) marshal(w *mp4Writer) (*amp4.Trun, int, error) {
 		|    |trun|
 	*/
 
-	_, err := w.writeBoxStart(&amp4.Traf{}) // <traf>
+	_, err := w.WriteBoxStart(&amp4.Traf{}) // <traf>
 	if err != nil {
 		return nil, 0, err
 	}
 
 	flags := 0
 
-	_, err = w.writeBox(&amp4.Tfhd{ // <tfhd/>
+	_, err = w.WriteBox(&amp4.Tfhd{ // <tfhd/>
 		FullBox: amp4.FullBox{
 			Flags: [3]byte{2, byte(flags >> 8), byte(flags)},
 		},
@@ -36,7 +37,7 @@ func (pt *PartTrack) marshal(w *mp4Writer) (*amp4.Trun, int, error) {
 		return nil, 0, err
 	}
 
-	_, err = w.writeBox(&amp4.Tfdt{ // <tfdt/>
+	_, err = w.WriteBox(&amp4.Tfdt{ // <tfdt/>
 		FullBox: amp4.FullBox{
 			Version: 1,
 		},
@@ -82,12 +83,12 @@ func (pt *PartTrack) marshal(w *mp4Writer) (*amp4.Trun, int, error) {
 		})
 	}
 
-	trunOffset, err := w.writeBox(trun)
+	trunOffset, err := w.WriteBox(trun)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	err = w.writeBoxEnd() // </traf>
+	err = w.WriteBoxEnd() // </traf>
 	if err != nil {
 		return nil, 0, err
 	}
