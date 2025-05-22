@@ -8,6 +8,10 @@ import (
 	amp4 "github.com/abema/go-mp4"
 )
 
+const (
+	maxSamplesPerTrun = 120 * 160 // 120fps * 60 seconds
+)
+
 // Parts is a sequence of fMP4 parts.
 type Parts []*Part
 
