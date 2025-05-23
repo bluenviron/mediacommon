@@ -442,7 +442,7 @@ func WriteCodecBoxes(w *Writer, codec mp4.Codec, trackID int, info *CodecInfo, a
 			return err
 		}
 
-		enc, _ := codec.Config.Marshal()
+		enc, _ := codec.Marshal()
 
 		_, err = w.WriteBox(&amp4.Esds{ // <esds/>
 			Descriptors: []amp4.Descriptor{

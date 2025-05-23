@@ -103,7 +103,7 @@ func (ps *Parts) Unmarshal(byts []byte) error {
 				}
 				tfdt = box.(*amp4.Tfdt)
 
-				if tfdt.FullBox.Version != 1 {
+				if tfdt.Version != 1 {
 					return nil, fmt.Errorf("unsupported tfdt version")
 				}
 
