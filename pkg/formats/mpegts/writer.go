@@ -211,9 +211,9 @@ func (w *Writer) WriteMPEG4Audio(
 
 	for i, au := range aus {
 		pkts[i] = &mpeg4audio.ADTSPacket{
-			Type:         aacCodec.Config.Type,
+			Type:         aacCodec.Type,
 			SampleRate:   aacCodec.SampleRate,
-			ChannelCount: aacCodec.Config.ChannelCount,
+			ChannelCount: aacCodec.ChannelCount,
 			AU:           au,
 		}
 	}

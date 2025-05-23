@@ -144,13 +144,15 @@ func (c *SequenceHeader_ColorConfig) unmarshal(seqProfile uint8, buf []byte, pos
 			return err
 		}
 
-		switch {
-		case seqProfile == 0:
+		switch seqProfile {
+		case 0:
 			c.SubsamplingX = true
 			c.SubsamplingY = true
-		case seqProfile == 1:
+
+		case 1:
 			c.SubsamplingX = false
 			c.SubsamplingY = false
+
 		default:
 			if c.BitDepth == 12 {
 				c.SubsamplingX, err = bits.ReadFlag(buf, pos)
