@@ -40,6 +40,9 @@ type ReaderOnDataMPEG1AudioFunc func(pts int64, frames [][]byte) error
 // ReaderOnDataAC3Func is the prototype of the callback passed to OnDataAC3.
 type ReaderOnDataAC3Func func(pts int64, frame []byte) error
 
+// ReaderOnDataKLVFunc is the prototype of the callback passed to OnDataKLV.
+type ReaderOnDataKLVFunc func(pts int64, packets []byte) error
+
 func findPMT(dem *astits.Demuxer) (*astits.PMTData, error) {
 	for {
 		data, err := dem.NextData()
@@ -61,6 +64,7 @@ type Reader struct {
 	dem           *astits.Demuxer
 	onDecodeError ReaderOnDecodeErrorFunc
 	onData        map[uint16]func(int64, int64, []byte) error
+	lastValidPTS  int64 // stores the last valid PTS for KLV packets without PTS
 }
 
 // Initialize initializes a Reader.
@@ -281,6 +285,36 @@ func (r *Reader) OnDataAC3(track *Track, cb ReaderOnDataAC3Func) {
 	}
 }
 
+// OnDataKLV sets a callback that is called when data from an KLV track is received.
+func (r *Reader) OnDataKLV(track *Track, cb ReaderOnDataKLVFunc) {
+	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
+		if pts != dts {
+			r.onDecodeError(fmt.Errorf("PTS is not equal to DTS"))
+			return nil
+		}
+
+		// Check if this is a metadata stream type that needs access unit decoding
+		klvCodec, ok := track.Codec.(*CodecKLV)
+		if !ok {
+			r.onDecodeError(fmt.Errorf("track is not a KLV track"))
+			return nil
+		}
+
+		if klvCodec.StreamType == astits.StreamTypeMetadata {
+			// For metadata stream type, decode the access unit to extract KLV packets
+			var au klvaAccessUnit
+			_, err := au.unmarshal(data)
+			if err != nil {
+				r.onDecodeError(fmt.Errorf("unable to decode KLV access unit: %w", err))
+				return nil
+			}
+			return cb(pts, au.Packet)
+		}
+		// For private data stream type, pass data directly
+		return cb(pts, data)
+	}
+}
+
 // Read reads data.
 func (r *Reader) Read() error {
 	for {
@@ -299,13 +333,42 @@ func (r *Reader) Read() error {
 		}
 
 		if data.PES.Header.OptionalHeader == nil ||
-			data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorNoPTSOrDTS ||
 			data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorIsForbidden {
 			r.onDecodeError(fmt.Errorf("PTS is missing"))
 			return nil
 		}
 
-		pts := data.PES.Header.OptionalHeader.PTS.Base
+		// Handle PTS for different packet types
+		var pts int64
+		if data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorNoPTSOrDTS {
+			// For Asynchronous KLV, found in StreamType Private Data (0x06), there is no PTS.
+			// Use the last valid PTS from any stream to enable proper RTP muxing.
+			isKLVTrack := false
+			for _, track := range r.tracks {
+				if data.PID == track.PID {
+					// Check if this is a KLV track
+					switch track.Codec.(type) {
+					case *CodecKLV:
+						isKLVTrack = true
+						pts = r.lastValidPTS // Use last valid PTS for KLV packets
+					default:
+						// Maintain backward compatibility with existing error message
+						r.onDecodeError(fmt.Errorf("PTS is missing"))
+						return nil
+					}
+					break
+				}
+			}
+
+			if !isKLVTrack {
+				r.onDecodeError(fmt.Errorf("PTS is missing"))
+				return nil
+			}
+		} else {
+			pts = data.PES.Header.OptionalHeader.PTS.Base
+			// Update last valid PTS for future KLV packets
+			r.lastValidPTS = pts
+		}
 
 		var dts int64
 		if data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorBothPresent {

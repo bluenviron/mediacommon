@@ -1446,3 +1446,790 @@ func FuzzReader(f *testing.F) {
 		require.NotZero(t, len(r.Tracks()))
 	})
 }
+
+func TestReaderKLVPTSTracking(t *testing.T) {
+	// Test that KLV packets without PTS use the last valid PTS from other streams
+
+	// Create a simple MPEG-TS stream with a video track and a KLV track
+	var buf bytes.Buffer
+	mux := astits.NewMuxer(context.Background(), &buf)
+
+	// Set PCR PID to video track
+	mux.SetPCRPID(256)
+
+	// Add PMT with video and KLV tracks
+	err := mux.AddElementaryStream(astits.PMTElementaryStream{
+		ElementaryPID: 256, // Video track
+		StreamType:    astits.StreamTypeH264Video,
+	})
+	require.NoError(t, err)
+
+	err = mux.AddElementaryStream(astits.PMTElementaryStream{
+		ElementaryPID: 257, // KLV track
+		StreamType:    astits.StreamTypePrivateData,
+		ElementaryStreamDescriptors: []*astits.Descriptor{
+			{
+				Length: 4,
+				Tag:    astits.DescriptorTagRegistration,
+				Registration: &astits.DescriptorRegistration{
+					FormatIdentifier: klvaIdentifier,
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	// Write a video packet with PTS
+	videoPTS := int64(90000) // 1 second at 90kHz
+	_, err = mux.WriteData(&astits.MuxerData{
+		PID: 256,
+		PES: &astits.PESData{
+			Header: &astits.PESHeader{
+				OptionalHeader: &astits.PESOptionalHeader{
+					MarkerBits:      2,
+					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+					PTS:             &astits.ClockReference{Base: videoPTS},
+				},
+				StreamID: 0xE0, // Video stream ID
+			},
+			Data: []byte{0x00, 0x00, 0x00, 0x01, 0x67}, // H.264 SPS start
+		},
+	})
+	require.NoError(t, err)
+
+	// Write a KLV packet without PTS
+	klvData := []byte{0x06, 0x0E, 0x2B, 0x34, 0x01, 0x01, 0x01, 0x01} // Sample KLV data
+	_, err = mux.WriteData(&astits.MuxerData{
+		PID: 257,
+		PES: &astits.PESData{
+			Header: &astits.PESHeader{
+				OptionalHeader: &astits.PESOptionalHeader{
+					MarkerBits:      2,
+					PTSDTSIndicator: astits.PTSDTSIndicatorNoPTSOrDTS,
+				},
+				StreamID: 0xFC, // KLV stream ID
+			},
+			Data: klvData,
+		},
+	})
+	require.NoError(t, err)
+
+	// Create reader and test
+	r := &Reader{R: bytes.NewReader(buf.Bytes())}
+	err = r.Initialize()
+	require.NoError(t, err)
+
+	// Find tracks
+	var videoTrack, klvTrack *Track
+	for _, track := range r.Tracks() {
+		switch track.Codec.(type) {
+		case *CodecH264:
+			videoTrack = track
+		case *CodecKLV:
+			klvTrack = track
+		}
+	}
+	require.NotNil(t, videoTrack)
+	require.NotNil(t, klvTrack)
+
+	// Set up callbacks to capture PTS values
+	var receivedVideoPTS, receivedKLVPTS int64
+	var videoReceived, klvReceived bool
+
+	r.OnDataH264(videoTrack, func(pts int64, _ int64, _ [][]byte) error {
+		receivedVideoPTS = pts
+		videoReceived = true
+		return nil
+	})
+
+	r.OnDataKLV(klvTrack, func(pts int64, _ []byte) error {
+		receivedKLVPTS = pts
+		klvReceived = true
+		return nil
+	})
+
+	// Read packets
+	for {
+		err := r.Read()
+		if err != nil {
+			if errors.Is(err, astits.ErrNoMorePackets) {
+				break
+			}
+			require.NoError(t, err)
+		}
+	}
+
+	// Verify both packets were received
+	require.True(t, videoReceived, "Video packet should be received")
+	require.True(t, klvReceived, "KLV packet should be received")
+
+	// Verify PTS values
+	require.Equal(t, videoPTS, receivedVideoPTS, "Video PTS should match")
+	require.Equal(t, videoPTS, receivedKLVPTS, "KLV PTS should use last valid PTS from video")
+}
+
+func TestReaderKLVMetadataDecoding(t *testing.T) {
+	// Test that KLV metadata stream type properly decodes access units
+
+	var buf bytes.Buffer
+	mux := astits.NewMuxer(context.Background(), &buf)
+
+	// Set PCR PID
+	mux.SetPCRPID(256)
+
+	// Add video track for PTS reference
+	err := mux.AddElementaryStream(astits.PMTElementaryStream{
+		ElementaryPID: 256,
+		StreamType:    astits.StreamTypeH264Video,
+	})
+	require.NoError(t, err)
+
+	// Add KLV metadata track
+	err = mux.AddElementaryStream(astits.PMTElementaryStream{
+		ElementaryPID: 257,
+		StreamType:    astits.StreamTypeMetadata,
+	})
+	require.NoError(t, err)
+
+	// Write video packet with PTS
+	videoPTS := int64(90000)
+	_, err = mux.WriteData(&astits.MuxerData{
+		PID: 256,
+		PES: &astits.PESData{
+			Header: &astits.PESHeader{
+				OptionalHeader: &astits.PESOptionalHeader{
+					MarkerBits:      2,
+					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+					PTS:             &astits.ClockReference{Base: videoPTS},
+				},
+				StreamID: 0xE0,
+			},
+			Data: []byte{0x00, 0x00, 0x00, 0x01, 0x67},
+		},
+	})
+	require.NoError(t, err)
+
+	// Create KLV metadata access unit
+	klvData := []byte{0x06, 0x0E, 0x2B, 0x34, 0x01, 0x01, 0x01, 0x01, 0x02, 0x03, 0x04, 0x05}
+
+	// Create metadata AU cell header
+	header := metadataAuCellHeader{
+		PayloadSize:                 len(klvData),
+		MetadataServiceID:           0xFC,
+		CellFragmentationIndication: 0,
+		DecoderConfigFlag:           false,
+		RandomAccessIndicator:       true,
+		SequenceNumber:              1,
+	}
+
+	// Marshal the access unit
+	headerSize := 5 // metadataAuCellHeader is 5 bytes
+	auData := make([]byte, headerSize+len(klvData))
+	n, err := header.marshalTo(auData)
+	require.NoError(t, err)
+	require.Equal(t, headerSize, n)
+	copy(auData[n:], klvData)
+
+	// Write KLV metadata packet
+	_, err = mux.WriteData(&astits.MuxerData{
+		PID: 257,
+		PES: &astits.PESData{
+			Header: &astits.PESHeader{
+				OptionalHeader: &astits.PESOptionalHeader{
+					MarkerBits:      2,
+					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+					PTS:             &astits.ClockReference{Base: videoPTS},
+				},
+				StreamID: 0xFC,
+			},
+			Data: auData,
+		},
+	})
+	require.NoError(t, err)
+
+	// Create reader and test
+	r := &Reader{R: bytes.NewReader(buf.Bytes())}
+	err = r.Initialize()
+	require.NoError(t, err)
+
+	// Find tracks
+	var videoTrack, klvTrack *Track
+	for _, track := range r.Tracks() {
+		switch track.Codec.(type) {
+		case *CodecH264:
+			videoTrack = track
+		case *CodecKLV:
+			klvTrack = track
+		}
+	}
+	require.NotNil(t, videoTrack)
+	require.NotNil(t, klvTrack)
+
+	// Verify it's a metadata stream type
+	klvCodec := klvTrack.Codec.(*CodecKLV)
+	require.Equal(t, astits.StreamTypeMetadata, klvCodec.StreamType)
+
+	// Set up callbacks
+	var receivedKLVData []byte
+	var klvReceived bool
+
+	r.OnDataH264(videoTrack, func(_ int64, _ int64, _ [][]byte) error {
+		return nil
+	})
+
+	r.OnDataKLV(klvTrack, func(_ int64, data []byte) error {
+		receivedKLVData = make([]byte, len(data))
+		copy(receivedKLVData, data)
+		klvReceived = true
+		return nil
+	})
+
+	// Read packets
+	for {
+		err := r.Read()
+		if err != nil {
+			if errors.Is(err, astits.ErrNoMorePackets) {
+				break
+			}
+			require.NoError(t, err)
+		}
+	}
+
+	// Verify KLV data was properly decoded
+	require.True(t, klvReceived, "KLV packet should be received")
+	require.Equal(t, klvData, receivedKLVData, "KLV data should be properly decoded from access unit")
+}
+
+func TestWriterKLVMetadataEncoding(t *testing.T) {
+	// Test round-trip: write KLV metadata and read it back
+
+	klvData := []byte{0x06, 0x0E, 0x2B, 0x34, 0x01, 0x01, 0x01, 0x01, 0x02, 0x03, 0x04, 0x05}
+
+	// Create tracks
+	videoTrack := &Track{
+		Codec: &CodecH264{},
+	}
+
+	klvTrack := &Track{
+		Codec: &CodecKLV{
+			StreamType:      astits.StreamTypeMetadata,
+			StreamID:        0xFC,
+			PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+		},
+	}
+
+	// Create writer
+	var buf bytes.Buffer
+	w := &Writer{
+		W:      &buf,
+		Tracks: []*Track{videoTrack, klvTrack},
+	}
+	err := w.Initialize()
+	require.NoError(t, err)
+
+	// Write video packet first to establish PTS
+	videoPTS := int64(90000)
+	err = w.WriteH264(videoTrack, videoPTS, videoPTS, [][]byte{
+		{0x00, 0x00, 0x00, 0x01, 0x67}, // SPS
+	})
+	require.NoError(t, err)
+
+	// Write KLV data
+	err = w.WriteKLV(klvTrack, videoPTS, klvData)
+	require.NoError(t, err)
+
+	// Now read it back
+	r := &Reader{R: bytes.NewReader(buf.Bytes())}
+	err = r.Initialize()
+	require.NoError(t, err)
+
+	// Find tracks
+	var readVideoTrack, readKLVTrack *Track
+	for _, track := range r.Tracks() {
+		switch track.Codec.(type) {
+		case *CodecH264:
+			readVideoTrack = track
+		case *CodecKLV:
+			readKLVTrack = track
+		}
+	}
+	require.NotNil(t, readVideoTrack)
+	require.NotNil(t, readKLVTrack)
+
+	// Verify it's a metadata stream type
+	klvCodec := readKLVTrack.Codec.(*CodecKLV)
+	require.Equal(t, astits.StreamTypeMetadata, klvCodec.StreamType)
+
+	// Set up callbacks
+	var receivedKLVData []byte
+	var receivedKLVPTS int64
+	var klvReceived bool
+
+	r.OnDataH264(readVideoTrack, func(_ int64, _ int64, _ [][]byte) error {
+		return nil
+	})
+
+	r.OnDataKLV(readKLVTrack, func(pts int64, data []byte) error {
+		receivedKLVData = make([]byte, len(data))
+		copy(receivedKLVData, data)
+		receivedKLVPTS = pts
+		klvReceived = true
+		return nil
+	})
+
+	// Read packets
+	for {
+		err := r.Read()
+		if err != nil {
+			if errors.Is(err, astits.ErrNoMorePackets) {
+				break
+			}
+			require.NoError(t, err)
+		}
+	}
+
+	// Verify round-trip worked
+	require.True(t, klvReceived, "KLV packet should be received")
+	require.Equal(t, klvData, receivedKLVData, "KLV data should match original")
+	require.Equal(t, videoPTS, receivedKLVPTS, "KLV PTS should match")
+}
+
+func TestReaderKLVErrorCases(t *testing.T) {
+	tests := []struct {
+		name        string
+		setupReader func() (*Reader, *Track)
+		expectedErr string
+	}{
+		{
+			"pts_not_equal_dts",
+			func() (*Reader, *Track) {
+				var buf bytes.Buffer
+				mux := astits.NewMuxer(context.Background(), &buf)
+				mux.SetPCRPID(256)
+				err := mux.AddElementaryStream(astits.PMTElementaryStream{
+					ElementaryPID: 256,
+					StreamType:    astits.StreamTypeMetadata,
+				})
+				if err != nil {
+					panic(err)
+				}
+
+				// Write data with different PTS and DTS
+				_, err = mux.WriteData(&astits.MuxerData{
+					PID: 256,
+					PES: &astits.PESData{
+						Header: &astits.PESHeader{
+							OptionalHeader: &astits.PESOptionalHeader{
+								MarkerBits:      2,
+								PTSDTSIndicator: astits.PTSDTSIndicatorBothPresent,
+								PTS:             &astits.ClockReference{Base: 90000},
+								DTS:             &astits.ClockReference{Base: 80000},
+							},
+							StreamID: 0xFC,
+						},
+						Data: []byte{0x06, 0x0E, 0x2B, 0x34},
+					},
+				})
+				if err != nil {
+					panic(err)
+				}
+
+				r := &Reader{R: bytes.NewReader(buf.Bytes())}
+				err = r.Initialize()
+				if err != nil {
+					panic(err)
+				}
+
+				var klvTrack *Track
+				for _, track := range r.Tracks() {
+					if _, ok := track.Codec.(*CodecKLV); ok {
+						klvTrack = track
+						break
+					}
+				}
+				return r, klvTrack
+			},
+			"PTS is not equal to DTS",
+		},
+		{
+			"invalid_access_unit",
+			func() (*Reader, *Track) {
+				var buf bytes.Buffer
+				mux := astits.NewMuxer(context.Background(), &buf)
+				mux.SetPCRPID(256)
+				err := mux.AddElementaryStream(astits.PMTElementaryStream{
+					ElementaryPID: 256,
+					StreamType:    astits.StreamTypeMetadata,
+				})
+				if err != nil {
+					panic(err)
+				}
+
+				// Write invalid access unit data
+				_, err = mux.WriteData(&astits.MuxerData{
+					PID: 256,
+					PES: &astits.PESData{
+						Header: &astits.PESHeader{
+							OptionalHeader: &astits.PESOptionalHeader{
+								MarkerBits:      2,
+								PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+								PTS:             &astits.ClockReference{Base: 90000},
+							},
+							StreamID: 0xFC,
+						},
+						Data: []byte{0xFB, 0x01, 0x10}, // Invalid header
+					},
+				})
+				if err != nil {
+					panic(err)
+				}
+
+				r := &Reader{R: bytes.NewReader(buf.Bytes())}
+				err = r.Initialize()
+				if err != nil {
+					panic(err)
+				}
+
+				var klvTrack *Track
+				for _, track := range r.Tracks() {
+					if _, ok := track.Codec.(*CodecKLV); ok {
+						klvTrack = track
+						break
+					}
+				}
+				return r, klvTrack
+			},
+			"unable to decode KLV access unit",
+		},
+		{
+			"non_klv_track",
+			func() (*Reader, *Track) {
+				var buf bytes.Buffer
+				mux := astits.NewMuxer(context.Background(), &buf)
+				mux.SetPCRPID(256)
+				err := mux.AddElementaryStream(astits.PMTElementaryStream{
+					ElementaryPID: 256,
+					StreamType:    astits.StreamTypeH264Video,
+				})
+				if err != nil {
+					panic(err)
+				}
+
+				// Write some H264 data to trigger the error
+				_, err = mux.WriteData(&astits.MuxerData{
+					PID: 256,
+					PES: &astits.PESData{
+						Header: &astits.PESHeader{
+							OptionalHeader: &astits.PESOptionalHeader{
+								MarkerBits:      2,
+								PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+								PTS:             &astits.ClockReference{Base: 90000},
+							},
+							StreamID: 0xE0,
+						},
+						Data: []byte{0x00, 0x00, 0x00, 0x01, 0x67},
+					},
+				})
+				if err != nil {
+					panic(err)
+				}
+
+				r := &Reader{R: bytes.NewReader(buf.Bytes())}
+				err = r.Initialize()
+				if err != nil {
+					panic(err)
+				}
+
+				// Return H264 track instead of KLV
+				var h264Track *Track
+				for _, track := range r.Tracks() {
+					if _, ok := track.Codec.(*CodecH264); ok {
+						h264Track = track
+						break
+					}
+				}
+				return r, h264Track
+			},
+			"track is not a KLV track",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r, track := tt.setupReader()
+			require.NotNil(t, r)
+			require.NotNil(t, track)
+
+			var errorReceived bool
+			var errorMessage string
+
+			r.OnDecodeError(func(err error) {
+				errorReceived = true
+				errorMessage = err.Error()
+			})
+
+			r.OnDataKLV(track, func(_ int64, _ []byte) error {
+				return nil
+			})
+
+			// Read packets
+			for {
+				err := r.Read()
+				if err != nil {
+					if errors.Is(err, astits.ErrNoMorePackets) {
+						break
+					}
+					require.NoError(t, err)
+				}
+			}
+
+			require.True(t, errorReceived, "Expected decode error")
+			require.Contains(t, errorMessage, tt.expectedErr)
+		})
+	}
+}
+
+func TestReaderKLVPrivateDataStream(t *testing.T) {
+	// Test KLV with private data stream type (no access unit wrapping)
+	var buf bytes.Buffer
+	mux := astits.NewMuxer(context.Background(), &buf)
+	mux.SetPCRPID(256)
+
+	// Add video track for PTS reference
+	err := mux.AddElementaryStream(astits.PMTElementaryStream{
+		ElementaryPID: 256,
+		StreamType:    astits.StreamTypeH264Video,
+	})
+	require.NoError(t, err)
+
+	// Add KLV private data track
+	err = mux.AddElementaryStream(astits.PMTElementaryStream{
+		ElementaryPID: 257,
+		StreamType:    astits.StreamTypePrivateData,
+		ElementaryStreamDescriptors: []*astits.Descriptor{
+			{
+				Length: 4,
+				Tag:    astits.DescriptorTagRegistration,
+				Registration: &astits.DescriptorRegistration{
+					FormatIdentifier: klvaIdentifier,
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	// Write video packet with PTS
+	videoPTS := int64(90000)
+	_, err = mux.WriteData(&astits.MuxerData{
+		PID: 256,
+		PES: &astits.PESData{
+			Header: &astits.PESHeader{
+				OptionalHeader: &astits.PESOptionalHeader{
+					MarkerBits:      2,
+					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+					PTS:             &astits.ClockReference{Base: videoPTS},
+				},
+				StreamID: 0xE0,
+			},
+			Data: []byte{0x00, 0x00, 0x00, 0x01, 0x67},
+		},
+	})
+	require.NoError(t, err)
+
+	// Write KLV private data (no access unit wrapping)
+	klvData := []byte{0x06, 0x0E, 0x2B, 0x34, 0x01, 0x01, 0x01, 0x01}
+	_, err = mux.WriteData(&astits.MuxerData{
+		PID: 257,
+		PES: &astits.PESData{
+			Header: &astits.PESHeader{
+				OptionalHeader: &astits.PESOptionalHeader{
+					MarkerBits:      2,
+					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+					PTS:             &astits.ClockReference{Base: videoPTS},
+				},
+				StreamID: 0xFC,
+			},
+			Data: klvData, // Raw KLV data, no access unit
+		},
+	})
+	require.NoError(t, err)
+
+	// Create reader and test
+	r := &Reader{R: bytes.NewReader(buf.Bytes())}
+	err = r.Initialize()
+	require.NoError(t, err)
+
+	// Find tracks
+	var videoTrack, klvTrack *Track
+	for _, track := range r.Tracks() {
+		switch track.Codec.(type) {
+		case *CodecH264:
+			videoTrack = track
+		case *CodecKLV:
+			klvTrack = track
+		}
+	}
+	require.NotNil(t, videoTrack)
+	require.NotNil(t, klvTrack)
+
+	// Verify it's a private data stream type
+	klvCodec := klvTrack.Codec.(*CodecKLV)
+	require.Equal(t, astits.StreamTypePrivateData, klvCodec.StreamType)
+
+	// Set up callbacks
+	var receivedKLVData []byte
+	var receivedKLVPTS int64
+	var klvReceived bool
+
+	r.OnDataH264(videoTrack, func(_ int64, _ int64, _ [][]byte) error {
+		return nil
+	})
+
+	r.OnDataKLV(klvTrack, func(pts int64, data []byte) error {
+		receivedKLVData = make([]byte, len(data))
+		copy(receivedKLVData, data)
+		receivedKLVPTS = pts
+		klvReceived = true
+		return nil
+	})
+
+	// Read packets
+	for {
+		err := r.Read()
+		if err != nil {
+			if errors.Is(err, astits.ErrNoMorePackets) {
+				break
+			}
+			require.NoError(t, err)
+		}
+	}
+
+	// Verify KLV data was received directly (no access unit decoding)
+	require.True(t, klvReceived, "KLV packet should be received")
+	require.Equal(t, klvData, receivedKLVData, "KLV data should match original")
+	require.Equal(t, videoPTS, receivedKLVPTS, "KLV PTS should match video PTS")
+}
+
+func TestReaderKLVPTSEdgeCases(t *testing.T) {
+	t.Run("klv_without_pts_uses_last_valid", func(t *testing.T) {
+		var buf bytes.Buffer
+		mux := astits.NewMuxer(context.Background(), &buf)
+		mux.SetPCRPID(256)
+
+		// Add video and KLV tracks
+		err := mux.AddElementaryStream(astits.PMTElementaryStream{
+			ElementaryPID: 256,
+			StreamType:    astits.StreamTypeH264Video,
+		})
+		if err != nil {
+			panic(err)
+		}
+		err = mux.AddElementaryStream(astits.PMTElementaryStream{
+			ElementaryPID: 257,
+			StreamType:    astits.StreamTypePrivateData,
+			ElementaryStreamDescriptors: []*astits.Descriptor{
+				{
+					Length: 4,
+					Tag:    astits.DescriptorTagRegistration,
+					Registration: &astits.DescriptorRegistration{
+						FormatIdentifier: klvaIdentifier,
+					},
+				},
+			},
+		})
+		if err != nil {
+			panic(err)
+		}
+
+		// Write video packet with PTS
+		videoPTS := int64(90000)
+		_, err = mux.WriteData(&astits.MuxerData{
+			PID: 256,
+			PES: &astits.PESData{
+				Header: &astits.PESHeader{
+					OptionalHeader: &astits.PESOptionalHeader{
+						MarkerBits:      2,
+						PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+						PTS:             &astits.ClockReference{Base: videoPTS},
+					},
+					StreamID: 0xE0,
+				},
+				Data: []byte{0x00, 0x00, 0x00, 0x01, 0x67},
+			},
+		})
+		if err != nil {
+			panic(err)
+		}
+
+		// Write KLV packet without PTS
+		klvData := []byte{0x06, 0x0E, 0x2B, 0x34, 0x01, 0x01, 0x01, 0x01}
+		_, err = mux.WriteData(&astits.MuxerData{
+			PID: 257,
+			PES: &astits.PESData{
+				Header: &astits.PESHeader{
+					OptionalHeader: &astits.PESOptionalHeader{
+						MarkerBits:      2,
+						PTSDTSIndicator: astits.PTSDTSIndicatorNoPTSOrDTS,
+					},
+					StreamID: 0xFC,
+				},
+				Data: klvData,
+			},
+		})
+		if err != nil {
+			panic(err)
+		}
+
+		r := &Reader{R: bytes.NewReader(buf.Bytes())}
+		err = r.Initialize()
+		if err != nil {
+			panic(err)
+		}
+
+		var klvTrack *Track
+		for _, track := range r.Tracks() {
+			if _, ok := track.Codec.(*CodecKLV); ok {
+				klvTrack = track
+				break
+			}
+		}
+
+		var receivedKLVPTS int64
+		var klvReceived bool
+
+		// Find video track for OnDataH264 callback
+		var videoTrack *Track
+		for _, track := range r.Tracks() {
+			if _, ok := track.Codec.(*CodecH264); ok {
+				videoTrack = track
+				break
+			}
+		}
+
+		if videoTrack != nil {
+			r.OnDataH264(videoTrack, func(_ int64, _ int64, _ [][]byte) error {
+				return nil
+			})
+		}
+
+		r.OnDataKLV(klvTrack, func(pts int64, _ []byte) error {
+			receivedKLVPTS = pts
+			klvReceived = true
+			return nil
+		})
+
+		// Read packets
+		for {
+			err := r.Read()
+			if err != nil {
+				if errors.Is(err, astits.ErrNoMorePackets) {
+					break
+				}
+				require.NoError(t, err)
+			}
+		}
+
+		require.True(t, klvReceived, "KLV packet should be received")
+		require.Equal(t, videoPTS, receivedKLVPTS, "KLV should use last valid PTS")
+	})
+}
