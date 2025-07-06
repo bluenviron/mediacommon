@@ -4,6 +4,10 @@ import (
 	"github.com/asticode/go-astits"
 )
 
+const (
+	opusIdentifier = 'O'<<24 | 'p'<<16 | 'u'<<8 | 's'
+)
+
 // CodecOpus is a Opus codec.
 type CodecOpus struct {
 	ChannelCount int

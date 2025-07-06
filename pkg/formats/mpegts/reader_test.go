@@ -854,6 +854,71 @@ var casesReadWriter = []struct {
 			},
 		},
 	},
+	{
+		"klv sync",
+		&Track{
+			PID: 257,
+			Codec: &CodecKLV{
+				Synchronous: true,
+			},
+		},
+		[]sample{
+			{
+				30 * 90000,
+				30 * 90000,
+				[][]byte{{1, 2, 3}},
+			},
+		},
+		[]*astits.Packet{
+			{ // PMT
+				Header: astits.PacketHeader{
+					HasPayload:                true,
+					PayloadUnitStartIndicator: true,
+					PID:                       0,
+				},
+				Payload: append([]byte{
+					0x00, 0x00, 0xb0, 0x0d, 0x00, 0x00, 0xc1, 0x00,
+					0x00, 0x00, 0x01, 0xf0, 0x00, 0x71, 0x10, 0xd8,
+					0x78,
+				}, bytes.Repeat([]byte{0xff}, 167)...),
+			},
+			{ // PAT
+				Header: astits.PacketHeader{
+					HasPayload:                true,
+					PayloadUnitStartIndicator: true,
+					PID:                       4096,
+				},
+				Payload: append([]byte{
+					0x00, 0x02, 0xb0, 0x28, 0x00, 0x01, 0xc1, 0x00,
+					0x00, 0xe1, 0x01, 0xf0, 0x00, 0x15, 0xe1, 0x01,
+					0xf0, 0x16, 0x26, 0x09, 0x01, 0x00, 0xff, 0x4b,
+					0x4c, 0x56, 0x41, 0x00, 0x0f, 0x27, 0x09, 0xc0,
+					0x00, 0x00, 0xc0, 0x00, 0x00, 0xc0, 0x00, 0x00,
+					0x4c, 0x5c, 0xe5, 0x50,
+				}, bytes.Repeat([]byte{0xff}, 140)...),
+			},
+			{ // PES
+				AdaptationField: &astits.PacketAdaptationField{
+					Length:                161,
+					StuffingLength:        154,
+					RandomAccessIndicator: true,
+					HasPCR:                true,
+					PCR:                   &astits.ClockReference{Base: 2691000},
+				},
+				Header: astits.PacketHeader{
+					HasAdaptationField:        true,
+					HasPayload:                true,
+					PayloadUnitStartIndicator: true,
+					PID:                       257,
+				},
+				Payload: []byte{
+					0x00, 0x00, 0x01, 0xfc, 0x00, 0x10, 0x80, 0x80,
+					0x05, 0x21, 0x00, 0xa5, 0x65, 0xc1, 0x00, 0x00,
+					0x1f, 0x00, 0x03, 0x01, 0x02, 0x03,
+				},
+			},
+		},
+	},
 }
 
 func TestReader(t *testing.T) {
@@ -940,6 +1005,14 @@ func TestReader(t *testing.T) {
 					return nil
 				})
 
+			case *CodecKLV:
+				r.OnDataKLV(ca.track, func(pts int64, frame []byte) error {
+					require.Equal(t, ca.samples[i].pts, pts)
+					require.Equal(t, ca.samples[i].data[0], frame)
+					i++
+					return nil
+				})
+
 			default:
 				t.Errorf("unexpected")
 			}
@@ -955,6 +1028,132 @@ func TestReader(t *testing.T) {
 			require.Equal(t, len(ca.samples), i)
 		})
 	}
+}
+
+func TestReaderKLVAsync(t *testing.T) {
+	input := []*astits.Packet{
+		{
+			Header: astits.PacketHeader{
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+			},
+			Payload: append(
+				[]byte{
+					0x00, 0x00, 0xb0, 0x0d, 0x00, 0x00, 0xc1, 0x00,
+					0x00, 0x00, 0x01, 0xf0, 0x00, 0x71, 0x10, 0xd8,
+					0x78,
+				},
+				bytes.Repeat([]byte{0xff}, 167)...,
+			),
+		},
+		{
+			Header: astits.PacketHeader{
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+				PID:                       4096,
+			},
+			Payload: append(
+				[]byte{
+					0x00, 0x02, 0xb0, 0x1d, 0x00, 0x01, 0xc1, 0x00,
+					0x00, 0xe1, 0x00, 0xf0, 0x00, 0x1b, 0xe1, 0x00,
+					0xf0, 0x00, 0x06, 0xe1, 0x01, 0xf0, 0x06, 0x05,
+					0x04, 0x4b, 0x4c, 0x56, 0x41, 0x06, 0x71, 0x49,
+					0xd4,
+				},
+				bytes.Repeat([]byte{0xff}, 151)...,
+			),
+		},
+		{
+			Header: astits.PacketHeader{
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+				PID:                       256,
+				HasAdaptationField:        true,
+			},
+			AdaptationField: &astits.PacketAdaptationField{
+				PCR: &astits.ClockReference{
+					Base: 81000,
+				},
+				Length:         155,
+				StuffingLength: 148,
+				HasPCR:         true,
+			},
+			Payload: []byte{
+				0x00, 0x00, 0x01, 0xe0, 0x00, 0x00, 0x80, 0x80,
+				0x05, 0x21, 0x00, 0x05, 0xbf, 0x21, 0x00, 0x00,
+				0x00, 0x01, 0x09, 0xf0, 0x00, 0x00, 0x00, 0x01,
+				0x01, 0x02, 0x03, 0x04,
+			},
+		},
+		{
+			Header: astits.PacketHeader{
+				HasAdaptationField:        true,
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+				PID:                       257,
+			},
+			AdaptationField: &astits.PacketAdaptationField{
+				Length:                170,
+				StuffingLength:        169,
+				RandomAccessIndicator: true,
+			},
+			Payload: []byte{
+				0x00, 0x00, 0x01, 0xbd, 0x00, 0x07, 0x80, 0x00,
+				0x00, 0x05, 0x06, 0x07, 0x08,
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	mux := astits.NewMuxer(context.Background(), &buf)
+
+	for _, packet := range input {
+		_, err := mux.WritePacket(packet)
+		require.NoError(t, err)
+	}
+
+	r, err := NewReader(&buf)
+	require.NoError(t, err)
+	require.Equal(t, []*Track{
+		{
+			PID:   256,
+			Codec: &CodecH264{},
+		},
+		{
+			PID: 257,
+			Codec: &CodecKLV{
+				Synchronous: false,
+			},
+		},
+	}, r.Tracks())
+
+	recv1 := false
+	recv2 := false
+
+	r.OnDataH264(r.Tracks()[0], func(pts int64, _ int64, au [][]byte) error {
+		require.Equal(t, int64(90000), pts)
+		require.Equal(t, [][]byte{{1, 2, 3, 4}}, au)
+		recv1 = true
+		return nil
+	})
+
+	r.OnDataKLV(r.Tracks()[1], func(pts int64, data []byte) error {
+		require.Equal(t, int64(90000), pts)
+		require.Equal(t, []byte{5, 6, 7, 8}, data)
+		recv2 = true
+		return nil
+	})
+
+	for {
+		err := r.Read()
+		if errors.Is(err, astits.ErrNoMorePackets) {
+			break
+		}
+		require.NoError(t, err)
+	}
+
+	require.True(t, recv1)
+	require.True(t, recv2)
 }
 
 func TestReaderDecodeErrors(t *testing.T) {

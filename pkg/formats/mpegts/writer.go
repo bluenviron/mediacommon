@@ -16,8 +16,10 @@ import (
 )
 
 const (
-	streamIDVideo = 224
-	streamIDAudio = 192
+	streamIDVideo    = 224
+	streamIDAudio    = 192
+	streamIDMetadata = 0xFC
+	streamIDPrivate  = 0xBD
 
 	// PCR is needed to read H265 tracks with VLC+VDPAU hardware encoder
 	// (and is probably needed by other combinations too)
@@ -264,6 +266,33 @@ func (w *Writer) WriteAC3(
 	return w.writeAudio(track, pts, frame)
 }
 
+// WriteKLV writes KLV data.
+func (w *Writer) WriteKLV(
+	track *Track,
+	pts int64,
+	data []byte,
+) error {
+	codec := track.Codec.(*CodecKLV)
+
+	if codec.Synchronous {
+		enc, err := metadataAUCell{
+			MetadataServiceID:      0,
+			SequenceNumber:         0,
+			CellFragmentIndication: 0,
+			DecoderConfigFlag:      false,
+			RandomAccessIndicator:  true,
+			AUCellData:             data,
+		}.marshal()
+		if err != nil {
+			return err
+		}
+
+		return w.writeData(track, true, pts, streamIDMetadata, enc)
+	}
+
+	return w.writeData(track, false, 0, streamIDPrivate, data)
+}
+
 func (w *Writer) writeVideo(
 	track *Track,
 	pts int64,
@@ -356,6 +385,51 @@ func (w *Writer) writeAudio(track *Track, pts int64, data []byte) error {
 				StreamID: streamIDAudio,
 			},
 			Data: data,
+		},
+	})
+	return err
+}
+
+func (w *Writer) writeData(track *Track, hasPTS bool, pts int64, streamID uint8, data []byte) error {
+	if !w.leadingTrackChosen {
+		w.leadingTrackChosen = true
+		track.isLeading = true
+		w.mux.SetPCRPID(track.PID)
+	}
+
+	af := &astits.PacketAdaptationField{
+		RandomAccessIndicator: true,
+	}
+
+	if track.isLeading {
+		if w.pcrCounter == 0 {
+			af.HasPCR = true
+			af.PCR = &astits.ClockReference{Base: pts - dtsPCRDiff}
+			w.pcrCounter = 3
+		}
+		w.pcrCounter--
+	}
+
+	oh := &astits.PESOptionalHeader{
+		MarkerBits: 2,
+	}
+
+	if hasPTS {
+		oh.PTSDTSIndicator = astits.PTSDTSIndicatorOnlyPTS
+		oh.PTS = &astits.ClockReference{Base: pts}
+	}
+
+	header := &astits.PESHeader{
+		StreamID:       streamID,
+		OptionalHeader: oh,
+	}
+
+	_, err := w.mux.WriteData(&astits.MuxerData{
+		PID:             track.PID,
+		AdaptationField: af,
+		PES: &astits.PESData{
+			Header: header,
+			Data:   data,
 		},
 	})
 	return err
