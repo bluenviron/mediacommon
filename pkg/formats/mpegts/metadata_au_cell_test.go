@@ -29,8 +29,9 @@ func TestMetadataAUCellUnmarshal(t *testing.T) {
 	for _, ca := range casesMetadataAUCell {
 		t.Run(ca.name, func(t *testing.T) {
 			var h metadataAUCell
-			err := h.unmarshal(ca.enc)
+			n, err := h.unmarshal(ca.enc)
 			require.NoError(t, err)
+			require.Equal(t, n, len(ca.enc))
 			require.Equal(t, ca.dec, h)
 		})
 	}
@@ -49,7 +50,7 @@ func TestMetadataAUCellMarshal(t *testing.T) {
 func FuzzMetadataAUCell(f *testing.F) {
 	f.Fuzz(func(t *testing.T, buf []byte) {
 		var c metadataAUCell
-		err := c.unmarshal(buf)
+		_, err := c.unmarshal(buf)
 		if err != nil {
 			return
 		}

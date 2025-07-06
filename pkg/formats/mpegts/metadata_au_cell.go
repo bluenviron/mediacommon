@@ -13,9 +13,9 @@ type metadataAUCell struct {
 	AUCellData             []byte
 }
 
-func (c *metadataAUCell) unmarshal(buf []byte) error {
+func (c *metadataAUCell) unmarshal(buf []byte) (int, error) {
 	if len(buf) < 5 {
-		return fmt.Errorf("buffer is too small")
+		return 0, fmt.Errorf("buffer is too small")
 	}
 
 	n := 0
@@ -33,17 +33,13 @@ func (c *metadataAUCell) unmarshal(buf []byte) error {
 	n += 2
 
 	if len(buf[n:]) < auCellDataLength {
-		return fmt.Errorf("buffer is too small")
+		return 0, fmt.Errorf("buffer is too small")
 	}
 
 	c.AUCellData = buf[n : n+auCellDataLength]
 	n += auCellDataLength
 
-	if len(buf[n:]) != 0 {
-		return fmt.Errorf("unread bytes detected")
-	}
-
-	return nil
+	return n, nil
 }
 
 func (c metadataAUCell) marshalSize() int {
@@ -52,6 +48,11 @@ func (c metadataAUCell) marshalSize() int {
 
 func (c metadataAUCell) marshal() ([]byte, error) {
 	buf := make([]byte, c.marshalSize())
+	_, err := c.marshalTo(buf)
+	return buf, err
+}
+
+func (c metadataAUCell) marshalTo(buf []byte) (int, error) {
 	n := 0
 
 	buf[n] = c.MetadataServiceID
@@ -67,7 +68,7 @@ func (c metadataAUCell) marshal() ([]byte, error) {
 	buf[n+1] = byte(auCellDataLength)
 	n += 2
 
-	copy(buf[n:], c.AUCellData)
+	n += copy(buf[n:], c.AUCellData)
 
-	return buf, nil
+	return n, nil
 }
