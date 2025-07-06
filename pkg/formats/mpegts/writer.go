@@ -266,16 +266,16 @@ func (w *Writer) WriteAC3(
 	return w.writeAudio(track, pts, frame)
 }
 
-// WriteKLV writes KLV data.
+// WriteKLV writes a KLV unit.
 func (w *Writer) WriteKLV(
 	track *Track,
 	pts int64,
-	data []byte,
+	unit []byte,
 ) error {
 	codec := track.Codec.(*CodecKLV)
 
 	if codec.Synchronous {
-		out, err := writeMetadataAUWrapper(data)
+		out, err := writeMetadataAUWrapper(unit)
 		if err != nil {
 			return err
 		}
@@ -283,7 +283,7 @@ func (w *Writer) WriteKLV(
 		return w.writeData(track, true, pts, streamIDMetadata, out)
 	}
 
-	return w.writeData(track, false, 0, streamIDPrivate, data)
+	return w.writeData(track, false, 0, streamIDPrivate, unit)
 }
 
 func (w *Writer) writeVideo(
