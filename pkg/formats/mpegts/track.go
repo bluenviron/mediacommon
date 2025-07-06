@@ -8,12 +8,6 @@ import (
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 )
 
-const (
-	h264Identifier = 'H'<<24 | 'D'<<16 | 'M'<<8 | 'V'
-	h265Identifier = 'H'<<24 | 'E'<<16 | 'V'<<8 | 'C'
-	opusIdentifier = 'O'<<24 | 'p'<<16 | 'u'<<8 | 's'
-)
-
 func findMPEG4AudioConfig(dem *astits.Demuxer, pid uint16) (*mpeg4audio.Config, error) {
 	for {
 		data, err := dem.NextData()
@@ -67,15 +61,42 @@ func findAC3Parameters(dem *astits.Demuxer, pid uint16) (int, int, error) {
 	}
 }
 
-func findOpusRegistration(descriptors []*astits.Descriptor) bool {
+func findRegistrationIdentifier(descriptors []*astits.Descriptor) (uint32, bool) {
+	ret := uint32(0)
 	for _, sd := range descriptors {
 		if sd.Registration != nil {
-			if sd.Registration.FormatIdentifier == opusIdentifier {
-				return true
+			// in case of multiple registrations, do not return anything
+			if ret != 0 {
+				return 0, false
+			}
+			ret = sd.Registration.FormatIdentifier
+		}
+	}
+	return ret, true
+}
+
+func findKLVMetadataDescriptor(descriptors []*astits.Descriptor) *metadataDescriptor {
+	var ret *metadataDescriptor
+	for _, sd := range descriptors {
+		if sd.Unknown != nil {
+			if sd.Unknown.Tag == descriptorTagMetadata {
+				var dm metadataDescriptor
+				err := dm.unmarshal(sd.Unknown.Content)
+				if err != nil {
+					continue
+				}
+
+				if dm.MetadataFormatIdentifier == klvaIdentifier {
+					// in case of multiple metadata, do not return anything
+					if ret != nil {
+						return nil
+					}
+					ret = &dm
+				}
 			}
 		}
 	}
-	return false
+	return ret
 }
 
 func findOpusChannelCount(descriptors []*astits.Descriptor) int {
@@ -88,19 +109,75 @@ func findOpusChannelCount(descriptors []*astits.Descriptor) int {
 	return 0
 }
 
-func findOpusCodec(descriptors []*astits.Descriptor) *CodecOpus {
-	if !findOpusRegistration(descriptors) {
-		return nil
+func findCodec(dem *astits.Demuxer, es *astits.PMTElementaryStream) (Codec, error) {
+	switch es.StreamType {
+	case astits.StreamTypeH265Video:
+		return &CodecH265{}, nil
+
+	case astits.StreamTypeH264Video:
+		return &CodecH264{}, nil
+
+	case astits.StreamTypeMPEG4Video:
+		return &CodecMPEG4Video{}, nil
+
+	case astits.StreamTypeMPEG2Video, astits.StreamTypeMPEG1Video:
+		return &CodecMPEG1Video{}, nil
+
+	case astits.StreamTypeAACAudio:
+		conf, err := findMPEG4AudioConfig(dem, es.ElementaryPID)
+		if err != nil {
+			return nil, err
+		}
+
+		return &CodecMPEG4Audio{
+			Config: *conf,
+		}, nil
+
+	case astits.StreamTypeMPEG1Audio:
+		return &CodecMPEG1Audio{}, nil
+
+	case astits.StreamTypeAC3Audio:
+		sampleRate, channelCount, err := findAC3Parameters(dem, es.ElementaryPID)
+		if err != nil {
+			return nil, err
+		}
+
+		return &CodecAC3{
+			SampleRate:   sampleRate,
+			ChannelCount: channelCount,
+		}, nil
+
+	case astits.StreamTypePrivateData:
+		id, ok := findRegistrationIdentifier(es.ElementaryStreamDescriptors)
+		if ok {
+			switch id {
+			case opusIdentifier:
+				channelCount := findOpusChannelCount(es.ElementaryStreamDescriptors)
+				if channelCount <= 0 {
+					return nil, fmt.Errorf("invalid Opus channel count")
+				}
+
+				return &CodecOpus{
+					ChannelCount: channelCount,
+				}, nil
+
+			case klvaIdentifier:
+				return &CodecKLV{
+					Synchronous: false,
+				}, nil
+			}
+		}
+
+	case astits.StreamTypeMetadata:
+		desc := findKLVMetadataDescriptor(es.ElementaryStreamDescriptors)
+		if desc != nil {
+			return &CodecKLV{
+				Synchronous: true,
+			}, nil
+		}
 	}
 
-	channelCount := findOpusChannelCount(descriptors)
-	if channelCount <= 0 {
-		return nil
-	}
-
-	return &CodecOpus{
-		ChannelCount: channelCount,
-	}
+	return &CodecUnsupported{}, nil
 }
 
 // Track is a MPEG-TS track.
@@ -119,54 +196,11 @@ func (t *Track) marshal() (*astits.PMTElementaryStream, error) {
 func (t *Track) unmarshal(dem *astits.Demuxer, es *astits.PMTElementaryStream) error {
 	t.PID = es.ElementaryPID
 
-	switch es.StreamType {
-	case astits.StreamTypeH265Video:
-		t.Codec = &CodecH265{}
-
-	case astits.StreamTypeH264Video:
-		t.Codec = &CodecH264{}
-
-	case astits.StreamTypeMPEG4Video:
-		t.Codec = &CodecMPEG4Video{}
-
-	case astits.StreamTypeMPEG2Video, astits.StreamTypeMPEG1Video:
-		t.Codec = &CodecMPEG1Video{}
-
-	case astits.StreamTypeAACAudio:
-		conf, err := findMPEG4AudioConfig(dem, es.ElementaryPID)
-		if err != nil {
-			return err
-		}
-
-		t.Codec = &CodecMPEG4Audio{
-			Config: *conf,
-		}
-
-	case astits.StreamTypeMPEG1Audio:
-		t.Codec = &CodecMPEG1Audio{}
-
-	case astits.StreamTypeAC3Audio:
-		sampleRate, channelCount, err := findAC3Parameters(dem, es.ElementaryPID)
-		if err != nil {
-			return err
-		}
-
-		t.Codec = &CodecAC3{
-			SampleRate:   sampleRate,
-			ChannelCount: channelCount,
-		}
-
-	case astits.StreamTypePrivateData:
-		codec := findOpusCodec(es.ElementaryStreamDescriptors)
-		if codec != nil {
-			t.Codec = codec
-		} else {
-			t.Codec = &CodecUnsupported{}
-		}
-
-	default:
-		t.Codec = &CodecUnsupported{}
+	codec, err := findCodec(dem, es)
+	if err != nil {
+		return err
 	}
+	t.Codec = codec
 
 	return nil
 }

@@ -40,6 +40,9 @@ type ReaderOnDataMPEG1AudioFunc func(pts int64, frames [][]byte) error
 // ReaderOnDataAC3Func is the prototype of the callback passed to OnDataAC3.
 type ReaderOnDataAC3Func func(pts int64, frame []byte) error
 
+// ReaderOnDataKLVFunc is the prototype of the callback passed to OnDataKLV.
+type ReaderOnDataKLVFunc func(pts int64, data []byte) error
+
 func findPMT(dem *astits.Demuxer) (*astits.PMTData, error) {
 	for {
 		data, err := dem.NextData()
@@ -57,10 +60,13 @@ func findPMT(dem *astits.Demuxer) (*astits.PMTData, error) {
 type Reader struct {
 	R io.Reader
 
-	tracks        []*Track
-	dem           *astits.Demuxer
-	onDecodeError ReaderOnDecodeErrorFunc
-	onData        map[uint16]func(int64, int64, []byte) error
+	tracks          []*Track
+	tracksByPID     map[uint16]*Track
+	dem             *astits.Demuxer
+	onDecodeError   ReaderOnDecodeErrorFunc
+	onData          map[uint16]func(int64, int64, []byte) error
+	lastPTSReceived bool
+	lastPTS         int64
 }
 
 // Initialize initializes a Reader.
@@ -96,6 +102,12 @@ func (r *Reader) Initialize() error {
 		astits.DemuxerOptPacketSize(188))
 
 	r.tracks = tracks
+
+	r.tracksByPID = make(map[uint16]*Track)
+	for _, track := range tracks {
+		r.tracksByPID[track.PID] = track
+	}
+
 	r.dem = dem
 	r.onDecodeError = func(error) {}
 	r.onData = make(map[uint16]func(int64, int64, []byte) error)
@@ -281,6 +293,28 @@ func (r *Reader) OnDataAC3(track *Track, cb ReaderOnDataAC3Func) {
 	}
 }
 
+// OnDataKLV sets a callback that is called when data from a KLV track is received.
+func (r *Reader) OnDataKLV(track *Track, cb ReaderOnDataKLVFunc) {
+	codec := track.Codec.(*CodecKLV)
+
+	if codec.Synchronous {
+		r.onData[track.PID] = func(pts int64, _ int64, data []byte) error {
+			var au metadataAUCell
+			err := au.unmarshal(data)
+			if err != nil {
+				r.onDecodeError(err)
+				return nil
+			}
+
+			return cb(pts, au.AUCellData)
+		}
+	} else {
+		r.onData[track.PID] = func(pts int64, _ int64, data []byte) error {
+			return cb(pts, data)
+		}
+	}
+}
+
 // Read reads data.
 func (r *Reader) Read() error {
 	for {
@@ -298,20 +332,39 @@ func (r *Reader) Read() error {
 			return nil
 		}
 
-		if data.PES.Header.OptionalHeader == nil ||
-			data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorNoPTSOrDTS ||
-			data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorIsForbidden {
-			r.onDecodeError(fmt.Errorf("PTS is missing"))
+		track, ok := r.tracksByPID[data.PID]
+		if !ok {
+			r.onDecodeError(fmt.Errorf("received data from undeclared track with PID %d", data.PID))
 			return nil
 		}
 
-		pts := data.PES.Header.OptionalHeader.PTS.Base
-
+		var pts int64
 		var dts int64
-		if data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorBothPresent {
-			dts = data.PES.Header.OptionalHeader.DTS.Base
+
+		if klvCodec, ok2 := track.Codec.(*CodecKLV); ok2 && !klvCodec.Synchronous {
+			if !r.lastPTSReceived {
+				return nil
+			}
+
+			pts = r.lastPTS
 		} else {
-			dts = pts
+			if data.PES.Header.OptionalHeader == nil ||
+				data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorNoPTSOrDTS ||
+				data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorIsForbidden {
+				r.onDecodeError(fmt.Errorf("PTS is missing"))
+				return nil
+			}
+
+			pts = data.PES.Header.OptionalHeader.PTS.Base
+
+			if data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorBothPresent {
+				dts = data.PES.Header.OptionalHeader.DTS.Base
+			} else {
+				dts = pts
+			}
+
+			r.lastPTS = pts
+			r.lastPTSReceived = true
 		}
 
 		onData, ok := r.onData[data.PID]

@@ -51,6 +51,10 @@ func TestWriter(t *testing.T) {
 					err := w.WriteAC3(ca.track, sample.pts, sample.data[0])
 					require.NoError(t, err)
 
+				case *CodecKLV:
+					err := w.WriteKLV(ca.track, sample.pts, sample.data[0])
+					require.NoError(t, err)
+
 				default:
 					t.Errorf("unexpected")
 				}
@@ -61,27 +65,134 @@ func TestWriter(t *testing.T) {
 				&buf,
 				astits.DemuxerOptPacketSize(188))
 
-			i := 0
-
+			var pkts []*astits.Packet
 			for {
 				pkt, err := dem.NextPacket()
 				if errors.Is(err, astits.ErrNoMorePackets) {
 					break
 				}
 				require.NoError(t, err)
-
-				if i >= len(ca.packets) {
-					t.Errorf("missing packet: %#v", pkt)
-					break
-				}
-
-				require.Equal(t, ca.packets[i], pkt)
-				i++
+				pkts = append(pkts, pkt)
 			}
 
-			require.Equal(t, len(ca.packets), i)
+			require.Equal(t, ca.packets, pkts)
 		})
 	}
+}
+
+func TestWriterKLVAsync(t *testing.T) {
+	var buf bytes.Buffer
+	w := &Writer{
+		W: &buf,
+		Tracks: []*Track{
+			{
+				Codec: &CodecH264{},
+			},
+			{
+				Codec: &CodecKLV{
+					Synchronous: false,
+				},
+			},
+		},
+	}
+	err := w.Initialize()
+	require.NoError(t, err)
+
+	err = w.WriteH264(w.Tracks[0], 90000, 90000, [][]byte{{1, 2, 3, 4}})
+	require.NoError(t, err)
+
+	err = w.WriteKLV(w.Tracks[1], 90000, []byte{5, 6, 7, 8})
+	require.NoError(t, err)
+
+	dem := astits.NewDemuxer(
+		context.Background(),
+		&buf,
+		astits.DemuxerOptPacketSize(188))
+
+	var pkts []*astits.Packet
+	for {
+		pkt, err := dem.NextPacket()
+		if errors.Is(err, astits.ErrNoMorePackets) {
+			break
+		}
+		require.NoError(t, err)
+		pkts = append(pkts, pkt)
+	}
+
+	expected := []*astits.Packet{
+		{
+			Header: astits.PacketHeader{
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+			},
+			Payload: append(
+				[]byte{
+					0x00, 0x00, 0xb0, 0x0d, 0x00, 0x00, 0xc1, 0x00,
+					0x00, 0x00, 0x01, 0xf0, 0x00, 0x71, 0x10, 0xd8,
+					0x78,
+				},
+				bytes.Repeat([]byte{0xff}, 167)...,
+			),
+		},
+		{
+			Header: astits.PacketHeader{
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+				PID:                       4096,
+			},
+			Payload: append(
+				[]byte{
+					0x00, 0x02, 0xb0, 0x1d, 0x00, 0x01, 0xc1, 0x00,
+					0x00, 0xe1, 0x00, 0xf0, 0x00, 0x1b, 0xe1, 0x00,
+					0xf0, 0x00, 0x06, 0xe1, 0x01, 0xf0, 0x06, 0x05,
+					0x04, 0x4b, 0x4c, 0x56, 0x41, 0x06, 0x71, 0x49,
+					0xd4,
+				},
+				bytes.Repeat([]byte{0xff}, 151)...,
+			),
+		},
+		{
+			Header: astits.PacketHeader{
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+				PID:                       256,
+				HasAdaptationField:        true,
+			},
+			AdaptationField: &astits.PacketAdaptationField{
+				PCR: &astits.ClockReference{
+					Base: 81000,
+				},
+				Length:         155,
+				StuffingLength: 148,
+				HasPCR:         true,
+			},
+			Payload: []byte{
+				0x00, 0x00, 0x01, 0xe0, 0x00, 0x00, 0x80, 0x80,
+				0x05, 0x21, 0x00, 0x05, 0xbf, 0x21, 0x00, 0x00,
+				0x00, 0x01, 0x09, 0xf0, 0x00, 0x00, 0x00, 0x01,
+				0x01, 0x02, 0x03, 0x04,
+			},
+		},
+		{
+			Header: astits.PacketHeader{
+				HasAdaptationField:        true,
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+				PID:                       257,
+			},
+			AdaptationField: &astits.PacketAdaptationField{
+				Length:                170,
+				StuffingLength:        169,
+				RandomAccessIndicator: true,
+			},
+			Payload: []byte{
+				0x00, 0x00, 0x01, 0xbd, 0x00, 0x07, 0x80, 0x00,
+				0x00, 0x05, 0x06, 0x07, 0x08,
+			},
+		},
+	}
+
+	require.Equal(t, expected, pkts)
 }
 
 func TestWriterAutomaticPID(t *testing.T) {
