@@ -195,6 +195,56 @@ func TestWriterKLVAsync(t *testing.T) {
 	require.Equal(t, expected, pkts)
 }
 
+func TestWriterReaderLongKLVSync(t *testing.T) {
+	var buf bytes.Buffer
+	w := &Writer{
+		W: &buf,
+		Tracks: []*Track{
+			{
+				Codec: &CodecKLV{
+					Synchronous: true,
+				},
+			},
+		},
+	}
+	err := w.Initialize()
+	require.NoError(t, err)
+
+	err = w.WriteKLV(w.Tracks[0], 90000, bytes.Repeat([]byte{1, 2, 3, 4}, 200000/4))
+	require.NoError(t, err)
+
+	r := &Reader{
+		R: bytes.NewReader(buf.Bytes()),
+	}
+	err = r.Initialize()
+	require.NoError(t, err)
+
+	require.Equal(t, []*Track{{
+		PID: 256,
+		Codec: &CodecKLV{
+			Synchronous: true,
+		},
+	}}, r.Tracks())
+
+	ok := false
+
+	r.OnDataKLV(r.Tracks()[0], func(_ int64, data []byte) error {
+		require.Equal(t, bytes.Repeat([]byte{1, 2, 3, 4}, 200000/4), data)
+		ok = true
+		return nil
+	})
+
+	for {
+		err := r.Read()
+		if errors.Is(err, astits.ErrNoMorePackets) {
+			break
+		}
+		require.NoError(t, err)
+	}
+
+	require.True(t, ok)
+}
+
 func TestWriterAutomaticPID(t *testing.T) {
 	track := &Track{
 		Codec: &CodecH265{},

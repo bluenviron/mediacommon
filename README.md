@@ -20,7 +20,7 @@ Go &ge; 1.23 is required.
 |----|----|
 |ISO 13818-2, Generic Coding of Moving Pictures and Associated Audio information, Part 2, Video|codecs / MPEG-1/2 Video|
 |ISO 14496-2, Coding of audio-visual objects, Part 2, Visual|codecs / MPEG-4 Video|
-|[ITU-T Rec. T-871, JPEG File Interchange Format](https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-T.871-201105-I!!PDF-E&type=items)|codecs / JPEG|
+|[ITU-T Rec. T-871, JPEG File Interchange Format](https://www.itu.int/rec/T-REC-T.871)|codecs / JPEG|
 |[ITU-T Rec. H.264 (08/2021)](https://www.itu.int/rec/T-REC-H.264)|codecs / H264|
 |[ITU-T Rec. H.265 (08/2021)](https://www.itu.int/rec/T-REC-H.265)|codecs / H265|
 |[VP9 Bitstream & Decoding Process Specification v0.6](https://storage.googleapis.com/downloads.webmproject.org/docs/vp9/vp9-bitstream-specification-v0.6-20160331-draft.pdf)|codecs / VP9|
