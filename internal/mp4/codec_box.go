@@ -434,15 +434,15 @@ func WriteCodecBoxes(w *Writer, codec mp4.Codec, trackID int, info *CodecInfo, a
 				},
 				DataReferenceIndex: 1,
 			},
-			ChannelCount: uint16(codec.ChannelCount),
+			ChannelCount: uint16(codec.Config.ChannelCount),
 			SampleSize:   16,
-			SampleRate:   uint32(codec.SampleRate * 65536),
+			SampleRate:   uint32(codec.Config.SampleRate * 65536),
 		})
 		if err != nil {
 			return err
 		}
 
-		enc, _ := codec.Marshal()
+		enc, _ := codec.Config.Marshal()
 
 		_, err = w.WriteBox(&amp4.Esds{ // <esds/>
 			Descriptors: []amp4.Descriptor{
