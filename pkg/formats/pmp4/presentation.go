@@ -523,7 +523,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 						return nil, fmt.Errorf("unable to find decoder specific info")
 					}
 
-					var c mpeg4audio.Config
+					var c mpeg4audio.AudioSpecificConfig
 					err := c.Unmarshal(spec)
 					if err != nil {
 						return nil, fmt.Errorf("invalid MPEG-4 Audio configuration: %w", err)

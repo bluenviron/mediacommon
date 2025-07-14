@@ -7,6 +7,8 @@ import (
 )
 
 // Config is an alias for AudioSpecificConfig.
+//
+// Deprecated: replaced by AudioSpecificConfig.
 type Config = AudioSpecificConfig
 
 // AudioSpecificConfig is an AudioSpecificConfig.
@@ -25,13 +27,13 @@ type AudioSpecificConfig struct {
 	CoreCoderDelay     uint16
 }
 
-// Unmarshal decodes a Config.
+// Unmarshal decodes a AudioSpecificConfig.
 func (c *AudioSpecificConfig) Unmarshal(buf []byte) error {
 	pos := 0
 	return c.UnmarshalFromPos(buf, &pos)
 }
 
-// UnmarshalFromPos decodes a Config.
+// UnmarshalFromPos decodes a AudioSpecificConfig.
 func (c *AudioSpecificConfig) UnmarshalFromPos(buf []byte, pos *int) error {
 	tmp, err := bits.ReadBits(buf, pos, 5)
 	if err != nil {
@@ -187,7 +189,7 @@ func (c AudioSpecificConfig) marshalSize() int {
 	return ret
 }
 
-// Marshal encodes a Config.
+// Marshal encodes a AudioSpecificConfig.
 func (c AudioSpecificConfig) Marshal() ([]byte, error) {
 	buf := make([]byte, c.marshalSize())
 	pos := 0

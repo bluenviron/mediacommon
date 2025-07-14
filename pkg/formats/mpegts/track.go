@@ -8,7 +8,7 @@ import (
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 )
 
-func findMPEG4AudioConfig(dem *astits.Demuxer, pid uint16) (*mpeg4audio.Config, error) {
+func findMPEG4AudioConfig(dem *astits.Demuxer, pid uint16) (*mpeg4audio.AudioSpecificConfig, error) {
 	for {
 		data, err := dem.NextData()
 		if err != nil {
@@ -26,7 +26,7 @@ func findMPEG4AudioConfig(dem *astits.Demuxer, pid uint16) (*mpeg4audio.Config, 
 		}
 
 		pkt := adtsPkts[0]
-		return &mpeg4audio.Config{
+		return &mpeg4audio.AudioSpecificConfig{
 			Type:         pkt.Type,
 			SampleRate:   pkt.SampleRate,
 			ChannelCount: pkt.ChannelCount,
