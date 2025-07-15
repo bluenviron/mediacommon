@@ -18,8 +18,6 @@ type ADTSPackets []*ADTSPacket
 
 // Unmarshal decodes an ADTS stream into ADTS packets.
 func (ps *ADTSPackets) Unmarshal(buf []byte) error {
-	// refs: https://wiki.multimedia.cx/index.php/ADTS
-
 	bl := len(buf)
 	pos := 0
 

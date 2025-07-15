@@ -1,7 +1,7 @@
 package h264
 
 // EmulationPreventionRemove removes emulation prevention bytes from a NALU.
-// Specification: ITU-T Rec. H.264, 7.4.1 NAL unit semantics
+// Specification: ITU-T Rec. H.264, section 7.4.1
 func EmulationPreventionRemove(nalu []byte) []byte {
 	// 0x00 0x00 0x03 0x00 -> 0x00 0x00 0x00
 	// 0x00 0x00 0x03 0x01 -> 0x00 0x00 0x01

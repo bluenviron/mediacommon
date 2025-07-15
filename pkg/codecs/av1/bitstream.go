@@ -5,7 +5,7 @@ import (
 )
 
 // Bitstream is an AV1 bitstream.
-// Specification: https://aomediacodec.github.io/av1-spec/#low-overhead-bitstream-format
+// Specification: AV1 Bitstream & Decoding Process, section 5.2
 type Bitstream [][]byte
 
 // Unmarshal decodes a Bitstream.
