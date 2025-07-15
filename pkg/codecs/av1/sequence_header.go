@@ -217,7 +217,7 @@ func (t *SequenceHeader_TimingInfo) unmarshal(buf []byte, pos *int) error {
 }
 
 // SequenceHeader is a AV1 Sequence header OBU.
-// Specification: https://aomediacodec.github.io/av1-spec/#sequence-header-obu-syntax
+// Specification: AV1 Bitstream & Decoding Process, section 5.5
 type SequenceHeader struct {
 	SeqProfile                     uint8
 	StillPicture                   bool

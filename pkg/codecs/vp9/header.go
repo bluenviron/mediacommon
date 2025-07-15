@@ -95,8 +95,7 @@ func (s *Header_FrameSize) unmarshal(buf []byte, pos *int) error {
 }
 
 // Header is a VP9 Frame header.
-// Specification:
-// https://storage.googleapis.com/downloads.webmproject.org/docs/vp9/vp9-bitstream-specification-v0.6-20160331-draft.pdf
+// Specification: VP9 Bitstream & Decoding Process Specification v0.6, section 6.2
 type Header struct {
 	Profile            uint8
 	ShowExistingFrame  bool
