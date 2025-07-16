@@ -165,6 +165,9 @@ func findCodec(dem *astits.Demuxer, es *astits.PMTElementaryStream) (Codec, erro
 				return &CodecKLV{
 					Synchronous: false,
 				}, nil
+
+			case dvbaIdentifier:
+				return &CodecDVB{}, nil
 			}
 		}
 
