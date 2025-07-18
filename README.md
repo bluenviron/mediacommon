@@ -11,6 +11,7 @@ Definitions and functions shared between [gortsplib](https://github.com/bluenvir
 * [Codec utilities](https://pkg.go.dev/github.com/bluenviron/mediacommon/v2/pkg/codecs)
 * [Format utilities](https://pkg.go.dev/github.com/bluenviron/mediacommon/v2/pkg/formats)
 * [Bit reader and writer](https://pkg.go.dev/github.com/bluenviron/mediacommon/v2/pkg/bits)
+* [Rewindable reader](https://pkg.go.dev/github.com/bluenviron/mediacommon/v2/pkg/rewindablereader)
 
 Go &ge; 1.23 is required.
 
@@ -41,6 +42,7 @@ Go &ge; 1.23 is required.
 |[ETSI TS 102 366](https://www.etsi.org/deliver/etsi_ts/102300_102399/102366/01.04.01_60/ts_102366v010401p.pdf)|formats / fMP4 + AC-3|
 |ISO 23003-5, MPEG audio technologies, Part 5, Uncompressed audio in MPEG-4 file format|formats / fMP4 + LPCM|
 |ISO 13818-1, Generic coding of moving pictures and associated audio information: Systems|formats / MPEG-TS|
+|[ETSI TS Opus 0.1.3-draft](https://opus-codec.org/docs/ETSI_TS_opus-v0.1.3-draft.pdf)|formats / MPEG-TS + Opus|
 |MISB ST 1402, MPEG-2 Transport of Compressed Motion Imagery and Metadata|formats / MPEG-TS + KLV|
 
 ## Related projects
