@@ -208,19 +208,36 @@ func (w *Writer) WriteMPEG4Audio(
 	pts int64,
 	aus [][]byte,
 ) error {
-	aacCodec := track.Codec.(*CodecMPEG4Audio)
+	codec := track.Codec.(*CodecMPEG4Audio)
+
 	pkts := make(mpeg4audio.ADTSPackets, len(aus))
 
 	for i, au := range aus {
 		pkts[i] = &mpeg4audio.ADTSPacket{
-			Type:         aacCodec.Type,
-			SampleRate:   aacCodec.SampleRate,
-			ChannelCount: aacCodec.ChannelCount,
+			Type:         codec.Type,
+			SampleRate:   codec.SampleRate,
+			ChannelCount: codec.ChannelCount,
 			AU:           au,
 		}
 	}
 
 	enc, err := pkts.Marshal()
+	if err != nil {
+		return err
+	}
+
+	return w.writeAudio(track, pts, enc)
+}
+
+// WriteMPEG4AudioLATM writes MPEG-4 Audio LATM audioMuxElements.
+func (w *Writer) WriteMPEG4AudioLATM(
+	track *Track,
+	pts int64,
+	els [][]byte,
+) error {
+	enc, err := mpeg4audio.AudioSyncStream{
+		AudioMuxElements: els,
+	}.Marshal()
 	if err != nil {
 		return err
 	}

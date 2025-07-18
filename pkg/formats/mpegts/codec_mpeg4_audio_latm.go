@@ -4,9 +4,9 @@ import (
 	"github.com/asticode/go-astits"
 )
 
-// CodecH265 is a H265 codec.
+// CodecMPEG4AudioLATM is a MPEG-4 Audio LATM codec.
 // Specification: ISO 13818-1
-type CodecH265 struct {
+type CodecMPEG4AudioLATM struct {
 	// in Go, empty structs share the same pointer,
 	// therefore they cannot be used as map keys
 	// or in equality operations. Prevent this.
@@ -14,15 +14,15 @@ type CodecH265 struct {
 }
 
 // IsVideo implements Codec.
-func (CodecH265) IsVideo() bool {
-	return true
+func (CodecMPEG4AudioLATM) IsVideo() bool {
+	return false
 }
 
-func (*CodecH265) isCodec() {}
+func (*CodecMPEG4AudioLATM) isCodec() {}
 
-func (c CodecH265) marshal(pid uint16) (*astits.PMTElementaryStream, error) {
+func (c CodecMPEG4AudioLATM) marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 	return &astits.PMTElementaryStream{
 		ElementaryPID: pid,
-		StreamType:    astits.StreamTypeH265Video,
+		StreamType:    astits.StreamTypeAACLATMAudio,
 	}, nil
 }

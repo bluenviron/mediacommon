@@ -34,6 +34,9 @@ type ReaderOnDataOpusFunc func(pts int64, packets [][]byte) error
 // ReaderOnDataMPEG4AudioFunc is the prototype of the callback passed to OnDataMPEG4Audio.
 type ReaderOnDataMPEG4AudioFunc func(pts int64, aus [][]byte) error
 
+// ReaderOnDataMPEG4AudioLATMFunc is the prototype of the callback passed to OnDataMPEG4AudioLATM.
+type ReaderOnDataMPEG4AudioLATMFunc func(pts int64, els [][]byte) error
+
 // ReaderOnDataMPEG1AudioFunc is the prototype of the callback passed to OnDataMPEG1Audio.
 type ReaderOnDataMPEG1AudioFunc func(pts int64, frames [][]byte) error
 
@@ -339,6 +342,25 @@ func (r *Reader) OnDataMPEG4Audio(track *Track, cb ReaderOnDataMPEG4AudioFunc) {
 		}
 
 		return cb(pts, aus)
+	}
+}
+
+// OnDataMPEG4AudioLATM sets a callback that is called when data from an MPEG-4 Audio LATM track is received.
+func (r *Reader) OnDataMPEG4AudioLATM(track *Track, cb ReaderOnDataMPEG4AudioLATMFunc) {
+	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
+		if pts != dts {
+			r.onDecodeError(fmt.Errorf("PTS is not equal to DTS"))
+			return nil
+		}
+
+		var s mpeg4audio.AudioSyncStream
+		err := s.Unmarshal(data)
+		if err != nil {
+			r.onDecodeError(err)
+			return nil
+		}
+
+		return cb(pts, s.AudioMuxElements)
 	}
 }
 

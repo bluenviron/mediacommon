@@ -103,7 +103,7 @@ func (c *StreamMuxConfig) unmarshalBits(buf []byte, pos *int) error {
 
 			if !useSameConfig {
 				l.AudioSpecificConfig = &AudioSpecificConfig{}
-				err = l.AudioSpecificConfig.UnmarshalFromPos(buf, pos)
+				err = l.AudioSpecificConfig.unmarshalBits(buf, pos)
 				if err != nil {
 					return err
 				}
@@ -281,7 +281,7 @@ func (c StreamMuxConfig) marshalToBits(buf []byte, pos *int) error {
 			}
 
 			if l.AudioSpecificConfig != nil {
-				err := l.AudioSpecificConfig.marshalTo(buf, pos)
+				err := l.AudioSpecificConfig.marshalToBits(buf, pos)
 				if err != nil {
 					return err
 				}
