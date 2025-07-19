@@ -30,7 +30,21 @@ type AudioSpecificConfig struct {
 // Unmarshal decodes a AudioSpecificConfig.
 func (c *AudioSpecificConfig) Unmarshal(buf []byte) error {
 	pos := 0
-	return c.UnmarshalFromPos(buf, &pos)
+	err := c.UnmarshalFromPos(buf, &pos)
+	if err != nil {
+		return err
+	}
+
+	n := pos / 8
+	if pos%8 != 0 {
+		n++
+	}
+
+	if n != len(buf) {
+		return fmt.Errorf("detected unread bytes")
+	}
+
+	return nil
 }
 
 // UnmarshalFromPos decodes a AudioSpecificConfig.
