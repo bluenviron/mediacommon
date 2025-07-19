@@ -9,6 +9,7 @@ const (
 )
 
 // CodecOpus is a Opus codec.
+// Specification: ETSI TS Opus 0.1.3-draft
 type CodecOpus struct {
 	ChannelCount int
 }
