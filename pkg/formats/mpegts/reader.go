@@ -1,11 +1,8 @@
 package mpegts
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/asticode/go-astits"
 
@@ -43,9 +40,9 @@ type ReaderOnDataAC3Func func(pts int64, frame []byte) error
 // ReaderOnDataKLVFunc is the prototype of the callback passed to OnDataKLV.
 type ReaderOnDataKLVFunc func(pts int64, data []byte) error
 
-func findPMT(dem *astits.Demuxer) (*astits.PMTData, error) {
+func findPMT(dem *robustDemuxer) (*astits.PMTData, error) {
 	for {
-		data, err := dem.NextData()
+		data, err := dem.nextData()
 		if err != nil {
 			return nil, err
 		}
@@ -170,7 +167,8 @@ type Reader struct {
 
 	tracks          []*Track
 	tracksByPID     map[uint16]*Track
-	dem             *astits.Demuxer
+	preDem          *preDemuxer
+	dem             *robustDemuxer
 	onDecodeError   ReaderOnDecodeErrorFunc
 	onData          map[uint16]func(int64, int64, []byte) error
 	lastPTSReceived bool
@@ -179,12 +177,12 @@ type Reader struct {
 
 // Initialize initializes a Reader.
 func (r *Reader) Initialize() error {
-	rr := &recordReader{r: r.R}
+	rr := &rewindableReader{R: r.R}
 
-	dem := astits.NewDemuxer(
-		context.Background(),
-		rr,
-		astits.DemuxerOptPacketSize(188))
+	preDem := &preDemuxer{R: rr}
+	preDem.initialize()
+	dem := &robustDemuxer{R: preDem}
+	dem.initialize()
 
 	pmt, err := findPMT(dem)
 	if err != nil {
@@ -203,12 +201,6 @@ func (r *Reader) Initialize() error {
 		tracks[i] = &track
 	}
 
-	// rewind demuxer
-	dem = astits.NewDemuxer(
-		context.Background(),
-		&playbackReader{r: r.R, buf: rr.buf},
-		astits.DemuxerOptPacketSize(188))
-
 	r.tracks = tracks
 
 	r.tracksByPID = make(map[uint16]*Track)
@@ -216,8 +208,13 @@ func (r *Reader) Initialize() error {
 		r.tracksByPID[track.PID] = track
 	}
 
-	r.dem = dem
-	r.onDecodeError = func(error) {}
+	// rewind demuxer
+	rr.Rewind()
+	r.preDem = &preDemuxer{R: rr}
+	r.preDem.initialize()
+	r.dem = &robustDemuxer{R: r.preDem}
+	r.dem.initialize()
+
 	r.onData = make(map[uint16]func(int64, int64, []byte) error)
 
 	return nil
@@ -242,6 +239,8 @@ func (r *Reader) Tracks() []*Track {
 // OnDecodeError sets a callback that is called when a non-fatal decode error occurs.
 func (r *Reader) OnDecodeError(cb ReaderOnDecodeErrorFunc) {
 	r.onDecodeError = cb
+	r.preDem.OnDecodeError = cb
+	r.dem.OnDecodeError = cb
 }
 
 // OnDataH265 sets a callback that is called when data from an H265 track is received.
@@ -424,61 +423,54 @@ func (r *Reader) OnDataKLV(track *Track, cb ReaderOnDataKLVFunc) {
 
 // Read reads data.
 func (r *Reader) Read() error {
-	for {
-		data, err := r.dem.NextData()
-		if err != nil {
-			// https://github.com/asticode/go-astits/blob/b0b19247aa31633650c32638fb55f597fa6e2468/packet_buffer.go#L133C1-L133C5
-			if errors.Is(err, astits.ErrNoMorePackets) || strings.Contains(err.Error(), "astits: reading ") {
-				return err
-			}
-			r.onDecodeError(err)
-			continue
-		}
-
-		if data.PES == nil {
-			return nil
-		}
-
-		track, ok := r.tracksByPID[data.PID]
-		if !ok {
-			r.onDecodeError(fmt.Errorf("received data from undeclared track with PID %d", data.PID))
-			return nil
-		}
-
-		var pts int64
-		var dts int64
-
-		if klvCodec, ok2 := track.Codec.(*CodecKLV); ok2 && !klvCodec.Synchronous {
-			if !r.lastPTSReceived {
-				return nil
-			}
-
-			pts = r.lastPTS
-		} else {
-			if data.PES.Header.OptionalHeader == nil ||
-				data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorNoPTSOrDTS ||
-				data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorIsForbidden {
-				r.onDecodeError(fmt.Errorf("PTS is missing"))
-				return nil
-			}
-
-			pts = data.PES.Header.OptionalHeader.PTS.Base
-
-			if data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorBothPresent {
-				dts = data.PES.Header.OptionalHeader.DTS.Base
-			} else {
-				dts = pts
-			}
-
-			r.lastPTS = pts
-			r.lastPTSReceived = true
-		}
-
-		onData, ok := r.onData[data.PID]
-		if !ok {
-			return nil
-		}
-
-		return onData(pts, dts, data.PES.Data)
+	data, err := r.dem.nextData()
+	if err != nil {
+		return err
 	}
+
+	if data.PES == nil {
+		return nil
+	}
+
+	track, ok := r.tracksByPID[data.PID]
+	if !ok {
+		r.onDecodeError(fmt.Errorf("received data from undeclared track with PID %d", data.PID))
+		return nil
+	}
+
+	var pts int64
+	var dts int64
+
+	if klvCodec, ok2 := track.Codec.(*CodecKLV); ok2 && !klvCodec.Synchronous {
+		if !r.lastPTSReceived {
+			return nil
+		}
+
+		pts = r.lastPTS
+	} else {
+		if data.PES.Header.OptionalHeader == nil ||
+			data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorNoPTSOrDTS ||
+			data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorIsForbidden {
+			r.onDecodeError(fmt.Errorf("PTS is missing"))
+			return nil
+		}
+
+		pts = data.PES.Header.OptionalHeader.PTS.Base
+
+		if data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorBothPresent {
+			dts = data.PES.Header.OptionalHeader.DTS.Base
+		} else {
+			dts = pts
+		}
+
+		r.lastPTS = pts
+		r.lastPTSReceived = true
+	}
+
+	onData, ok := r.onData[data.PID]
+	if !ok {
+		return nil
+	}
+
+	return onData(pts, dts, data.PES.Data)
 }

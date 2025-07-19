@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"testing"
 
 	"github.com/asticode/go-astits"
@@ -236,7 +237,7 @@ func TestWriterReaderLongKLVSync(t *testing.T) {
 
 	for {
 		err := r.Read()
-		if errors.Is(err, astits.ErrNoMorePackets) {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		require.NoError(t, err)
