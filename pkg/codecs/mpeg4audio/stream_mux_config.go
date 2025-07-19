@@ -239,8 +239,8 @@ func (c StreamMuxConfig) Marshal() ([]byte, error) {
 	buf := make([]byte, c.marshalSize())
 	pos := 0
 
-	bits.WriteBitsUnsafe(buf, &pos, 0, 1) // audioMuxVersion
-	bits.WriteBitsUnsafe(buf, &pos, 1, 1) // allStreamsSameTimeFraming
+	bits.WriteFlagUnsafe(buf, &pos, false) // audioMuxVersion
+	bits.WriteFlagUnsafe(buf, &pos, true)  // allStreamsSameTimeFraming
 	bits.WriteBitsUnsafe(buf, &pos, uint64(c.NumSubFrames), 6)
 	bits.WriteBitsUnsafe(buf, &pos, uint64(len(c.Programs)-1), 4)
 
@@ -249,11 +249,7 @@ func (c StreamMuxConfig) Marshal() ([]byte, error) {
 
 		for lay, l := range p.Layers {
 			if prog != 0 || lay != 0 {
-				if l.AudioSpecificConfig != nil {
-					bits.WriteBitsUnsafe(buf, &pos, 0, 1)
-				} else {
-					bits.WriteBitsUnsafe(buf, &pos, 1, 1)
-				}
+				bits.WriteFlagUnsafe(buf, &pos, l.AudioSpecificConfig == nil)
 			}
 
 			if l.AudioSpecificConfig != nil {
@@ -276,17 +272,13 @@ func (c StreamMuxConfig) Marshal() ([]byte, error) {
 				bits.WriteBitsUnsafe(buf, &pos, uint64(l.CELPframeLengthTableIndex), 6)
 
 			case 6, 7:
-				if l.HVXCframeLengthTableIndex {
-					bits.WriteBitsUnsafe(buf, &pos, 1, 1)
-				} else {
-					bits.WriteBitsUnsafe(buf, &pos, 0, 1)
-				}
+				bits.WriteFlagUnsafe(buf, &pos, l.HVXCframeLengthTableIndex)
 			}
 		}
 	}
 
 	if c.OtherDataPresent {
-		bits.WriteBitsUnsafe(buf, &pos, 1, 1)
+		bits.WriteFlagUnsafe(buf, &pos, true)
 
 		var lenBytes []byte
 		tmp := c.OtherDataLenBits
@@ -303,21 +295,20 @@ func (c StreamMuxConfig) Marshal() ([]byte, error) {
 		}
 
 		for i := len(lenBytes) - 1; i > 0; i-- {
-			bits.WriteBitsUnsafe(buf, &pos, 1, 1)
+			bits.WriteFlagUnsafe(buf, &pos, true)
 			bits.WriteBitsUnsafe(buf, &pos, uint64(lenBytes[i]), 8)
 		}
 
-		bits.WriteBitsUnsafe(buf, &pos, 0, 1)
+		bits.WriteFlagUnsafe(buf, &pos, false)
 		bits.WriteBitsUnsafe(buf, &pos, uint64(lenBytes[0]), 8)
 	} else {
-		bits.WriteBitsUnsafe(buf, &pos, 0, 1)
+		bits.WriteFlagUnsafe(buf, &pos, false)
 	}
 
+	bits.WriteFlagUnsafe(buf, &pos, c.CRCCheckPresent)
+
 	if c.CRCCheckPresent {
-		bits.WriteBitsUnsafe(buf, &pos, 1, 1)
 		bits.WriteBitsUnsafe(buf, &pos, uint64(c.CRCCheckSum), 8)
-	} else {
-		bits.WriteBitsUnsafe(buf, &pos, 0, 1)
 	}
 
 	return buf, nil
