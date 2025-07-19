@@ -255,17 +255,8 @@ func (c AudioSpecificConfig) marshalTo(buf []byte, pos *int) error {
 		bits.WriteBitsUnsafe(buf, pos, uint64(c.Type), 5)
 	}
 
-	if c.FrameLengthFlag {
-		bits.WriteBitsUnsafe(buf, pos, 1, 1)
-	} else {
-		bits.WriteBitsUnsafe(buf, pos, 0, 1)
-	}
-
-	if c.DependsOnCoreCoder {
-		bits.WriteBitsUnsafe(buf, pos, 1, 1)
-	} else {
-		bits.WriteBitsUnsafe(buf, pos, 0, 1)
-	}
+	bits.WriteFlagUnsafe(buf, pos, c.FrameLengthFlag)
+	bits.WriteFlagUnsafe(buf, pos, c.DependsOnCoreCoder)
 
 	if c.DependsOnCoreCoder {
 		bits.WriteBitsUnsafe(buf, pos, uint64(c.CoreCoderDelay), 14)
