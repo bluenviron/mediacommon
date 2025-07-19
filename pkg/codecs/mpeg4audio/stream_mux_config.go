@@ -35,24 +35,42 @@ type StreamMuxConfig struct {
 // Unmarshal decodes a StreamMuxConfig.
 func (c *StreamMuxConfig) Unmarshal(buf []byte) error {
 	pos := 0
-
-	err := bits.HasSpace(buf, pos, 12)
+	err := c.unmarshalBits(buf, &pos)
 	if err != nil {
 		return err
 	}
 
-	audioMuxVersion := bits.ReadFlagUnsafe(buf, &pos)
+	n := pos / 8
+	if pos%8 != 0 {
+		n++
+	}
+
+	if n != len(buf) {
+		return fmt.Errorf("detected unread bytes")
+	}
+
+	return nil
+}
+
+// unmarshalBits decodes a StreamMuxConfig.
+func (c *StreamMuxConfig) unmarshalBits(buf []byte, pos *int) error {
+	err := bits.HasSpace(buf, *pos, 12)
+	if err != nil {
+		return err
+	}
+
+	audioMuxVersion := bits.ReadFlagUnsafe(buf, pos)
 	if audioMuxVersion {
 		return fmt.Errorf("audioMuxVersion = 1 is not supported")
 	}
 
-	allStreamsSameTimeFraming := bits.ReadFlagUnsafe(buf, &pos)
+	allStreamsSameTimeFraming := bits.ReadFlagUnsafe(buf, pos)
 	if !allStreamsSameTimeFraming {
 		return fmt.Errorf("allStreamsSameTimeFraming = 0 is not supported")
 	}
 
-	c.NumSubFrames = uint(bits.ReadBitsUnsafe(buf, &pos, 6))
-	numProgram := uint(bits.ReadBitsUnsafe(buf, &pos, 4))
+	c.NumSubFrames = uint(bits.ReadBitsUnsafe(buf, pos, 6))
+	numProgram := uint(bits.ReadBitsUnsafe(buf, pos, 4))
 
 	c.Programs = make([]*StreamMuxConfigProgram, numProgram+1)
 
@@ -61,7 +79,7 @@ func (c *StreamMuxConfig) Unmarshal(buf []byte) error {
 		c.Programs[prog] = p
 
 		var numLayer uint64
-		numLayer, err = bits.ReadBits(buf, &pos, 3)
+		numLayer, err = bits.ReadBits(buf, pos, 3)
 		if err != nil {
 			return err
 		}
@@ -77,7 +95,7 @@ func (c *StreamMuxConfig) Unmarshal(buf []byte) error {
 			if prog == 0 && lay == 0 {
 				useSameConfig = false
 			} else {
-				useSameConfig, err = bits.ReadFlag(buf, &pos)
+				useSameConfig, err = bits.ReadFlag(buf, pos)
 				if err != nil {
 					return err
 				}
@@ -85,14 +103,14 @@ func (c *StreamMuxConfig) Unmarshal(buf []byte) error {
 
 			if !useSameConfig {
 				l.AudioSpecificConfig = &AudioSpecificConfig{}
-				err = l.AudioSpecificConfig.UnmarshalFromPos(buf, &pos)
+				err = l.AudioSpecificConfig.UnmarshalFromPos(buf, pos)
 				if err != nil {
 					return err
 				}
 			}
 
 			var tmp uint64
-			tmp, err = bits.ReadBits(buf, &pos, 3)
+			tmp, err = bits.ReadBits(buf, pos, 3)
 			if err != nil {
 				// support truncated configs
 				l.LatmBufferFullness = 255
@@ -104,28 +122,28 @@ func (c *StreamMuxConfig) Unmarshal(buf []byte) error {
 
 			switch l.FrameLengthType {
 			case 0:
-				tmp, err = bits.ReadBits(buf, &pos, 8)
+				tmp, err = bits.ReadBits(buf, pos, 8)
 				if err != nil {
 					return err
 				}
 				l.LatmBufferFullness = uint(tmp)
 
 			case 1:
-				tmp, err = bits.ReadBits(buf, &pos, 9)
+				tmp, err = bits.ReadBits(buf, pos, 9)
 				if err != nil {
 					return err
 				}
 				l.FrameLength = uint(tmp)
 
 			case 4, 5, 3:
-				tmp, err = bits.ReadBits(buf, &pos, 6)
+				tmp, err = bits.ReadBits(buf, pos, 6)
 				if err != nil {
 					return err
 				}
 				l.CELPframeLengthTableIndex = uint(tmp)
 
 			case 6, 7:
-				l.HVXCframeLengthTableIndex, err = bits.ReadFlag(buf, &pos)
+				l.HVXCframeLengthTableIndex, err = bits.ReadFlag(buf, pos)
 				if err != nil {
 					return err
 				}
@@ -133,7 +151,7 @@ func (c *StreamMuxConfig) Unmarshal(buf []byte) error {
 		}
 	}
 
-	c.OtherDataPresent, err = bits.ReadFlag(buf, &pos)
+	c.OtherDataPresent, err = bits.ReadFlag(buf, pos)
 	if err != nil {
 		return err
 	}
@@ -142,13 +160,13 @@ func (c *StreamMuxConfig) Unmarshal(buf []byte) error {
 		for {
 			c.OtherDataLenBits *= 256
 
-			err = bits.HasSpace(buf, pos, 9)
+			err = bits.HasSpace(buf, *pos, 9)
 			if err != nil {
 				return err
 			}
 
-			otherDataLenEsc := bits.ReadFlagUnsafe(buf, &pos)
-			otherDataLenTmp := uint32(bits.ReadBitsUnsafe(buf, &pos, 8))
+			otherDataLenEsc := bits.ReadFlagUnsafe(buf, pos)
+			otherDataLenTmp := uint32(bits.ReadBitsUnsafe(buf, pos, 8))
 			c.OtherDataLenBits += otherDataLenTmp
 
 			if !otherDataLenEsc {
@@ -157,13 +175,13 @@ func (c *StreamMuxConfig) Unmarshal(buf []byte) error {
 		}
 	}
 
-	c.CRCCheckPresent, err = bits.ReadFlag(buf, &pos)
+	c.CRCCheckPresent, err = bits.ReadFlag(buf, pos)
 	if err != nil {
 		return err
 	}
 
 	if c.CRCCheckPresent {
-		tmp, err := bits.ReadBits(buf, &pos, 8)
+		tmp, err := bits.ReadBits(buf, pos, 8)
 		if err != nil {
 			return err
 		}
@@ -173,7 +191,7 @@ func (c *StreamMuxConfig) Unmarshal(buf []byte) error {
 	return nil
 }
 
-func (c StreamMuxConfig) marshalSize() int {
+func (c StreamMuxConfig) marshalSizeBits() int {
 	n := 12
 
 	for prog, p := range c.Programs {
@@ -226,6 +244,12 @@ func (c StreamMuxConfig) marshalSize() int {
 		n += 8
 	}
 
+	return n
+}
+
+func (c StreamMuxConfig) marshalSize() int {
+	n := c.marshalSizeBits()
+
 	ret := n / 8
 	if (n % 8) != 0 {
 		ret++
@@ -238,47 +262,51 @@ func (c StreamMuxConfig) marshalSize() int {
 func (c StreamMuxConfig) Marshal() ([]byte, error) {
 	buf := make([]byte, c.marshalSize())
 	pos := 0
+	err := c.marshalToBits(buf, &pos)
+	return buf, err
+}
 
-	bits.WriteFlagUnsafe(buf, &pos, false) // audioMuxVersion
-	bits.WriteFlagUnsafe(buf, &pos, true)  // allStreamsSameTimeFraming
-	bits.WriteBitsUnsafe(buf, &pos, uint64(c.NumSubFrames), 6)
-	bits.WriteBitsUnsafe(buf, &pos, uint64(len(c.Programs)-1), 4)
+func (c StreamMuxConfig) marshalToBits(buf []byte, pos *int) error {
+	bits.WriteFlagUnsafe(buf, pos, false) // audioMuxVersion
+	bits.WriteFlagUnsafe(buf, pos, true)  // allStreamsSameTimeFraming
+	bits.WriteBitsUnsafe(buf, pos, uint64(c.NumSubFrames), 6)
+	bits.WriteBitsUnsafe(buf, pos, uint64(len(c.Programs)-1), 4)
 
 	for prog, p := range c.Programs {
-		bits.WriteBitsUnsafe(buf, &pos, uint64(len(p.Layers)-1), 3)
+		bits.WriteBitsUnsafe(buf, pos, uint64(len(p.Layers)-1), 3)
 
 		for lay, l := range p.Layers {
 			if prog != 0 || lay != 0 {
-				bits.WriteFlagUnsafe(buf, &pos, l.AudioSpecificConfig == nil)
+				bits.WriteFlagUnsafe(buf, pos, l.AudioSpecificConfig == nil)
 			}
 
 			if l.AudioSpecificConfig != nil {
-				err := l.AudioSpecificConfig.marshalTo(buf, &pos)
+				err := l.AudioSpecificConfig.marshalTo(buf, pos)
 				if err != nil {
-					return nil, err
+					return err
 				}
 			}
 
-			bits.WriteBitsUnsafe(buf, &pos, uint64(l.FrameLengthType), 3)
+			bits.WriteBitsUnsafe(buf, pos, uint64(l.FrameLengthType), 3)
 
 			switch l.FrameLengthType {
 			case 0:
-				bits.WriteBitsUnsafe(buf, &pos, uint64(l.LatmBufferFullness), 8)
+				bits.WriteBitsUnsafe(buf, pos, uint64(l.LatmBufferFullness), 8)
 
 			case 1:
-				bits.WriteBitsUnsafe(buf, &pos, uint64(l.FrameLength), 9)
+				bits.WriteBitsUnsafe(buf, pos, uint64(l.FrameLength), 9)
 
 			case 4, 5, 3:
-				bits.WriteBitsUnsafe(buf, &pos, uint64(l.CELPframeLengthTableIndex), 6)
+				bits.WriteBitsUnsafe(buf, pos, uint64(l.CELPframeLengthTableIndex), 6)
 
 			case 6, 7:
-				bits.WriteFlagUnsafe(buf, &pos, l.HVXCframeLengthTableIndex)
+				bits.WriteFlagUnsafe(buf, pos, l.HVXCframeLengthTableIndex)
 			}
 		}
 	}
 
 	if c.OtherDataPresent {
-		bits.WriteFlagUnsafe(buf, &pos, true)
+		bits.WriteFlagUnsafe(buf, pos, true)
 
 		var lenBytes []byte
 		tmp := c.OtherDataLenBits
@@ -295,21 +323,21 @@ func (c StreamMuxConfig) Marshal() ([]byte, error) {
 		}
 
 		for i := len(lenBytes) - 1; i > 0; i-- {
-			bits.WriteFlagUnsafe(buf, &pos, true)
-			bits.WriteBitsUnsafe(buf, &pos, uint64(lenBytes[i]), 8)
+			bits.WriteFlagUnsafe(buf, pos, true)
+			bits.WriteBitsUnsafe(buf, pos, uint64(lenBytes[i]), 8)
 		}
 
-		bits.WriteFlagUnsafe(buf, &pos, false)
-		bits.WriteBitsUnsafe(buf, &pos, uint64(lenBytes[0]), 8)
+		bits.WriteFlagUnsafe(buf, pos, false)
+		bits.WriteBitsUnsafe(buf, pos, uint64(lenBytes[0]), 8)
 	} else {
-		bits.WriteFlagUnsafe(buf, &pos, false)
+		bits.WriteFlagUnsafe(buf, pos, false)
 	}
 
-	bits.WriteFlagUnsafe(buf, &pos, c.CRCCheckPresent)
+	bits.WriteFlagUnsafe(buf, pos, c.CRCCheckPresent)
 
 	if c.CRCCheckPresent {
-		bits.WriteBitsUnsafe(buf, &pos, uint64(c.CRCCheckSum), 8)
+		bits.WriteBitsUnsafe(buf, pos, uint64(c.CRCCheckSum), 8)
 	}
 
-	return buf, nil
+	return nil
 }
