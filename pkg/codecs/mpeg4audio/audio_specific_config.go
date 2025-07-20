@@ -22,6 +22,7 @@ type AudioSpecificConfig struct {
 	ExtensionType       ObjectType
 	ExtensionSampleRate int
 
+	// GASpecificConfig
 	FrameLengthFlag    bool
 	DependsOnCoreCoder bool
 	CoreCoderDelay     uint16
@@ -33,15 +34,6 @@ func (c *AudioSpecificConfig) Unmarshal(buf []byte) error {
 	err := c.UnmarshalFromPos(buf, &pos)
 	if err != nil {
 		return err
-	}
-
-	n := pos / 8
-	if pos%8 != 0 {
-		n++
-	}
-
-	if n != len(buf) {
-		return fmt.Errorf("detected unread bytes")
 	}
 
 	return nil
@@ -121,7 +113,7 @@ func (c *AudioSpecificConfig) UnmarshalFromPos(buf []byte, pos *int) error {
 			c.ExtensionSampleRate = int(tmp)
 
 		default:
-			return fmt.Errorf("invalid extension sample rate index (%d)", extensionSamplingFrequencyIndex)
+			return fmt.Errorf("invalid extension sample rate index: %d", extensionSamplingFrequencyIndex)
 		}
 
 		tmp, err = bits.ReadBits(buf, pos, 5)
@@ -134,6 +126,8 @@ func (c *AudioSpecificConfig) UnmarshalFromPos(buf []byte, pos *int) error {
 			return fmt.Errorf("unsupported object type: %d", c.Type)
 		}
 	}
+
+	// GASpecificConfig
 
 	c.FrameLengthFlag, err = bits.ReadFlag(buf, pos)
 	if err != nil {
@@ -159,7 +153,7 @@ func (c *AudioSpecificConfig) UnmarshalFromPos(buf []byte, pos *int) error {
 	}
 
 	if extensionFlag {
-		return fmt.Errorf("unsupported")
+		return fmt.Errorf("extensionFlag is unsupported")
 	}
 
 	return nil
