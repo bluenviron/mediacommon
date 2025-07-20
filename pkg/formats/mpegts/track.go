@@ -8,9 +8,9 @@ import (
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 )
 
-func findMPEG4AudioConfig(dem *astits.Demuxer, pid uint16) (*mpeg4audio.AudioSpecificConfig, error) {
+func findMPEG4AudioConfig(dem *robustDemuxer, pid uint16) (*mpeg4audio.AudioSpecificConfig, error) {
 	for {
-		data, err := dem.NextData()
+		data, err := dem.nextData()
 		if err != nil {
 			return nil, err
 		}
@@ -34,9 +34,9 @@ func findMPEG4AudioConfig(dem *astits.Demuxer, pid uint16) (*mpeg4audio.AudioSpe
 	}
 }
 
-func findAC3Parameters(dem *astits.Demuxer, pid uint16) (int, int, error) {
+func findAC3Parameters(dem *robustDemuxer, pid uint16) (int, int, error) {
 	for {
-		data, err := dem.NextData()
+		data, err := dem.nextData()
 		if err != nil {
 			return 0, 0, err
 		}
@@ -109,7 +109,7 @@ func findOpusChannelCount(descriptors []*astits.Descriptor) int {
 	return 0
 }
 
-func findCodec(dem *astits.Demuxer, es *astits.PMTElementaryStream) (Codec, error) {
+func findCodec(dem *robustDemuxer, es *astits.PMTElementaryStream) (Codec, error) {
 	switch es.StreamType {
 	case astits.StreamTypeH265Video:
 		return &CodecH265{}, nil
@@ -193,7 +193,7 @@ func (t *Track) marshal() (*astits.PMTElementaryStream, error) {
 	return t.Codec.marshal(t.PID)
 }
 
-func (t *Track) unmarshal(dem *astits.Demuxer, es *astits.PMTElementaryStream) error {
+func (t *Track) unmarshal(dem *robustDemuxer, es *astits.PMTElementaryStream) error {
 	t.PID = es.ElementaryPID
 
 	codec, err := findCodec(dem, es)

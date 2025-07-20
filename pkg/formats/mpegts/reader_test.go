@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"testing"
 
 	"github.com/asticode/go-astits"
@@ -1019,7 +1020,7 @@ func TestReader(t *testing.T) {
 
 			for {
 				err := r.Read()
-				if errors.Is(err, astits.ErrNoMorePackets) {
+				if errors.Is(err, io.EOF) {
 					break
 				}
 				require.NoError(t, err)
@@ -1146,7 +1147,7 @@ func TestReaderKLVAsync(t *testing.T) {
 
 	for {
 		err := r.Read()
-		if errors.Is(err, astits.ErrNoMorePackets) {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		require.NoError(t, err)
@@ -1166,14 +1167,13 @@ func TestReaderDecodeErrors(t *testing.T) {
 		"mpeg-4 audio invalid",
 		"mpeg-1 audio pts != dts",
 		"ac-3 pts != dts",
-		"garbage",
 	} {
 		t.Run(ca, func(t *testing.T) {
 			var buf bytes.Buffer
 			mux := astits.NewMuxer(context.Background(), &buf)
 
 			switch ca {
-			case "missing pts", "h26x invalid avcc", "garbage":
+			case "missing pts", "h26x invalid avcc":
 				err := mux.AddElementaryStream(astits.PMTElementaryStream{
 					ElementaryPID: 123,
 					StreamType:    astits.StreamTypeH264Video,
@@ -1402,47 +1402,10 @@ func TestReaderDecodeErrors(t *testing.T) {
 					},
 				})
 				require.NoError(t, err)
-
-			case "garbage":
-				_, err := mux.WriteData(&astits.MuxerData{
-					PID: 123,
-					PES: &astits.PESData{
-						Header: &astits.PESHeader{
-							OptionalHeader: &astits.PESOptionalHeader{
-								MarkerBits:      2,
-								PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
-								PTS:             &astits.ClockReference{Base: 90000},
-							},
-							StreamID: streamIDVideo,
-						},
-						Data: []byte{0, 0, 0, 1, 1, 2, 3, 4},
-					},
-				})
-				require.NoError(t, err)
-
-				buf.Write(bytes.Repeat([]byte{1, 2, 3, 4}, 188/4))
-
-				_, err = mux.WriteData(&astits.MuxerData{
-					PID: 123,
-					PES: &astits.PESData{
-						Header: &astits.PESHeader{
-							OptionalHeader: &astits.PESOptionalHeader{
-								MarkerBits:      2,
-								PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
-								PTS:             &astits.ClockReference{Base: 90000},
-							},
-							StreamID: streamIDVideo,
-						},
-						Data: []byte{0, 0, 0, 1, 1, 2, 3, 4},
-					},
-				})
-				require.NoError(t, err)
 			}
 
 			r, err := NewReader(bytes.NewReader(buf.Bytes()))
 			require.NoError(t, err)
-
-			dataRecv := false
 
 			switch ca {
 			case "missing pts", "h26x invalid avcc":
@@ -1469,16 +1432,6 @@ func TestReaderDecodeErrors(t *testing.T) {
 				r.OnDataAC3(r.Tracks()[0], func(_ int64, _ []byte) error {
 					return nil
 				})
-
-			case "garbage":
-				counter := 0
-				r.OnDataH264(r.Tracks()[0], func(_, _ int64, _ [][]byte) error {
-					counter++
-					if counter == 2 {
-						dataRecv = true
-					}
-					return nil
-				})
 			}
 
 			decodeErrRecv := false
@@ -1499,11 +1452,6 @@ func TestReaderDecodeErrors(t *testing.T) {
 
 				case "mpeg-4 audio invalid":
 					require.EqualError(t, err, "invalid ADTS: invalid length")
-
-				case "garbage":
-					require.EqualError(t, err, "astits: fetching next packet failed:"+
-						" astits: fetching next packet from buffer failed:"+
-						" astits: building packet failed: astits: packet must start with a sync byte")
 				}
 				decodeErrRecv = true
 			})
@@ -1511,18 +1459,182 @@ func TestReaderDecodeErrors(t *testing.T) {
 			for {
 				err := r.Read()
 				if err != nil {
-					require.Equal(t, astits.ErrNoMorePackets, err)
+					require.ErrorIs(t, io.EOF, err)
 					break
 				}
 			}
 
 			require.Equal(t, true, decodeErrRecv)
-
-			if ca == "garbage" {
-				require.Equal(t, true, dataRecv)
-			}
 		})
 	}
+}
+
+var errCustom = errors.New("custom error")
+
+type dummyReader struct{}
+
+func (dummyReader) Read(_ []byte) (int, error) {
+	return 0, errCustom
+}
+
+func TestReaderFatalError(t *testing.T) {
+	_, err := NewReader(&dummyReader{})
+	require.Equal(t, errCustom, err)
+}
+
+func TestReaderSkipGarbage(t *testing.T) {
+	var buf bytes.Buffer
+	mux := astits.NewMuxer(context.Background(), &buf)
+
+	err := mux.AddElementaryStream(astits.PMTElementaryStream{
+		ElementaryPID: 123,
+		StreamType:    astits.StreamTypeH264Video,
+	})
+	require.NoError(t, err)
+
+	mux.SetPCRPID(123)
+
+	_, err = mux.WriteData(&astits.MuxerData{
+		PID: 123,
+		PES: &astits.PESData{
+			Header: &astits.PESHeader{
+				OptionalHeader: &astits.PESOptionalHeader{
+					MarkerBits:      2,
+					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+					PTS:             &astits.ClockReference{Base: 90000},
+				},
+				StreamID: streamIDVideo,
+			},
+			Data: []byte{0, 0, 0, 1, 1, 2, 3, 4},
+		},
+	})
+	require.NoError(t, err)
+
+	// complete random garbage
+	buf.Write(bytes.Repeat([]byte{1, 2, 3, 4}, 200/4))
+
+	_, err = mux.WriteData(&astits.MuxerData{
+		PID: 123,
+		PES: &astits.PESData{
+			Header: &astits.PESHeader{
+				OptionalHeader: &astits.PESOptionalHeader{
+					MarkerBits:      2,
+					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+					PTS:             &astits.ClockReference{Base: 90000},
+				},
+				StreamID: streamIDVideo,
+			},
+			Data: []byte{0, 0, 0, 1, 5, 6, 7, 8},
+		},
+	})
+	require.NoError(t, err)
+
+	// this is eaten by the next garbage
+	_, err = mux.WriteData(&astits.MuxerData{
+		PID: 123,
+		PES: &astits.PESData{
+			Header: &astits.PESHeader{
+				OptionalHeader: &astits.PESOptionalHeader{
+					MarkerBits:      2,
+					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+					PTS:             &astits.ClockReference{Base: 90000},
+				},
+				StreamID: streamIDVideo,
+			},
+			Data: []byte{0, 0, 0, 1, 9, 10, 11, 12},
+		},
+	})
+	require.NoError(t, err)
+
+	// syncword-prefixed garbage
+	buf.Write([]byte{0x47})
+	buf.Write(bytes.Repeat([]byte{1}, 100))
+
+	// this is eaten by the previous garbage
+	_, err = mux.WriteData(&astits.MuxerData{
+		PID: 123,
+		PES: &astits.PESData{
+			Header: &astits.PESHeader{
+				OptionalHeader: &astits.PESOptionalHeader{
+					MarkerBits:      2,
+					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+					PTS:             &astits.ClockReference{Base: 90000},
+				},
+				StreamID: streamIDVideo,
+			},
+			Data: []byte{0, 0, 0, 1, 13, 14, 15, 16},
+		},
+	})
+	require.NoError(t, err)
+
+	_, err = mux.WriteData(&astits.MuxerData{
+		PID: 123,
+		PES: &astits.PESData{
+			Header: &astits.PESHeader{
+				OptionalHeader: &astits.PESOptionalHeader{
+					MarkerBits:      2,
+					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+					PTS:             &astits.ClockReference{Base: 90000},
+				},
+				StreamID: streamIDVideo,
+			},
+			Data: []byte{0, 0, 0, 1, 17, 18, 19, 20},
+		},
+	})
+	require.NoError(t, err)
+
+	_, err = mux.WriteData(&astits.MuxerData{
+		PID: 123,
+		PES: &astits.PESData{
+			Header: &astits.PESHeader{
+				OptionalHeader: &astits.PESOptionalHeader{
+					MarkerBits:      2,
+					PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+					PTS:             &astits.ClockReference{Base: 90000},
+				},
+				StreamID: streamIDVideo,
+			},
+			Data: []byte{0, 0, 0, 1, 21, 22, 23, 24},
+		},
+	})
+	require.NoError(t, err)
+
+	r, err := NewReader(bytes.NewReader(buf.Bytes()))
+	require.NoError(t, err)
+
+	var decErrs []string
+
+	r.OnDecodeError(func(err error) {
+		decErrs = append(decErrs, err.Error())
+	})
+
+	var aus [][][]byte
+
+	r.OnDataH264(r.Tracks()[0], func(_, _ int64, au [][]byte) error {
+		aus = append(aus, au)
+		return nil
+	})
+
+	for {
+		err := r.Read()
+		if err != nil {
+			require.ErrorIs(t, io.EOF, err)
+			break
+		}
+	}
+
+	require.Equal(t, []string{
+		"skipped 188 bytes",
+		"skipped 12 bytes",
+		"skipped 101 bytes",
+	}, decErrs)
+
+	require.Equal(t, [][][]byte{
+		{{1, 2, 3, 4}},
+		{{5, 6, 7, 8}},
+		{{17, 18, 19, 20}},
+		{{21, 22, 23, 24}},
+	}, aus)
 }
 
 func FuzzReader(f *testing.F) {
