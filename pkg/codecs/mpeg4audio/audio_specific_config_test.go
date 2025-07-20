@@ -122,6 +122,31 @@ func TestAudioSpecificConfigUnmarshal(t *testing.T) {
 	}
 }
 
+func TestAudioSpecificConfigUnmarshalAdditional(t *testing.T) {
+	for _, ca := range []struct {
+		name string
+		enc  []byte
+		dec  AudioSpecificConfig
+	}{
+		{
+			"additional bytes",
+			[]byte{0x11, 0x90, 0x08, 0x10},
+			AudioSpecificConfig{
+				Type:         ObjectTypeAACLC,
+				SampleRate:   48000,
+				ChannelCount: 2,
+			},
+		},
+	} {
+		t.Run(ca.name, func(t *testing.T) {
+			var dec AudioSpecificConfig
+			err := dec.Unmarshal(ca.enc)
+			require.NoError(t, err)
+			require.Equal(t, ca.dec, dec)
+		})
+	}
+}
+
 func TestAudioSpecificConfigMarshal(t *testing.T) {
 	for _, ca := range audioSpecificConfigCases {
 		t.Run(ca.name, func(t *testing.T) {
