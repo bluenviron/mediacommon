@@ -5,6 +5,7 @@ import (
 )
 
 // CodecAC3 is an AC-3 codec.
+// Specification: ISO 13818-1
 type CodecAC3 struct {
 	SampleRate   int
 	ChannelCount int

@@ -31,7 +31,7 @@ type AudioSpecificConfig struct {
 // Unmarshal decodes a AudioSpecificConfig.
 func (c *AudioSpecificConfig) Unmarshal(buf []byte) error {
 	pos := 0
-	err := c.UnmarshalFromPos(buf, &pos)
+	err := c.unmarshalBits(buf, &pos)
 	if err != nil {
 		return err
 	}
@@ -40,7 +40,14 @@ func (c *AudioSpecificConfig) Unmarshal(buf []byte) error {
 }
 
 // UnmarshalFromPos decodes a AudioSpecificConfig.
+//
+// Deprecated: not meant to be public.
 func (c *AudioSpecificConfig) UnmarshalFromPos(buf []byte, pos *int) error {
+	return c.unmarshalBits(buf, pos)
+}
+
+// unmarshalBits decodes a AudioSpecificConfig.
+func (c *AudioSpecificConfig) unmarshalBits(buf []byte, pos *int) error {
 	tmp, err := bits.ReadBits(buf, pos, 5)
 	if err != nil {
 		return err
@@ -202,7 +209,7 @@ func (c AudioSpecificConfig) Marshal() ([]byte, error) {
 	buf := make([]byte, c.marshalSize())
 	pos := 0
 
-	err := c.marshalTo(buf, &pos)
+	err := c.marshalToBits(buf, &pos)
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +217,7 @@ func (c AudioSpecificConfig) Marshal() ([]byte, error) {
 	return buf, nil
 }
 
-func (c AudioSpecificConfig) marshalTo(buf []byte, pos *int) error {
+func (c AudioSpecificConfig) marshalToBits(buf []byte, pos *int) error {
 	if c.ExtensionType == ObjectTypeSBR || c.ExtensionType == ObjectTypePS {
 		bits.WriteBitsUnsafe(buf, pos, uint64(c.ExtensionType), 5)
 	} else {

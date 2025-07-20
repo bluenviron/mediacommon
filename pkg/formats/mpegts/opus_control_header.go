@@ -36,6 +36,8 @@ func marshalPayloadSize(v int, ss int, buf []byte) {
 	buf[ss-1] = byte(v % 255)
 }
 
+// opusControlHeader is the opus_control_header struct.
+// Specification: ETSI TS Opus 0.1.3-draft
 type opusControlHeader struct {
 	PayloadSize            int
 	StartTrimFlag          bool

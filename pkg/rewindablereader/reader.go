@@ -1,4 +1,5 @@
-package mpegts
+// Package rewindablereader contains a rewindable reader.
+package rewindablereader
 
 import (
 	"errors"
@@ -9,8 +10,8 @@ const (
 	maxRecordedSize = 1 * 1024 * 1024
 )
 
-// rewindableReader is a reader that can be (and must be) rewinded once.
-type rewindableReader struct {
+// Reader is a reader that can be (and must be) rewinded once.
+type Reader struct {
 	R io.Reader
 
 	entries  [][]byte
@@ -19,7 +20,7 @@ type rewindableReader struct {
 }
 
 // Read implements io.Reader.
-func (r *rewindableReader) Read(p []byte) (int, error) {
+func (r *Reader) Read(p []byte) (int, error) {
 	if !r.rewinded {
 		n, err := r.R.Read(p)
 
@@ -55,6 +56,6 @@ func (r *rewindableReader) Read(p []byte) (int, error) {
 }
 
 // Rewind rewinds the reader. This can be (and must be) called once.
-func (r *rewindableReader) Rewind() {
+func (r *Reader) Rewind() {
 	r.rewinded = true
 }

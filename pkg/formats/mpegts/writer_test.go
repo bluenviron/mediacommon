@@ -44,6 +44,10 @@ func TestWriter(t *testing.T) {
 					err := w.WriteMPEG4Audio(ca.track, sample.pts, sample.data)
 					require.NoError(t, err)
 
+				case *CodecMPEG4AudioLATM:
+					err := w.WriteMPEG4AudioLATM(ca.track, sample.pts, sample.data)
+					require.NoError(t, err)
+
 				case *CodecMPEG1Audio:
 					err := w.WriteMPEG1Audio(ca.track, sample.pts, sample.data)
 					require.NoError(t, err)

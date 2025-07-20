@@ -1,4 +1,4 @@
-package mpegts
+package rewindablereader
 
 import (
 	"testing"
@@ -28,8 +28,8 @@ func (r *dummyReader2) Read(buf []byte) (int, error) {
 	panic("should not happen")
 }
 
-func TestRewindableReader(t *testing.T) {
-	r := &rewindableReader{R: &dummyReader2{}}
+func TestReader(t *testing.T) {
+	r := &Reader{R: &dummyReader2{}}
 
 	for i := range 2 {
 		buf := make([]byte, 1024)
@@ -51,8 +51,8 @@ func TestRewindableReader(t *testing.T) {
 	}
 }
 
-func TestRewindableReaderDifferentBufSize(t *testing.T) {
-	r := &rewindableReader{R: &dummyReader2{}}
+func TestReaderDifferentBufSize(t *testing.T) {
+	r := &Reader{R: &dummyReader2{}}
 
 	buf := make([]byte, 1024)
 	n, err := r.Read(buf)
