@@ -3,7 +3,7 @@ package mpegts
 import "github.com/asticode/go-astits"
 
 const (
-	dvbaIdentifier = 'D'<<24 | 'V'<<16 | 'B'<<8 | 'A'
+	subtIdentifier = 's'<<24 | 'u'<<16 | 'b'<<8 | 't'
 )
 
 // CodecDVB is a DVB codec.
@@ -24,6 +24,15 @@ func (*CodecDVB) isCodec() {}
 func (c CodecDVB) marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 	return &astits.PMTElementaryStream{
 		ElementaryPID: pid,
-		StreamType:    astits.StreamTypeMPEG2PacketizedData,
+		StreamType:    astits.StreamTypePrivateData,
+		ElementaryStreamDescriptors: []*astits.Descriptor{
+			{
+				Length: 4,
+				Tag:    astits.DescriptorTagSubtitling,
+				Registration: &astits.DescriptorRegistration{
+					FormatIdentifier: subtIdentifier,
+				},
+			},
+		},
 	}, nil
 }
