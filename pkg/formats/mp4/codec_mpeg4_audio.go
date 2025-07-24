@@ -6,7 +6,7 @@ import (
 
 // CodecMPEG4Audio is a MPEG-4 Audio codec.
 type CodecMPEG4Audio struct {
-	mpeg4audio.Config
+	Config mpeg4audio.AudioSpecificConfig
 }
 
 // IsVideo implements Codec.

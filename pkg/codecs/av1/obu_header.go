@@ -5,7 +5,7 @@ import (
 )
 
 // OBUHeader is a OBU header.
-// Specification: https://aomediacodec.github.io/av1-spec/#obu-header-syntax
+// Specification: AV1 Bitstream & Decoding Process, section 5.3.2
 type OBUHeader struct {
 	Type    OBUType
 	HasSize bool

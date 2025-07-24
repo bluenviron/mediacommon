@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"testing"
 
 	"github.com/asticode/go-astits"
@@ -41,6 +42,10 @@ func TestWriter(t *testing.T) {
 
 				case *CodecMPEG4Audio:
 					err := w.WriteMPEG4Audio(ca.track, sample.pts, sample.data)
+					require.NoError(t, err)
+
+				case *CodecMPEG4AudioLATM:
+					err := w.WriteMPEG4AudioLATM(ca.track, sample.pts, sample.data)
 					require.NoError(t, err)
 
 				case *CodecMPEG1Audio:
@@ -236,7 +241,7 @@ func TestWriterReaderLongKLVSync(t *testing.T) {
 
 	for {
 		err := r.Read()
-		if errors.Is(err, astits.ErrNoMorePackets) {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		require.NoError(t, err)

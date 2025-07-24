@@ -24,7 +24,7 @@ func PacketDuration(pkt []byte) time.Duration {
 }
 
 // PacketDuration2 returns the duration of an Opus packet, in 1/48000 seconds.
-// Specification: RFC6716, 3.1
+// Specification: RFC6716, section 3.1
 func PacketDuration2(pkt []byte) int64 {
 	if len(pkt) == 0 {
 		return 0

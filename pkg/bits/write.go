@@ -24,3 +24,12 @@ func WriteBitsUnsafe(buf []byte, pos *int, v uint64, n int) {
 		*pos += n
 	}
 }
+
+// WriteFlagUnsafe writes a flag.
+func WriteFlagUnsafe(buf []byte, pos *int, v bool) {
+	if v {
+		WriteBitsUnsafe(buf, pos, 1, 1)
+	} else {
+		WriteBitsUnsafe(buf, pos, 0, 1)
+	}
+}

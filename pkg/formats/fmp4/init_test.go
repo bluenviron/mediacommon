@@ -24,7 +24,7 @@ var testVideoTrack = &mp4.CodecH264{
 }
 
 var testAudioTrack = &mp4.CodecMPEG4Audio{
-	Config: mpeg4audio.Config{
+	Config: mpeg4audio.AudioSpecificConfig{
 		Type:         2,
 		SampleRate:   44100,
 		ChannelCount: 2,
@@ -994,7 +994,7 @@ var casesInit = []struct {
 			Tracks: []*InitTrack{
 				{
 					ID:        1,
-					TimeScale: uint32(testAudioTrack.SampleRate),
+					TimeScale: uint32(testAudioTrack.Config.SampleRate),
 					Codec:     testAudioTrack,
 				},
 			},
@@ -1461,7 +1461,7 @@ var casesInit = []struct {
 				},
 				{
 					ID:        2,
-					TimeScale: uint32(testAudioTrack.SampleRate),
+					TimeScale: uint32(testAudioTrack.Config.SampleRate),
 					Codec:     testAudioTrack,
 				},
 			},
@@ -1886,7 +1886,7 @@ func TestInitUnmarshalExternal(t *testing.T) {
 						ID:        257,
 						TimeScale: 10000000,
 						Codec: &mp4.CodecMPEG4Audio{
-							Config: mpeg4audio.Config{
+							Config: mpeg4audio.AudioSpecificConfig{
 								Type:         mpeg4audio.ObjectTypeAACLC,
 								SampleRate:   48000,
 								ChannelCount: 2,

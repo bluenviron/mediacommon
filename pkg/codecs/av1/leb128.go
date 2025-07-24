@@ -5,7 +5,7 @@ import (
 )
 
 // LEB128 is a unsigned integer that can be decoded/encoded from/to the LEB128 format.
-// Specification: https://aomediacodec.github.io/av1-spec/#leb128
+// Specification: AV1 Bitstream & Decoding Process, section 4.10.5
 type LEB128 uint32
 
 // Unmarshal decodes an unsigned integer from the LEB128 format.

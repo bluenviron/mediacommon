@@ -3,10 +3,8 @@ package mpegts
 
 import (
 	"bytes"
-	"context"
 	"testing"
 
-	"github.com/asticode/go-astits"
 	"github.com/stretchr/testify/require"
 
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
@@ -695,10 +693,8 @@ func TestTrackUnmarshalExternal(t *testing.T) {
 		},
 	} {
 		t.Run(ca.name, func(t *testing.T) {
-			dem := astits.NewDemuxer(
-				context.Background(),
-				bytes.NewReader(ca.byts),
-				astits.DemuxerOptPacketSize(188))
+			dem := &robustDemuxer{R: bytes.NewReader(ca.byts)}
+			dem.initialize()
 
 			pmt, err := findPMT(dem)
 			require.NoError(t, err)

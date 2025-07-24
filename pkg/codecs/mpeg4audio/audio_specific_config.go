@@ -7,6 +7,8 @@ import (
 )
 
 // Config is an alias for AudioSpecificConfig.
+//
+// Deprecated: replaced by AudioSpecificConfig.
 type Config = AudioSpecificConfig
 
 // AudioSpecificConfig is an AudioSpecificConfig.
@@ -20,19 +22,32 @@ type AudioSpecificConfig struct {
 	ExtensionType       ObjectType
 	ExtensionSampleRate int
 
+	// GASpecificConfig
 	FrameLengthFlag    bool
 	DependsOnCoreCoder bool
 	CoreCoderDelay     uint16
 }
 
-// Unmarshal decodes a Config.
+// Unmarshal decodes a AudioSpecificConfig.
 func (c *AudioSpecificConfig) Unmarshal(buf []byte) error {
 	pos := 0
-	return c.UnmarshalFromPos(buf, &pos)
+	err := c.unmarshalBits(buf, &pos)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-// UnmarshalFromPos decodes a Config.
+// UnmarshalFromPos decodes a AudioSpecificConfig.
+//
+// Deprecated: not meant to be public.
 func (c *AudioSpecificConfig) UnmarshalFromPos(buf []byte, pos *int) error {
+	return c.unmarshalBits(buf, pos)
+}
+
+// unmarshalBits decodes a AudioSpecificConfig.
+func (c *AudioSpecificConfig) unmarshalBits(buf []byte, pos *int) error {
 	tmp, err := bits.ReadBits(buf, pos, 5)
 	if err != nil {
 		return err
@@ -105,7 +120,7 @@ func (c *AudioSpecificConfig) UnmarshalFromPos(buf []byte, pos *int) error {
 			c.ExtensionSampleRate = int(tmp)
 
 		default:
-			return fmt.Errorf("invalid extension sample rate index (%d)", extensionSamplingFrequencyIndex)
+			return fmt.Errorf("invalid extension sample rate index: %d", extensionSamplingFrequencyIndex)
 		}
 
 		tmp, err = bits.ReadBits(buf, pos, 5)
@@ -118,6 +133,8 @@ func (c *AudioSpecificConfig) UnmarshalFromPos(buf []byte, pos *int) error {
 			return fmt.Errorf("unsupported object type: %d", c.Type)
 		}
 	}
+
+	// GASpecificConfig
 
 	c.FrameLengthFlag, err = bits.ReadFlag(buf, pos)
 	if err != nil {
@@ -143,7 +160,7 @@ func (c *AudioSpecificConfig) UnmarshalFromPos(buf []byte, pos *int) error {
 	}
 
 	if extensionFlag {
-		return fmt.Errorf("unsupported")
+		return fmt.Errorf("extensionFlag is unsupported")
 	}
 
 	return nil
@@ -187,12 +204,12 @@ func (c AudioSpecificConfig) marshalSize() int {
 	return ret
 }
 
-// Marshal encodes a Config.
+// Marshal encodes a AudioSpecificConfig.
 func (c AudioSpecificConfig) Marshal() ([]byte, error) {
 	buf := make([]byte, c.marshalSize())
 	pos := 0
 
-	err := c.marshalTo(buf, &pos)
+	err := c.marshalToBits(buf, &pos)
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +217,7 @@ func (c AudioSpecificConfig) Marshal() ([]byte, error) {
 	return buf, nil
 }
 
-func (c AudioSpecificConfig) marshalTo(buf []byte, pos *int) error {
+func (c AudioSpecificConfig) marshalToBits(buf []byte, pos *int) error {
 	if c.ExtensionType == ObjectTypeSBR || c.ExtensionType == ObjectTypePS {
 		bits.WriteBitsUnsafe(buf, pos, uint64(c.ExtensionType), 5)
 	} else {
@@ -239,17 +256,8 @@ func (c AudioSpecificConfig) marshalTo(buf []byte, pos *int) error {
 		bits.WriteBitsUnsafe(buf, pos, uint64(c.Type), 5)
 	}
 
-	if c.FrameLengthFlag {
-		bits.WriteBitsUnsafe(buf, pos, 1, 1)
-	} else {
-		bits.WriteBitsUnsafe(buf, pos, 0, 1)
-	}
-
-	if c.DependsOnCoreCoder {
-		bits.WriteBitsUnsafe(buf, pos, 1, 1)
-	} else {
-		bits.WriteBitsUnsafe(buf, pos, 0, 1)
-	}
+	bits.WriteFlagUnsafe(buf, pos, c.FrameLengthFlag)
+	bits.WriteFlagUnsafe(buf, pos, c.DependsOnCoreCoder)
 
 	if c.DependsOnCoreCoder {
 		bits.WriteBitsUnsafe(buf, pos, uint64(c.CoreCoderDelay), 14)

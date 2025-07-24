@@ -188,7 +188,7 @@ var casesPresentation = []struct {
 					ID:        8,
 					TimeScale: 90000,
 					Codec: &mp4.CodecMPEG4Audio{
-						Config: mpeg4audio.Config{
+						Config: mpeg4audio.AudioSpecificConfig{
 							Type:         2,
 							SampleRate:   44100,
 							ChannelCount: 2,
