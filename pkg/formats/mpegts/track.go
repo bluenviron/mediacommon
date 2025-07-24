@@ -168,6 +168,9 @@ func findCodec(dem *robustDemuxer, es *astits.PMTElementaryStream) (Codec, error
 				return &CodecKLV{
 					Synchronous: false,
 				}, nil
+
+			case subtIdentifier:
+				return &CodecDVB{}, nil
 			}
 		}
 
