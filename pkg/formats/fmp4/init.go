@@ -23,7 +23,7 @@ func av1FindSequenceHeader(buf []byte) ([]byte, error) {
 
 	for _, obu := range tu {
 		var h av1.OBUHeader
-		err := h.Unmarshal(obu)
+		err = h.Unmarshal(obu)
 		if err != nil {
 			return nil, err
 		}
@@ -472,7 +472,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 						}
 
 						var c mpeg4audio.AudioSpecificConfig
-						err := c.Unmarshal(spec)
+						err = c.Unmarshal(spec)
 						if err != nil {
 							return nil, fmt.Errorf("invalid MPEG-4 Audio configuration: %w", err)
 						}

@@ -1087,7 +1087,7 @@ func TestReader(t *testing.T) {
 			}
 
 			for {
-				err := r.Read()
+				err = r.Read()
 				if errors.Is(err, io.EOF) {
 					break
 				}
@@ -1214,7 +1214,7 @@ func TestReaderKLVAsync(t *testing.T) {
 	})
 
 	for {
-		err := r.Read()
+		err = r.Read()
 		if errors.Is(err, io.EOF) {
 			break
 		}
@@ -1525,7 +1525,7 @@ func TestReaderDecodeErrors(t *testing.T) {
 			})
 
 			for {
-				err := r.Read()
+				err = r.Read()
 				if err != nil {
 					require.ErrorIs(t, io.EOF, err)
 					break
@@ -1684,7 +1684,7 @@ func TestReaderSkipGarbage(t *testing.T) {
 	})
 
 	for {
-		err := r.Read()
+		err = r.Read()
 		if err != nil {
 			require.ErrorIs(t, io.EOF, err)
 			break
