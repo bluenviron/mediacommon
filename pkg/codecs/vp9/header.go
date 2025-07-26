@@ -40,14 +40,13 @@ func (c *Header_ColorConfig) unmarshal(profile uint8, buf []byte, pos *int) erro
 	c.ColorSpace = uint8(tmp)
 
 	if c.ColorSpace != 7 {
-		var err error
 		c.ColorRange, err = bits.ReadFlag(buf, pos)
 		if err != nil {
 			return err
 		}
 
 		if profile == 1 || profile == 3 {
-			err := bits.HasSpace(buf, *pos, 3)
+			err = bits.HasSpace(buf, *pos, 3)
 			if err != nil {
 				return err
 			}
@@ -66,7 +65,7 @@ func (c *Header_ColorConfig) unmarshal(profile uint8, buf []byte, pos *int) erro
 			c.SubsamplingX = false
 			c.SubsamplingY = false
 
-			err := bits.HasSpace(buf, *pos, 1)
+			err = bits.HasSpace(buf, *pos, 1)
 			if err != nil {
 				return err
 			}
@@ -158,7 +157,7 @@ func (h *Header) Unmarshal(buf []byte) error {
 	h.ErrorResilientMode = bits.ReadFlagUnsafe(buf, &pos)
 
 	if !h.NonKeyFrame {
-		err := bits.HasSpace(buf, pos, 24)
+		err = bits.HasSpace(buf, pos, 24)
 		if err != nil {
 			return err
 		}

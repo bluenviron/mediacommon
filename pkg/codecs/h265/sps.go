@@ -298,7 +298,7 @@ func (v *SPS_VUI) unmarshal(buf []byte, pos *int) error {
 
 	if timingInfoPresentFlag {
 		v.TimingInfo = &SPS_TimingInfo{}
-		err := v.TimingInfo.unmarshal(buf, pos)
+		err = v.TimingInfo.unmarshal(buf, pos)
 		if err != nil {
 			return err
 		}
@@ -382,7 +382,7 @@ func (p *SPS_ProfileTierLevel) unmarshal(buf []byte, pos *int, maxSubLayersMinus
 		p.SubLayerProfilePresentFlag = make([]bool, maxSubLayersMinus1)
 		p.SubLayerLevelPresentFlag = make([]bool, maxSubLayersMinus1)
 
-		err := bits.HasSpace(buf, *pos, int(2*maxSubLayersMinus1))
+		err = bits.HasSpace(buf, *pos, int(2*maxSubLayersMinus1))
 		if err != nil {
 			return err
 		}
@@ -394,7 +394,7 @@ func (p *SPS_ProfileTierLevel) unmarshal(buf []byte, pos *int, maxSubLayersMinus
 	}
 
 	if maxSubLayersMinus1 > 0 {
-		err := bits.HasSpace(buf, *pos, int(8-maxSubLayersMinus1)*2)
+		err = bits.HasSpace(buf, *pos, int(8-maxSubLayersMinus1)*2)
 		if err != nil {
 			return err
 		}
@@ -568,7 +568,8 @@ func (r *SPS_ShortTermRefPicSet) unmarshal(buf []byte, pos *int, stRpsIdx uint32
 			r.UsedByCurrPicS0Flag = make([]bool, r.NumNegativePics)
 
 			for i := uint32(0); i < r.NumNegativePics; i++ {
-				deltaPocS0Minus1, err := bits.ReadGolombUnsigned(buf, pos)
+				var deltaPocS0Minus1 uint32
+				deltaPocS0Minus1, err = bits.ReadGolombUnsigned(buf, pos)
 				if err != nil {
 					return err
 				}
@@ -595,7 +596,8 @@ func (r *SPS_ShortTermRefPicSet) unmarshal(buf []byte, pos *int, stRpsIdx uint32
 			r.UsedByCurrPicS1Flag = make([]bool, r.NumPositivePics)
 
 			for i := uint32(0); i < r.NumPositivePics; i++ {
-				deltaPocS1Minus1, err := bits.ReadGolombUnsigned(buf, pos)
+				var deltaPocS1Minus1 uint32
+				deltaPocS1Minus1, err = bits.ReadGolombUnsigned(buf, pos)
 				if err != nil {
 					return err
 				}
@@ -934,7 +936,7 @@ func (s *SPS) Unmarshal(buf []byte) error {
 
 	if vuiParametersPresentFlag {
 		s.VUI = &SPS_VUI{}
-		err := s.VUI.unmarshal(buf, &pos)
+		err = s.VUI.unmarshal(buf, &pos)
 		if err != nil {
 			return err
 		}

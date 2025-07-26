@@ -357,7 +357,7 @@ func (v *SPS_VUI) unmarshal(buf []byte, pos *int) error {
 
 	if bitstreamRestrictionFlag {
 		v.BitstreamRestriction = &SPS_BitstreamRestriction{}
-		err := v.BitstreamRestriction.unmarshal(buf, pos)
+		err = v.BitstreamRestriction.unmarshal(buf, pos)
 		if err != nil {
 			return err
 		}
@@ -706,7 +706,7 @@ func (s *SPS) Unmarshal(buf []byte) error {
 
 	if vuiParametersPresentFlag {
 		s.VUI = &SPS_VUI{}
-		err := s.VUI.unmarshal(buf, &pos)
+		err = s.VUI.unmarshal(buf, &pos)
 		if err != nil {
 			return err
 		}

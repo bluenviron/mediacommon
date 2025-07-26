@@ -40,7 +40,7 @@ func TestTimeDecoderOverflow(t *testing.T) {
 		// overflow
 		i += 90000 * stride
 		secs += stride
-		ts := d.Decode(i)
+		ts = d.Decode(i)
 		require.Equal(t, secs*90000, ts)
 
 		// reach 2^32 slowly

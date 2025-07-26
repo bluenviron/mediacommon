@@ -73,7 +73,7 @@ func (h *opusControlHeader) unmarshal(buf []byte) (int, error) {
 	}
 
 	if h.StartTrimFlag {
-		err := bits.HasSpace(buf, pos, 16)
+		err = bits.HasSpace(buf, pos, 16)
 		if err != nil {
 			return 0, err
 		}
@@ -83,7 +83,7 @@ func (h *opusControlHeader) unmarshal(buf []byte) (int, error) {
 	}
 
 	if h.EndTrimFlag {
-		err := bits.HasSpace(buf, pos, 16)
+		err = bits.HasSpace(buf, pos, 16)
 		if err != nil {
 			return 0, err
 		}
@@ -93,7 +93,8 @@ func (h *opusControlHeader) unmarshal(buf []byte) (int, error) {
 	}
 
 	if h.ControlExtensionFlag {
-		tmp, err := bits.ReadBits(buf, &pos, 8)
+		var tmp uint64
+		tmp, err = bits.ReadBits(buf, &pos, 8)
 		if err != nil {
 			return 0, err
 		}

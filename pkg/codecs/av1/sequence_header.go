@@ -175,7 +175,8 @@ func (c *SequenceHeader_ColorConfig) unmarshal(seqProfile uint8, buf []byte, pos
 		}
 
 		if c.SubsamplingX && c.SubsamplingY {
-			tmp, err := bits.ReadBits(buf, pos, 2)
+			var tmp uint64
+			tmp, err = bits.ReadBits(buf, pos, 2)
 			if err != nil {
 				return err
 			}

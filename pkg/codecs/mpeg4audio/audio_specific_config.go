@@ -177,7 +177,7 @@ func (c AudioSpecificConfig) marshalSizeBits() int {
 	}
 
 	if c.ExtensionType == ObjectTypeSBR || c.ExtensionType == ObjectTypePS {
-		_, ok := reverseSampleRates[c.ExtensionSampleRate]
+		_, ok = reverseSampleRates[c.ExtensionSampleRate]
 		if !ok {
 			n += 28
 		} else {
@@ -246,7 +246,7 @@ func (c AudioSpecificConfig) marshalToBits(buf []byte, pos *int) error {
 	bits.WriteBitsUnsafe(buf, pos, uint64(channelConfig), 4)
 
 	if c.ExtensionType == ObjectTypeSBR || c.ExtensionType == ObjectTypePS {
-		sampleRateIndex, ok := reverseSampleRates[c.ExtensionSampleRate]
+		sampleRateIndex, ok = reverseSampleRates[c.ExtensionSampleRate]
 		if !ok {
 			bits.WriteBitsUnsafe(buf, pos, uint64(0x0F), 4)
 			bits.WriteBitsUnsafe(buf, pos, uint64(c.ExtensionSampleRate), 24)

@@ -87,8 +87,8 @@ func readMetadataAUWrapper(in []byte) ([]byte, error) {
 	out := au.AUCellData
 
 	for {
-		var au metadataAUCell
-		n2, err := au.unmarshal(in[n:])
+		var n2 int
+		n2, err = au.unmarshal(in[n:])
 		if err != nil {
 			return nil, err
 		}
@@ -197,7 +197,7 @@ func (r *Reader) Initialize() error {
 
 	for i, es := range pmt.ElementaryStreams {
 		var track Track
-		err := track.unmarshal(dem, es)
+		err = track.unmarshal(dem, es)
 		if err != nil {
 			return err
 		}

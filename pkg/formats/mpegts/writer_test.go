@@ -116,7 +116,8 @@ func TestWriterKLVAsync(t *testing.T) {
 
 	var pkts []*astits.Packet
 	for {
-		pkt, err := dem.NextPacket()
+		var pkt *astits.Packet
+		pkt, err = dem.NextPacket()
 		if errors.Is(err, astits.ErrNoMorePackets) {
 			break
 		}
@@ -240,7 +241,7 @@ func TestWriterReaderLongKLVSync(t *testing.T) {
 	})
 
 	for {
-		err := r.Read()
+		err = r.Read()
 		if errors.Is(err, io.EOF) {
 			break
 		}

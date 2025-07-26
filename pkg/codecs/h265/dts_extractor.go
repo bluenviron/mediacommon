@@ -98,7 +98,8 @@ func getPTSDTSDiff(buf []byte, sps *SPS, pps *PPS) (uint32, error) {
 		}
 
 		b := int(math.Ceil(math.Log2(float64(len(sps.ShortTermRefPicSets)))))
-		tmp, err := bits.ReadBits(buf, &pos, b)
+		var tmp uint64
+		tmp, err = bits.ReadBits(buf, &pos, b)
 		if err != nil {
 			return 0, err
 		}

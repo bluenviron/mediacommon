@@ -29,7 +29,8 @@ func (m *payloadMux) unmarshalBits(buf []byte, pos *int, li *payloadLengthInfo) 
 			payload := make([]byte, payloadLength)
 
 			for i := range payloadLength {
-				byt, err := bits.ReadBits(buf, pos, 8)
+				var byt uint64
+				byt, err = bits.ReadBits(buf, pos, 8)
 				if err != nil {
 					return err
 				}

@@ -32,7 +32,7 @@ func av1FindSequenceHeader(buf []byte) ([]byte, error) {
 
 	for _, obu := range tu {
 		var h av1.OBUHeader
-		err := h.Unmarshal(obu)
+		err = h.Unmarshal(obu)
 		if err != nil {
 			return nil, err
 		}
@@ -524,7 +524,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 					}
 
 					var c mpeg4audio.AudioSpecificConfig
-					err := c.Unmarshal(spec)
+					err = c.Unmarshal(spec)
 					if err != nil {
 						return nil, fmt.Errorf("invalid MPEG-4 Audio configuration: %w", err)
 					}
@@ -808,14 +808,14 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 					curTrack.Samples[i].PayloadSize = sampleSize
 
 					curTrack.Samples[i].GetPayload = func() ([]byte, error) {
-						_, err = r.Seek(int64(sampleOffset), io.SeekStart)
+						_, err2 := r.Seek(int64(sampleOffset), io.SeekStart)
 						if err != nil {
-							return nil, err
+							return nil, err2
 						}
 
 						buf := make([]byte, sampleSize)
-						_, err = io.ReadFull(r, buf)
-						return buf, err
+						_, err2 = io.ReadFull(r, buf)
+						return buf, err2
 					}
 
 					off += sampleSize
@@ -1021,7 +1021,8 @@ func (p *Presentation) marshalMdat(w io.Writer, dataSize uint32, sortedSamples [
 	}
 
 	for _, sa := range sortedSamples {
-		pl, err := sa.GetPayload()
+		var pl []byte
+		pl, err = sa.GetPayload()
 		if err != nil {
 			return err
 		}

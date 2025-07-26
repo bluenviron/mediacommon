@@ -181,7 +181,8 @@ func (c *StreamMuxConfig) unmarshalBits(buf []byte, pos *int) error {
 	}
 
 	if c.CRCCheckPresent {
-		tmp, err := bits.ReadBits(buf, pos, 8)
+		var tmp uint64
+		tmp, err = bits.ReadBits(buf, pos, 8)
 		if err != nil {
 			return err
 		}
