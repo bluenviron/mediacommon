@@ -21,8 +21,7 @@ func (c CodecDVB) marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 		StreamType:    astits.StreamTypePrivateData,
 		ElementaryStreamDescriptors: []*astits.Descriptor{
 			{
-				Tag:    c.Descriptor.Tag,
-				Length: c.Descriptor.Length,
+				Tag: astits.DescriptorTagSubtitling,
 				Subtitling: &astits.DescriptorSubtitling{
 					Items: c.Descriptor.Items,
 				},

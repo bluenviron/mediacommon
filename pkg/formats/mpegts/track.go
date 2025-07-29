@@ -103,9 +103,7 @@ func findDVBSubtitlingDescriptor(descriptors []*astits.Descriptor) *SubtitlingDe
 	for _, sd := range descriptors {
 		if sd.Tag == astits.DescriptorTagSubtitling && sd.Subtitling != nil {
 			return &SubtitlingDescriptor{
-				Tag:    sd.Tag,
-				Length: sd.Length,
-				Items:  sd.Subtitling.Items,
+				Items: sd.Subtitling.Items,
 			}
 		}
 	}
