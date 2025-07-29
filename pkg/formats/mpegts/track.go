@@ -99,6 +99,19 @@ func findKLVMetadataDescriptor(descriptors []*astits.Descriptor) *metadataDescri
 	return ret
 }
 
+func findDVBSubtitlingDescriptor(descriptors []*astits.Descriptor) *subtitlingDescriptor {
+	for _, sd := range descriptors {
+		if sd.Tag == astits.DescriptorTagSubtitling && sd.Subtitling != nil {
+			return &subtitlingDescriptor{
+				tag:    sd.Tag,
+				length: sd.Length,
+				items:  sd.Subtitling.Items,
+			}
+		}
+	}
+	return nil
+}
+
 func findOpusChannelCount(descriptors []*astits.Descriptor) int {
 	for _, sd := range descriptors {
 		if sd.Extension != nil && sd.Extension.Tag == 0x80 &&
@@ -168,9 +181,13 @@ func findCodec(dem *robustDemuxer, es *astits.PMTElementaryStream) (Codec, error
 				return &CodecKLV{
 					Synchronous: false,
 				}, nil
-
-			case subtIdentifier:
-				return &CodecDVB{}, nil
+			}
+		} else {
+			subtitlingDescriptor := findDVBSubtitlingDescriptor(es.ElementaryStreamDescriptors)
+			if subtitlingDescriptor != nil {
+				return &CodecDVB{
+					descriptor: subtitlingDescriptor,
+				}, nil
 			}
 		}
 

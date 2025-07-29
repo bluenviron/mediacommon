@@ -2,16 +2,10 @@ package mpegts
 
 import "github.com/asticode/go-astits"
 
-const (
-	subtIdentifier = 's'<<24 | 'u'<<16 | 'b'<<8 | 't'
-)
-
 // CodecDVB is a DVB codec.
 type CodecDVB struct {
-	// in Go, empty structs share the same pointer,
-	// therefore they cannot be used as map keys
-	// or in equality operations. Prevent this.
-	unused int // nolint:unused
+	// subtitling descriptor
+	descriptor *subtitlingDescriptor
 }
 
 // IsVideo implements Codec.
@@ -27,10 +21,10 @@ func (c CodecDVB) marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 		StreamType:    astits.StreamTypePrivateData,
 		ElementaryStreamDescriptors: []*astits.Descriptor{
 			{
-				Length: 4,
-				Tag:    astits.DescriptorTagSubtitling,
-				Registration: &astits.DescriptorRegistration{
-					FormatIdentifier: subtIdentifier,
+				Tag:    c.descriptor.tag,
+				Length: c.descriptor.length,
+				Subtitling: &astits.DescriptorSubtitling{
+					Items: c.descriptor.items,
 				},
 			},
 		},
