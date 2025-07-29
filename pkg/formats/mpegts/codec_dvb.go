@@ -5,7 +5,7 @@ import "github.com/asticode/go-astits"
 // CodecDVB is a DVB codec.
 type CodecDVB struct {
 	// subtitling descriptor
-	descriptor *subtitlingDescriptor
+	Descriptor *SubtitlingDescriptor
 }
 
 // IsVideo implements Codec.
@@ -21,10 +21,10 @@ func (c CodecDVB) marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 		StreamType:    astits.StreamTypePrivateData,
 		ElementaryStreamDescriptors: []*astits.Descriptor{
 			{
-				Tag:    c.descriptor.tag,
-				Length: c.descriptor.length,
+				Tag:    c.Descriptor.Tag,
+				Length: c.Descriptor.Length,
 				Subtitling: &astits.DescriptorSubtitling{
-					Items: c.descriptor.items,
+					Items: c.Descriptor.Items,
 				},
 			},
 		},

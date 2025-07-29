@@ -2,8 +2,8 @@ package mpegts
 
 import "github.com/asticode/go-astits"
 
-type subtitlingDescriptor struct {
-	tag    uint8
-	length uint8
-	items  []*astits.DescriptorSubtitlingItem
+type SubtitlingDescriptor struct {
+	Tag    uint8
+	Length uint8
+	Items  []*astits.DescriptorSubtitlingItem
 }
