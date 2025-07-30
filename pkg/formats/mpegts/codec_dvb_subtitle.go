@@ -24,7 +24,10 @@ func (c CodecDVBSubtitle) marshal(pid uint16) (*astits.PMTElementaryStream, erro
 		StreamType:    astits.StreamTypePrivateData,
 		ElementaryStreamDescriptors: []*astits.Descriptor{
 			{
-				Tag: astits.DescriptorTagSubtitling,
+				// Length must be different than zero.
+				// https://github.com/asticode/go-astits/blob/7c2bf6b71173d24632371faa01f28a9122db6382/descriptor.go#L2146-L2148
+				Length: 1,
+				Tag:    astits.DescriptorTagSubtitling,
 				Subtitling: &astits.DescriptorSubtitling{
 					Items: c.Descriptor.Items,
 				},

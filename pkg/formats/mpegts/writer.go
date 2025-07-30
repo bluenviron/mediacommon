@@ -309,7 +309,7 @@ func (w *Writer) WriteDVBSubtitle(
 	pts int64,
 	data []byte,
 ) error {
-	return w.writeData(track, false, 0, streamIDPrivate, data)
+	return w.writeData(track, true, pts, streamIDPrivate, data)
 }
 
 func (w *Writer) writeVideo(

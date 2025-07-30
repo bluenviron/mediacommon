@@ -19,50 +19,47 @@ func TestWriter(t *testing.T) {
 			w := NewWriter(&buf, []*Track{ca.track})
 
 			for _, sample := range ca.samples {
+				var err error
+
 				switch ca.track.Codec.(type) {
 				case *CodecH265:
-					err := w.WriteH265(ca.track, sample.pts, sample.dts, sample.data)
-					require.NoError(t, err)
+					err = w.WriteH265(ca.track, sample.pts, sample.dts, sample.data)
 
 				case *CodecH264:
-					err := w.WriteH264(ca.track, sample.pts, sample.dts, sample.data)
-					require.NoError(t, err)
+					err = w.WriteH264(ca.track, sample.pts, sample.dts, sample.data)
 
 				case *CodecMPEG4Video:
-					err := w.WriteMPEG4Video(ca.track, sample.pts, sample.data[0])
-					require.NoError(t, err)
+					err = w.WriteMPEG4Video(ca.track, sample.pts, sample.data[0])
 
 				case *CodecMPEG1Video:
-					err := w.WriteMPEG1Video(ca.track, sample.pts, sample.data[0])
-					require.NoError(t, err)
+					err = w.WriteMPEG1Video(ca.track, sample.pts, sample.data[0])
 
 				case *CodecOpus:
-					err := w.WriteOpus(ca.track, sample.pts, sample.data)
-					require.NoError(t, err)
+					err = w.WriteOpus(ca.track, sample.pts, sample.data)
 
 				case *CodecMPEG4Audio:
-					err := w.WriteMPEG4Audio(ca.track, sample.pts, sample.data)
-					require.NoError(t, err)
+					err = w.WriteMPEG4Audio(ca.track, sample.pts, sample.data)
 
 				case *CodecMPEG4AudioLATM:
-					err := w.WriteMPEG4AudioLATM(ca.track, sample.pts, sample.data)
-					require.NoError(t, err)
+					err = w.WriteMPEG4AudioLATM(ca.track, sample.pts, sample.data)
 
 				case *CodecMPEG1Audio:
-					err := w.WriteMPEG1Audio(ca.track, sample.pts, sample.data)
-					require.NoError(t, err)
+					err = w.WriteMPEG1Audio(ca.track, sample.pts, sample.data)
 
 				case *CodecAC3:
-					err := w.WriteAC3(ca.track, sample.pts, sample.data[0])
-					require.NoError(t, err)
+					err = w.WriteAC3(ca.track, sample.pts, sample.data[0])
 
 				case *CodecKLV:
-					err := w.WriteKLV(ca.track, sample.pts, sample.data[0])
-					require.NoError(t, err)
+					err = w.WriteKLV(ca.track, sample.pts, sample.data[0])
+
+				case *CodecDVBSubtitle:
+					err = w.WriteDVBSubtitle(ca.track, sample.pts, sample.data[0])
 
 				default:
-					t.Errorf("unexpected")
+					panic("unexpected")
 				}
+
+				require.NoError(t, err)
 			}
 
 			dem := astits.NewDemuxer(
