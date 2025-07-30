@@ -303,6 +303,15 @@ func (w *Writer) WriteKLV(
 	return w.writeData(track, false, 0, streamIDPrivate, unit)
 }
 
+// WriteDVBSubtitle writes DVB subtitle data.
+func (w *Writer) WriteDVBSubtitle(
+	track *Track,
+	pts int64,
+	data []byte,
+) error {
+	return w.writeData(track, false, 0, streamIDPrivate, data)
+}
+
 func (w *Writer) writeVideo(
 	track *Track,
 	pts int64,
