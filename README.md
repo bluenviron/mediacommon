@@ -44,6 +44,8 @@ Go &ge; 1.23 is required.
 |ISO 13818-1, Generic coding of moving pictures and associated audio information: Systems|formats / MPEG-TS|
 |[ETSI TS Opus 0.1.3-draft](https://opus-codec.org/docs/ETSI_TS_opus-v0.1.3-draft.pdf)|formats / MPEG-TS + Opus|
 |MISB ST 1402, MPEG-2 Transport of Compressed Motion Imagery and Metadata|formats / MPEG-TS + KLV|
+|[ETSI EN 300 743](https://www.etsi.org/deliver/etsi_en/300700_300799/300743/01.06.01_20/en_300743v010601a.pdf)|formats / MPEG-TS + DVB subtitles|
+|[ETSI EN 300 468](https://www.etsi.org/deliver/etsi_en/300400_300499/300468/01.17.01_20/en_300468v011701a.pdf)|formats / MPEG-TS + DVB subtitles|
 
 ## Related projects
 

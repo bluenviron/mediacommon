@@ -3,6 +3,9 @@ package mpegts
 import "github.com/asticode/go-astits"
 
 // CodecDVBSubtitle is a DVB Subtitle codec.
+// Specification: ISO 13818-1
+// Specification: ETSI EN 300 743
+// Specification: ETSI EN 300 468
 type CodecDVBSubtitle struct {
 	// subtitling descriptor
 	Descriptor *SubtitlingDescriptor
