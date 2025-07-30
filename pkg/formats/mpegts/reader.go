@@ -448,7 +448,7 @@ func (r *Reader) OnDataKLV(track *Track, cb ReaderOnDataKLVFunc) {
 	}
 }
 
-// OnDataDVBSubtitle sets a callback that is called when data from a DVB track is received.
+// OnDataDVBSubtitle sets a callback that is called when data from a DVB subtitle track is received.
 func (r *Reader) OnDataDVBSubtitle(track *Track, cb ReaderOnDataDVBSubtitleFunc) {
 	r.onData[track.PID] = func(pts int64, _ int64, data []byte) error {
 		return cb(pts, data)
