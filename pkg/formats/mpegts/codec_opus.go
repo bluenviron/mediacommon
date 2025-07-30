@@ -27,14 +27,18 @@ func (c CodecOpus) marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 		StreamType:    astits.StreamTypePrivateData,
 		ElementaryStreamDescriptors: []*astits.Descriptor{
 			{
-				Length: 4,
+				// Length must be different than zero.
+				// https://github.com/asticode/go-astits/blob/7c2bf6b71173d24632371faa01f28a9122db6382/descriptor.go#L2146-L2148
+				Length: 1,
 				Tag:    astits.DescriptorTagRegistration,
 				Registration: &astits.DescriptorRegistration{
 					FormatIdentifier: opusIdentifier,
 				},
 			},
 			{
-				Length: 2,
+				// Length must be different than zero.
+				// https://github.com/asticode/go-astits/blob/7c2bf6b71173d24632371faa01f28a9122db6382/descriptor.go#L2146-L2148
+				Length: 1,
 				Tag:    astits.DescriptorTagExtension,
 				Extension: &astits.DescriptorExtension{
 					Tag:     0x80,
