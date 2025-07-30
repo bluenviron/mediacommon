@@ -63,6 +63,7 @@ func findAC3Parameters(dem *robustDemuxer, pid uint16) (int, int, error) {
 
 func findRegistrationIdentifier(descriptors []*astits.Descriptor) (uint32, bool) {
 	ret := uint32(0)
+
 	for _, sd := range descriptors {
 		if sd.Registration != nil {
 			// in case of multiple registrations, do not return anything
@@ -72,6 +73,11 @@ func findRegistrationIdentifier(descriptors []*astits.Descriptor) (uint32, bool)
 			ret = sd.Registration.FormatIdentifier
 		}
 	}
+
+	if ret == 0 {
+		return 0, false
+	}
+
 	return ret, true
 }
 
@@ -97,6 +103,15 @@ func findKLVMetadataDescriptor(descriptors []*astits.Descriptor) *metadataDescri
 		}
 	}
 	return ret
+}
+
+func findDVBSubtitlingDescriptor(descriptors []*astits.Descriptor) []*astits.DescriptorSubtitlingItem {
+	for _, sd := range descriptors {
+		if sd.Tag == astits.DescriptorTagSubtitling && sd.Subtitling != nil {
+			return sd.Subtitling.Items
+		}
+	}
+	return nil
 }
 
 func findOpusChannelCount(descriptors []*astits.Descriptor) int {
@@ -151,8 +166,7 @@ func findCodec(dem *robustDemuxer, es *astits.PMTElementaryStream) (Codec, error
 		}, nil
 
 	case astits.StreamTypePrivateData:
-		id, ok := findRegistrationIdentifier(es.ElementaryStreamDescriptors)
-		if ok {
+		if id, ok := findRegistrationIdentifier(es.ElementaryStreamDescriptors); ok {
 			switch id {
 			case opusIdentifier:
 				channelCount := findOpusChannelCount(es.ElementaryStreamDescriptors)
@@ -169,6 +183,10 @@ func findCodec(dem *robustDemuxer, es *astits.PMTElementaryStream) (Codec, error
 					Synchronous: false,
 				}, nil
 			}
+		} else if items := findDVBSubtitlingDescriptor(es.ElementaryStreamDescriptors); items != nil {
+			return &CodecDVBSubtitle{
+				Items: items,
+			}, nil
 		}
 
 	case astits.StreamTypeMetadata:

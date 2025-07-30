@@ -44,6 +44,9 @@ type ReaderOnDataAC3Func func(pts int64, frame []byte) error
 // ReaderOnDataKLVFunc is the prototype of the callback passed to OnDataKLV.
 type ReaderOnDataKLVFunc func(pts int64, data []byte) error
 
+// ReaderOnDataDVBSubtitleFunc is the prototype of the callback passed to OnDataDVBSubtitle.
+type ReaderOnDataDVBSubtitleFunc func(pts int64, data []byte) error
+
 func findPMT(dem *robustDemuxer) (*astits.PMTData, error) {
 	for {
 		data, err := dem.nextData()
@@ -442,6 +445,13 @@ func (r *Reader) OnDataKLV(track *Track, cb ReaderOnDataKLVFunc) {
 		r.onData[track.PID] = func(pts int64, _ int64, data []byte) error {
 			return cb(pts, data)
 		}
+	}
+}
+
+// OnDataDVBSubtitle sets a callback that is called when data from a DVB subtitle track is received.
+func (r *Reader) OnDataDVBSubtitle(track *Track, cb ReaderOnDataDVBSubtitleFunc) {
+	r.onData[track.PID] = func(pts int64, _ int64, data []byte) error {
+		return cb(pts, data)
 	}
 }
 

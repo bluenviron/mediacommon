@@ -980,6 +980,83 @@ var casesReadWriter = []struct {
 			},
 		},
 	},
+	{
+		"dvb subtitles",
+		&Track{
+			PID: 257,
+			Codec: &CodecDVBSubtitle{
+				Items: []*astits.DescriptorSubtitlingItem{
+					{
+						AncillaryPageID:   123,
+						CompositionPageID: 456,
+						Language:          []byte{1, 2, 3},
+						Type:              22,
+					},
+					{
+						AncillaryPageID:   33,
+						CompositionPageID: 12,
+						Language:          []byte{'a', 'b', 'c'},
+						Type:              15,
+					},
+				},
+			},
+		},
+		[]sample{
+			{
+				30 * 90000,
+				30 * 90000,
+				[][]byte{{1, 2, 3}},
+			},
+		},
+		[]*astits.Packet{
+			{ // PMT
+				Header: astits.PacketHeader{
+					HasPayload:                true,
+					PayloadUnitStartIndicator: true,
+					PID:                       0,
+				},
+				Payload: append([]byte{
+					0x00, 0x00, 0xb0, 0x0d, 0x00, 0x00, 0xc1, 0x00,
+					0x00, 0x00, 0x01, 0xf0, 0x00, 0x71, 0x10, 0xd8,
+					0x78,
+				}, bytes.Repeat([]byte{0xff}, 167)...),
+			},
+			{ // PAT
+				Header: astits.PacketHeader{
+					HasPayload:                true,
+					PayloadUnitStartIndicator: true,
+					PID:                       4096,
+				},
+				Payload: append([]byte{
+					0x00, 0x02, 0xb0, 0x24, 0x00, 0x01, 0xc1, 0x00,
+					0x00, 0xe1, 0x01, 0xf0, 0x00, 0x06, 0xe1, 0x01,
+					0xf0, 0x12, 0x59, 0x10, 0x01, 0x02, 0x03, 0x16,
+					0x01, 0xc8, 0x00, 0x7b, 0x61, 0x62, 0x63, 0x0f,
+					0x00, 0x0c, 0x00, 0x21, 0xc2, 0xdc, 0x16, 0x2a,
+				}, bytes.Repeat([]byte{0xff}, 144)...),
+			},
+			{ // PES
+				AdaptationField: &astits.PacketAdaptationField{
+					Length:                166,
+					StuffingLength:        159,
+					RandomAccessIndicator: true,
+					HasPCR:                true,
+					PCR:                   &astits.ClockReference{Base: 2691000},
+				},
+				Header: astits.PacketHeader{
+					HasAdaptationField:        true,
+					HasPayload:                true,
+					PayloadUnitStartIndicator: true,
+					PID:                       257,
+				},
+				Payload: []byte{
+					0x00, 0x00, 0x01, 0xbd, 0x00, 0x0b, 0x80, 0x80,
+					0x05, 0x21, 0x00, 0xa5, 0x65, 0xc1, 0x01, 0x02,
+					0x03,
+				},
+			},
+		},
+	},
 }
 
 func TestReader(t *testing.T) {
@@ -1082,8 +1159,16 @@ func TestReader(t *testing.T) {
 					return nil
 				})
 
+			case *CodecDVBSubtitle:
+				r.OnDataDVBSubtitle(ca.track, func(pts int64, data []byte) error {
+					require.Equal(t, ca.samples[i].pts, pts)
+					require.Equal(t, ca.samples[i].data[0], data)
+					i++
+					return nil
+				})
+
 			default:
-				t.Errorf("unexpected")
+				panic("unexpected")
 			}
 
 			for {
