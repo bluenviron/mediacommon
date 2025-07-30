@@ -7,8 +7,7 @@ import "github.com/asticode/go-astits"
 // Specification: ETSI EN 300 743
 // Specification: ETSI EN 300 468
 type CodecDVBSubtitle struct {
-	// subtitling descriptor
-	Descriptor *SubtitlingDescriptor
+	Items []*astits.DescriptorSubtitlingItem
 }
 
 // IsVideo implements Codec.
@@ -29,7 +28,7 @@ func (c CodecDVBSubtitle) marshal(pid uint16) (*astits.PMTElementaryStream, erro
 				Length: 1,
 				Tag:    astits.DescriptorTagSubtitling,
 				Subtitling: &astits.DescriptorSubtitling{
-					Items: c.Descriptor.Items,
+					Items: c.Items,
 				},
 			},
 		},

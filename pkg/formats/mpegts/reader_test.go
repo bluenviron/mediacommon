@@ -985,20 +985,18 @@ var casesReadWriter = []struct {
 		&Track{
 			PID: 257,
 			Codec: &CodecDVBSubtitle{
-				Descriptor: &SubtitlingDescriptor{
-					Items: []*astits.DescriptorSubtitlingItem{
-						{
-							AncillaryPageID:   123,
-							CompositionPageID: 456,
-							Language:          []byte{1, 2, 3},
-							Type:              22,
-						},
-						{
-							AncillaryPageID:   33,
-							CompositionPageID: 12,
-							Language:          []byte{'a', 'b', 'c'},
-							Type:              15,
-						},
+				Items: []*astits.DescriptorSubtitlingItem{
+					{
+						AncillaryPageID:   123,
+						CompositionPageID: 456,
+						Language:          []byte{1, 2, 3},
+						Type:              22,
+					},
+					{
+						AncillaryPageID:   33,
+						CompositionPageID: 12,
+						Language:          []byte{'a', 'b', 'c'},
+						Type:              15,
 					},
 				},
 			},
