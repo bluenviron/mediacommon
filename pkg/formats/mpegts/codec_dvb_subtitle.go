@@ -2,20 +2,20 @@ package mpegts
 
 import "github.com/asticode/go-astits"
 
-// CodecDVB is a DVB codec.
-type CodecDVB struct {
+// CodecDVBSubtitle is a DVB Subtitle codec.
+type CodecDVBSubtitle struct {
 	// subtitling descriptor
 	Descriptor *SubtitlingDescriptor
 }
 
 // IsVideo implements Codec.
-func (CodecDVB) IsVideo() bool {
+func (CodecDVBSubtitle) IsVideo() bool {
 	return false
 }
 
-func (*CodecDVB) isCodec() {}
+func (*CodecDVBSubtitle) isCodec() {}
 
-func (c CodecDVB) marshal(pid uint16) (*astits.PMTElementaryStream, error) {
+func (c CodecDVBSubtitle) marshal(pid uint16) (*astits.PMTElementaryStream, error) {
 	return &astits.PMTElementaryStream{
 		ElementaryPID: pid,
 		StreamType:    astits.StreamTypePrivateData,

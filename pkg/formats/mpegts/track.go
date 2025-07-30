@@ -183,7 +183,7 @@ func findCodec(dem *robustDemuxer, es *astits.PMTElementaryStream) (Codec, error
 		} else {
 			subtitlingDescriptor := findDVBSubtitlingDescriptor(es.ElementaryStreamDescriptors)
 			if subtitlingDescriptor != nil {
-				return &CodecDVB{
+				return &CodecDVBSubtitle{
 					Descriptor: subtitlingDescriptor,
 				}, nil
 			}
