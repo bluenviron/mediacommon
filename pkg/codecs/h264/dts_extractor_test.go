@@ -1,8 +1,9 @@
 package h264
 
 import (
+	"encoding/binary"
+	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -32,43 +33,43 @@ var casesDTSExtractor = []struct {
 						0x65, 0x88, 0x84, 0x00, 0x33, 0xff,
 					},
 				},
-				int64(333333333 * time.Nanosecond * 90000 / time.Second),
-				int64(333333333 * time.Nanosecond * 90000 / time.Second),
+				56890 + 0,
+				56890 + 0,
 			},
 			{
 				[][]byte{{0x41, 0x9a, 0x21, 0x6c, 0x45, 0xff}},
-				int64(366666666 * time.Nanosecond * 90000 / time.Second),
-				int64(366666666 * time.Nanosecond * 90000 / time.Second),
+				56890 + 3000,
+				56890 + 3000,
 			},
 			{
 				[][]byte{{0x41, 0x9a, 0x42, 0x3c, 0x21, 0x93}},
-				int64(400000000 * time.Nanosecond * 90000 / time.Second),
-				int64(400000000 * time.Nanosecond * 90000 / time.Second),
+				56890 + 6000,
+				56890 + 6000,
 			},
 			{
 				[][]byte{{0x41, 0x9a, 0x63, 0x49, 0xe1, 0x0f}},
-				int64(433333333 * time.Nanosecond * 90000 / time.Second),
-				int64(433333333 * time.Nanosecond * 90000 / time.Second),
+				56890 + 9000,
+				56890 + 9000,
 			},
 			{
 				[][]byte{{0x41, 0x9a, 0x86, 0x49, 0xe1, 0x0f}},
-				int64(434333333 * time.Nanosecond * 90000 / time.Second),
-				int64(533333333 * time.Nanosecond * 90000 / time.Second),
+				56890 + 9090,
+				56890 + 18000,
 			},
 			{
 				[][]byte{{0x41, 0x9e, 0xa5, 0x42, 0x7f, 0xf9}},
-				int64(435333333 * time.Nanosecond * 90000 / time.Second),
-				int64(500000000 * time.Nanosecond * 90000 / time.Second),
+				56890 + 12045,
+				56890 + 15000,
 			},
 			{
 				[][]byte{{0x01, 0x9e, 0xc4, 0x69, 0x13, 0xff}},
-				int64(466666666 * time.Nanosecond * 90000 / time.Second),
-				int64(466666666 * time.Nanosecond * 90000 / time.Second),
+				56890 + 12135,
+				56890 + 12000,
 			},
 			{
 				[][]byte{{0x41, 0x9a, 0xc8, 0x4b, 0xa8, 0x42}},
-				int64(499999999 * time.Nanosecond * 90000 / time.Second),
-				int64(600000000 * time.Nanosecond * 90000 / time.Second),
+				56890 + 15101,
+				56890 + 24000,
 			},
 			{
 				[][]byte{
@@ -76,8 +77,8 @@ var casesDTSExtractor = []struct {
 						0x65, 0x88, 0x84, 0x00, 0x33, 0xff,
 					},
 				},
-				int64(533333332 * time.Nanosecond * 90000 / time.Second),
-				int64(599999999 * time.Nanosecond * 90000 / time.Second),
+				56890 + 18067,
+				56890 + 24000,
 			},
 		},
 	},
@@ -96,68 +97,68 @@ var casesDTSExtractor = []struct {
 						0x25, 0xb8, 0x08, 0x02, 0x1f, 0xff,
 					},
 				},
-				int64(850000000 * time.Nanosecond * 90000 / time.Second),
-				int64(850000000 * time.Nanosecond * 90000 / time.Second),
+				35050 + 0,
+				35050 + 0,
 			},
 			{
 				[][]byte{{0x21, 0xe1, 0x05, 0xc7, 0x38, 0xbf}},
-				int64(866666667 * time.Nanosecond * 90000 / time.Second),
-				int64(866666667 * time.Nanosecond * 90000 / time.Second),
+				35050 + 1500,
+				35050 + 1500,
 			},
 			{
 				[][]byte{{0x21, 0xe2, 0x09, 0xa1, 0xce, 0x0b}},
-				int64(883333334 * time.Nanosecond * 90000 / time.Second),
-				int64(883333334 * time.Nanosecond * 90000 / time.Second),
+				35050 + 3000,
+				35050 + 3000,
 			},
 			{
 				[][]byte{{0x21, 0xe3, 0x0d, 0xb1, 0xce, 0x02}},
-				int64(900000000 * time.Nanosecond * 90000 / time.Second),
-				int64(900000000 * time.Nanosecond * 90000 / time.Second),
+				35050 + 4500,
+				35050 + 4500,
 			},
 			{
 				[][]byte{{0x21, 0xe4, 0x11, 0x90, 0x73, 0x80}},
-				int64(916666667 * time.Nanosecond * 90000 / time.Second),
-				int64(916666667 * time.Nanosecond * 90000 / time.Second),
+				35050 + 6000,
+				35050 + 6000,
 			},
 			{
 				[][]byte{{0x21, 0xe5, 0x19, 0x0e, 0x70, 0x01}},
-				int64(917666667 * time.Nanosecond * 90000 / time.Second),
-				int64(950000000 * time.Nanosecond * 90000 / time.Second),
+				35050 + 6045,
+				35050 + 6090,
 			},
 			{
 				[][]byte{{0x01, 0xa9, 0x85, 0x7c, 0x93, 0xff}},
-				int64(933333334 * time.Nanosecond * 90000 / time.Second),
-				int64(933333334 * time.Nanosecond * 90000 / time.Second),
+				35050 + 6135,
+				35050 + 7500,
 			},
 			{
 				[][]byte{{0x21, 0xe6, 0x1d, 0x0e, 0x70, 0x01}},
-				int64(950000000 * time.Nanosecond * 90000 / time.Second),
-				int64(966666667 * time.Nanosecond * 90000 / time.Second),
+				35050 + 8317,
+				35050 + 10500,
 			},
 			{
 				[][]byte{{0x21, 0xe7, 0x21, 0x0e, 0x70, 0x01}},
-				int64(966666667 * time.Nanosecond * 90000 / time.Second),
-				int64(983333334 * time.Nanosecond * 90000 / time.Second),
+				35050 + 10158,
+				35050 + 12000,
 			},
 			{
 				[][]byte{{0x21, 0xe8, 0x25, 0x0e, 0x70, 0x01}},
-				int64(983333333 * time.Nanosecond * 90000 / time.Second),
-				int64(999999999 * time.Nanosecond * 90000 / time.Second),
+				35050 + 11829,
+				35050 + 13500,
 			},
 			{
 				[][]byte{{0x21, 0xe9, 0x29, 0x0e, 0x70, 0x01}},
-				int64(999999999 * time.Nanosecond * 90000 / time.Second),
-				int64(1016666667 * time.Nanosecond * 90000 / time.Second),
+				35050 + 13414,
+				35050 + 15000,
 			},
 			{
 				[][]byte{{0x21, 0xea, 0x31, 0x0e, 0x70, 0x01}},
-				int64(1016666666 * time.Nanosecond * 90000 / time.Second),
-				int64(1050000000 * time.Nanosecond * 90000 / time.Second),
+				35050 + 14942,
+				35050 + 18000,
 			},
 			{
 				[][]byte{{0x01, 0xaa, 0xcb, 0x7c, 0x93, 0xff}},
-				int64(1033333334 * time.Nanosecond * 90000 / time.Second),
-				int64(1033333334 * time.Nanosecond * 90000 / time.Second),
+				35050 + 16500,
+				35050 + 16500,
 			},
 		},
 	},
@@ -176,23 +177,23 @@ var casesDTSExtractor = []struct {
 						0x65, 0xb8, 0x00, 0x00, 0x0b, 0xc8, 0x00, 0x00, 0x00,
 					},
 				},
-				int64(61 * time.Millisecond * 90000 / time.Second),
-				int64(61 * time.Millisecond * 90000 / time.Second),
+				5490,
+				5490,
 			},
 			{
 				[][]byte{{0x61, 0xe0, 0x20, 0x00, 0x39, 0x37}},
-				int64(101 * time.Millisecond * 90000 / time.Second),
-				int64(101 * time.Millisecond * 90000 / time.Second),
+				9090,
+				9090,
 			},
 			{
 				[][]byte{{0x61, 0xe0, 0x40, 0x00, 0x59, 0x37}},
-				int64(141 * time.Millisecond * 90000 / time.Second),
-				int64(141 * time.Millisecond * 90000 / time.Second),
+				12690,
+				12690,
 			},
 			{
 				[][]byte{{0x61, 0xe0, 0x60, 0x00, 0x79, 0x37}},
-				int64(181 * time.Millisecond * 90000 / time.Second),
-				int64(181 * time.Millisecond * 90000 / time.Second),
+				16290,
+				16290,
 			},
 		},
 	},
@@ -213,28 +214,28 @@ var casesDTSExtractor = []struct {
 						0x65, 0x88, 0x80, 0x14, 0x3, 0xff, 0xde, 0x8, 0xe4, 0x74,
 					},
 				},
-				int64(1916 * time.Millisecond * 90000 / time.Second),
-				int64(1916 * time.Millisecond * 90000 / time.Second),
+				172440,
+				172440,
 			},
 			{ // b-frame
 				[][]byte{{0x41, 0x9e, 0x3, 0xe4, 0x3f, 0x0, 0x0, 0x3, 0x0, 0x0}},
-				int64(1917 * time.Millisecond * 90000 / time.Second),
-				int64(1883 * time.Millisecond * 90000 / time.Second),
+				172530,
+				169470,
 			},
 			{ // b-frame
 				[][]byte{{0x1, 0x9e, 0x5, 0xd4, 0x7f, 0x0, 0x0, 0x3, 0x0, 0x0}},
-				int64(1918 * time.Millisecond * 90000 / time.Second),
-				int64(1867 * time.Millisecond * 90000 / time.Second),
+				172620,
+				168030,
 			},
 			{ // p-frame
 				[][]byte{{0x1, 0x9e, 0x5, 0xf4, 0x7f, 0x0, 0x0, 0x3, 0x0, 0x0}},
-				int64(1919 * time.Millisecond * 90000 / time.Second),
-				int64(1899 * time.Millisecond * 90000 / time.Second),
+				172710,
+				170910,
 			},
 			{ // p-frame
 				[][]byte{{0x1, 0x9e, 0x5, 0xf4, 0x7f, 0x0, 0x0, 0x3, 0x0, 0x0}},
-				int64(1920 * time.Millisecond * 90000 / time.Second),
-				int64(1983 * time.Millisecond * 90000 / time.Second),
+				172800,
+				178470,
 			},
 		},
 	},
@@ -264,16 +265,16 @@ var casesDTSExtractor = []struct {
 					{0x6, 0x1, 0x2, 0x8, 0x14, 0x80},                             // SEI
 					{0x41, 0x9a, 0x18, 0x2a, 0x1f, 0xeb, 0x2f, 0xa2, 0xb1, 0x7e}, // non-IDR
 				},
-				int64(40 * time.Millisecond * 90000 / time.Second),
-				int64(40 * time.Millisecond * 90000 / time.Second),
+				3600,
+				3600,
 			},
 			{
 				[][]byte{
 					{0x6, 0x1, 0x2, 0xc, 0x24, 0x80},                            // SEI
 					{0x41, 0x9a, 0x1c, 0x3a, 0xf, 0xfa, 0x55, 0xc2, 0x55, 0xea}, // non-IDR
 				},
-				int64(80 * time.Millisecond * 90000 / time.Second),
-				int64(80 * time.Millisecond * 90000 / time.Second),
+				7200,
+				7200,
 			},
 		},
 	},
@@ -299,8 +300,8 @@ var casesDTSExtractor = []struct {
 				[][]byte{
 					{0x61, 0x00, 0xf0, 0xe0, 0x00, 0x40, 0x00, 0xbe, 0x47, 0x9b}, // non-IDR
 				},
-				int64(40 * time.Millisecond * 90000 / time.Second),
-				int64(40 * time.Millisecond * 90000 / time.Second),
+				3600,
+				3600,
 			},
 		},
 	},
@@ -353,8 +354,8 @@ var casesDTSExtractor = []struct {
 						0x59, 0x05, 0xb0, 0x58,
 					},
 				},
-				int64(120 * time.Millisecond * 90000 / time.Second),
-				int64(120 * time.Millisecond * 90000 / time.Second),
+				10800,
+				10800,
 			},
 			{
 				[][]byte{
@@ -366,8 +367,8 @@ var casesDTSExtractor = []struct {
 						0x06, 0x9c, 0xa0, 0x23, 0x60, 0x06, 0x25, 0x80,
 					},
 				},
-				int64(160 * time.Millisecond * 90000 / time.Second),
-				int64(160 * time.Millisecond * 90000 / time.Second),
+				14400,
+				14400,
 			},
 		},
 	},
@@ -404,15 +405,124 @@ var casesDTSExtractor = []struct {
 				[][]byte{
 					{0x61, 0x00, 0xf0, 0xe0, 0x00, 0x40, 0x00, 0xbe, 0x47, 0x9b}, // non-IDR
 				},
-				int64(40 * time.Millisecond * 90000 / time.Second),
-				int64(40 * time.Millisecond * 90000 / time.Second),
+				3600,
+				3600,
 			},
 			{
 				[][]byte{
 					{0x6, 0x1, 0x2, 0x8, 0x14, 0x80}, // SEI
 				},
-				int64(40 * time.Millisecond * 90000 / time.Second),
-				int64(80 * time.Millisecond * 90000 / time.Second),
+				3600,
+				7200,
+			},
+		},
+	},
+	{
+		"issue mediamtx/4892 (poc increment = 1 after reordered frames)",
+		[]sample{
+			{
+				[][]byte{
+					{
+						0x27, 0x64, 0x00, 0x28, 0xac, 0x56, 0x50, 0x1e,
+						0x00, 0x89, 0xf9, 0x66, 0xa0, 0x20, 0x20, 0x20,
+						0x40,
+					},
+					{
+						0x28, 0xee, 0x3c, 0xb0,
+					},
+					{
+						0x65, 0xb8, 0x20, 0x1f, 0xde, 0x08, 0xe5, 0x4c,
+						0xff, 0x82, 0xcc, 0x1e, 0x9b, 0x50, 0xdb, 0xb3,
+						0x15, 0xf2, 0xac, 0x66,
+					},
+					{
+						0x0c, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+						0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+						0xff, 0xff, 0xff, 0xff,
+					},
+				},
+				0,
+				0,
+			},
+			{
+				[][]byte{
+					{
+						0x41, 0xe1, 0x10, 0x7f, 0xcd, 0xf4, 0xe3, 0x3d,
+						0x20, 0x01, 0x62, 0x49, 0x60, 0x00, 0x00, 0x03,
+						0x00, 0x00, 0x03, 0x00,
+					},
+					{
+						0x0c, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+						0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+						0xff, 0xff, 0xff, 0xff,
+					},
+				},
+				6000,
+				12000,
+			},
+			{
+				[][]byte{
+					{
+						0x41, 0xa8, 0x82, 0x87, 0xff, 0xee, 0x4d, 0x5c,
+						0x1a, 0x30, 0x00, 0x00, 0x03, 0x00, 0x00, 0x03,
+						0x00, 0x00, 0x03, 0x00,
+					},
+					{
+						0x0c, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+						0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+						0xff, 0xff, 0xff, 0xff,
+					},
+				},
+				6090,
+				6000,
+			},
+			{
+				[][]byte{
+					{
+						0x01, 0xa8, 0xc1, 0x88, 0x8f, 0xeb, 0xea, 0x6b,
+						0x80, 0x00, 0x00, 0x03, 0x00, 0x00, 0x03, 0x00,
+						0x00, 0x03, 0x00, 0x00,
+					},
+					{
+						0x0c, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+						0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+						0xff, 0xff, 0xff, 0xff,
+					},
+				},
+				6180,
+				3000,
+			},
+			{
+				[][]byte{
+					{
+						0x01, 0xa8, 0xc3, 0x88, 0x8f, 0xf5, 0x4b, 0xa1,
+						0xc0, 0x00, 0x00, 0x03, 0x00, 0x00, 0x03, 0x00,
+						0x00, 0x03, 0x00, 0x00,
+					},
+					{
+						0x0c, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+						0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+						0xff, 0xff, 0xff, 0xff,
+					},
+				},
+				7590,
+				9000,
+			},
+			{
+				[][]byte{
+					{
+						0x41, 0xe3, 0x21, 0xa2, 0x3f, 0xcd, 0x95, 0x8a,
+						0xc0, 0x19, 0xa0, 0x00, 0x00, 0x03, 0x00, 0x00,
+						0x03, 0x00, 0x00, 0x03,
+					},
+					{
+						0x0c, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+						0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+						0xff, 0xff, 0xff, 0xff,
+					},
+				},
+				10325,
+				24000,
 			},
 		},
 	},
@@ -431,42 +541,88 @@ func TestDTSExtractor(t *testing.T) {
 	}
 }
 
-func FuzzDTSExtractorFirstAU(f *testing.F) {
-	f.Fuzz(func(_ *testing.T, a []byte, b []byte) {
-		if len(a) < 1 || len(b) < 1 {
-			return
-		}
+func serializeSequence(seq []sample) []byte {
+	var buf []byte
 
-		ex := NewDTSExtractor()
+	for _, sample := range seq {
+		tmp := make([]byte, 8)
+		binary.LittleEndian.PutUint64(tmp, uint64(sample.pts))
+		buf = append(buf, tmp...)
 
-		ex.Extract([][]byte{ //nolint:errcheck
-			a,
-			b,
-		}, 0)
-	})
+		au, _ := AnnexB(sample.au).Marshal()
+
+		tmp = make([]byte, 4)
+		binary.LittleEndian.PutUint32(tmp, uint32(len(au)))
+		buf = append(buf, tmp...)
+
+		buf = append(buf, au...)
+	}
+
+	return buf
 }
 
-func FuzzDTSExtractorSecondAU(f *testing.F) {
-	f.Fuzz(func(t *testing.T, a []byte) {
-		if len(a) < 1 {
+func unserializeSequence(buf []byte) ([]sample, error) {
+	var samples []sample
+
+	for {
+		if len(buf) < 8 {
+			return nil, fmt.Errorf("not enough bits")
+		}
+		pts := int64(binary.LittleEndian.Uint64(buf[:8]))
+		buf = buf[8:]
+
+		if len(buf) < 4 {
+			return nil, fmt.Errorf("not enough bits")
+		}
+		auLen := binary.LittleEndian.Uint32(buf[:4])
+		buf = buf[4:]
+
+		if auLen == 0 {
+			return nil, fmt.Errorf("invalid AU len")
+		}
+		if len(buf) < int(auLen) {
+			return nil, fmt.Errorf("not enough bits")
+		}
+		rawAu := buf[:auLen]
+		buf = buf[auLen:]
+
+		var au AnnexB
+		err := au.Unmarshal(rawAu)
+		if err != nil {
+			return nil, fmt.Errorf("not enough bits")
+		}
+
+		samples = append(samples, sample{
+			au:  au,
+			pts: pts,
+		})
+
+		if len(buf) == 0 {
+			break
+		}
+	}
+
+	return samples, nil
+}
+
+func FuzzDTSExtractor(f *testing.F) {
+	for _, ca := range casesDTSExtractor {
+		f.Add(serializeSequence(ca.sequence))
+	}
+
+	f.Fuzz(func(t *testing.T, buf []byte) {
+		seq, err := unserializeSequence(buf)
+		if err != nil {
+			t.Skip()
 			return
 		}
 
 		ex := NewDTSExtractor()
-
-		_, err := ex.Extract([][]byte{
-			{ // SPS
-				0x27, 0x64, 0x00, 0x20, 0xac, 0x52, 0x18, 0x0f,
-				0x01, 0x17, 0xef, 0xff, 0x00, 0x01, 0x00, 0x01,
-				0x6a, 0x02, 0x02, 0x03, 0x6d, 0x85, 0x6b, 0xde,
-				0xf8, 0x08,
-			},
-			{ // IDR
-				0x25, 0xb8, 0x08, 0x02, 0x1f, 0xff,
-			},
-		}, 0)
-		require.NoError(t, err)
-
-		ex.Extract([][]byte{a}, int64(1*time.Second*90000/time.Second)) //nolint:errcheck
+		for _, sample := range seq {
+			_, err = ex.Extract(sample.au, sample.pts)
+			if err != nil {
+				break
+			}
+		}
 	})
 }
