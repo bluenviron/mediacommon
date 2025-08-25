@@ -12,15 +12,10 @@ const (
 	maxBytesToGetPOC = 12
 )
 
-func getPTSDTSDiff(buf []byte, sps *SPS, pps *PPS) (uint32, error) {
+func getPTSDTSDiff(buf []byte, sps *SPS, pps *PPS) (int, error) {
 	typ := NALUType((buf[0] >> 1) & 0b111111)
-
 	buf = buf[1:]
-	lb := len(buf)
-
-	if lb > maxBytesToGetPOC {
-		lb = maxBytesToGetPOC
-	}
+	lb := min(len(buf), maxBytesToGetPOC)
 
 	buf = h264.EmulationPreventionRemove(buf[:lb])
 	pos := 8
@@ -35,10 +30,7 @@ func getPTSDTSDiff(buf []byte, sps *SPS, pps *PPS) (uint32, error) {
 	}
 
 	if typ >= NALUType_BLA_W_LP && typ <= NALUType_RSV_IRAP_VCL23 {
-		_, err = bits.ReadFlag(buf, &pos) // no_output_of_prior_pics_flag
-		if err != nil {
-			return 0, err
-		}
+		pos++ // no_output_of_prior_pics_flag
 	}
 
 	_, err = bits.ReadGolombUnsigned(buf, &pos) // slice_pic_parameter_set_id
@@ -94,7 +86,7 @@ func getPTSDTSDiff(buf []byte, sps *SPS, pps *PPS) (uint32, error) {
 		}
 	} else {
 		if len(sps.ShortTermRefPicSets) <= 1 {
-			return 0, fmt.Errorf("invalid short_term_ref_pic_set_idx")
+			return 0, nil
 		}
 
 		b := int(math.Ceil(math.Log2(float64(len(sps.ShortTermRefPicSets)))))
@@ -112,35 +104,36 @@ func getPTSDTSDiff(buf []byte, sps *SPS, pps *PPS) (uint32, error) {
 		rps = sps.ShortTermRefPicSets[shortTermRefPicSetIdx]
 	}
 
-	var v uint32
-
 	if sliceType == 0 { // B-frame
 		switch typ {
 		case NALUType_TRAIL_N, NALUType_RASL_N:
-			v = sps.MaxNumReorderPics[0] - uint32(len(rps.DeltaPocS1))
+			return -len(rps.DeltaPocS1), nil
 
 		case NALUType_TRAIL_R, NALUType_RASL_R:
 			if len(rps.DeltaPocS0) == 0 {
 				return 0, fmt.Errorf("invalid DeltaPocS0")
 			}
-			v = uint32(-rps.DeltaPocS0[0]-1+int32(sps.MaxNumReorderPics[0])) - uint32(len(rps.DeltaPocS1))
+			return int(-rps.DeltaPocS0[0]-1) - len(rps.DeltaPocS1), nil
+
+		default:
+			return 0, nil
 		}
 	} else { // I or P-frame
 		if len(rps.DeltaPocS0) == 0 {
 			return 0, fmt.Errorf("invalid DeltaPocS0")
 		}
-		v = uint32(-rps.DeltaPocS0[0] - 1 + int32(sps.MaxNumReorderPics[0]))
+		return int(-rps.DeltaPocS0[0] - 1), nil
 	}
-
-	return v, nil
 }
 
 // DTSExtractor computes DTS from PTS.
 type DTSExtractor struct {
-	spsp          *SPS
-	ppsp          *PPS
-	prevDTSFilled bool
-	prevDTS       int64
+	spsp            *SPS
+	ppsp            *PPS
+	prevDTSFilled   bool
+	prevDTS         int64
+	pause           int
+	reorderedFrames int
 }
 
 // Initialize initializes a DTSExtractor.
@@ -174,6 +167,15 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, error) {
 
 			d.spsp = &spsp
 
+			// reset state
+			d.prevDTSFilled = false
+			if len(d.spsp.MaxNumReorderPics) == 1 {
+				d.reorderedFrames = int(d.spsp.MaxNumReorderPics[0])
+			} else {
+				d.reorderedFrames = 0
+			}
+			d.pause = d.reorderedFrames
+
 		case NALUType_PPS_NUT:
 			var ppsp PPS
 			err := ppsp.Unmarshal(nalu)
@@ -198,23 +200,15 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, error) {
 		return 0, fmt.Errorf("PPS not received yet")
 	}
 
-	if len(d.spsp.MaxNumReorderPics) != 1 || d.spsp.MaxNumReorderPics[0] == 0 {
-		return pts, nil
-	}
-
-	if d.spsp.VUI == nil || d.spsp.VUI.TimingInfo == nil {
-		return pts, nil
-	}
-
-	var samplesDiff uint32
+	var ptsDTSDiff int
 
 	switch {
 	case idr != nil:
-		samplesDiff = d.spsp.MaxNumReorderPics[0]
+		ptsDTSDiff = 0
 
 	case nonIDR != nil:
 		var err error
-		samplesDiff, err = getPTSDTSDiff(nonIDR, d.spsp, d.ppsp)
+		ptsDTSDiff, err = getPTSDTSDiff(nonIDR, d.spsp, d.ppsp)
 		if err != nil {
 			return 0, err
 		}
@@ -223,11 +217,32 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, error) {
 		return 0, fmt.Errorf("access unit doesn't contain an IDR or non-IDR NALU")
 	}
 
-	timeDiff := int64(samplesDiff) * 90000 *
-		int64(d.spsp.VUI.TimingInfo.NumUnitsInTick) / int64(d.spsp.VUI.TimingInfo.TimeScale)
-	dts := pts - timeDiff
+	ptsDTSDiff += d.reorderedFrames
 
-	return dts, nil
+	if ptsDTSDiff < 0 {
+		return 0, fmt.Errorf("negative pts-dts difference")
+	}
+
+	if d.pause > 0 {
+		d.pause--
+		if !d.prevDTSFilled {
+			if d.spsp.VUI != nil && d.spsp.VUI.TimingInfo != nil {
+				timeDiff := int64(d.pause+1) * 90000 *
+					int64(d.spsp.VUI.TimingInfo.NumUnitsInTick) / int64(d.spsp.VUI.TimingInfo.TimeScale)
+				dts := pts - timeDiff
+				d.pause = 0
+				return dts, nil
+			}
+			return pts, nil
+		}
+		return d.prevDTS + 90, nil
+	}
+
+	if !d.prevDTSFilled {
+		return pts, nil
+	}
+
+	return d.prevDTS + (pts-d.prevDTS)/(int64(ptsDTSDiff)+1), nil
 }
 
 // Extract extracts the DTS of a access unit.
