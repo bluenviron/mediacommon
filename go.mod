@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	github.com/abema/go-mp4 v1.4.1
 	github.com/asticode/go-astits v1.13.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.0
 )
 
 require (
