@@ -4,6 +4,8 @@ package av1
 type OBUType uint8
 
 // OBU types.
+// Specification: AV1 Bitstream & Decoding Process, section 6.2.2
 const (
-	OBUTypeSequenceHeader OBUType = 1
+	OBUTypeSequenceHeader    OBUType = 1
+	OBUTypeTemporalDelimiter OBUType = 2
 )
