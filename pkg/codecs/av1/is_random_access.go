@@ -7,10 +7,12 @@ import (
 // IsRandomAccess2 checks whether a temporal unit can be randomly accessed.
 func IsRandomAccess2(tu [][]byte) bool {
 	for _, obu := range tu {
-		var h OBUHeader
-		err := h.Unmarshal(obu)
-		if err == nil && h.Type == OBUTypeSequenceHeader {
-			return true
+		if len(obu) != 0 {
+			typ := OBUType((obu[0] >> 3) & 0b1111)
+
+			if typ == OBUTypeSequenceHeader {
+				return true
+			}
 		}
 	}
 
@@ -25,11 +27,7 @@ func IsRandomAccess(tu [][]byte) (bool, error) {
 		return false, fmt.Errorf("temporal unit is empty")
 	}
 
-	var h OBUHeader
-	err := h.Unmarshal(tu[0])
-	if err != nil {
-		return false, err
-	}
+	typ := OBUType((tu[0][0] >> 3) & 0b1111)
 
-	return (h.Type == OBUTypeSequenceHeader), nil
+	return (typ == OBUTypeSequenceHeader), nil
 }

@@ -31,13 +31,9 @@ func av1FindSequenceHeader(buf []byte) ([]byte, error) {
 	}
 
 	for _, obu := range tu {
-		var h av1.OBUHeader
-		err = h.Unmarshal(obu)
-		if err != nil {
-			return nil, err
-		}
+		typ := av1.OBUType((obu[0] >> 3) & 0b1111)
 
-		if h.Type == av1.OBUTypeSequenceHeader {
+		if typ == av1.OBUTypeSequenceHeader {
 			var parsed av1.SequenceHeader
 			err = parsed.Unmarshal(obu)
 			if err != nil {
