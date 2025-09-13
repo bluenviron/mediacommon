@@ -121,7 +121,6 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, bool, error)
 				d.spsp = &spsp
 
 				// reset state
-				d.prevDTSFilled = false
 				d.expectedPOC = 0
 				d.reorderedFrames = 0
 				d.pause = 0

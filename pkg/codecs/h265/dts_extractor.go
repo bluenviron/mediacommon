@@ -1,6 +1,7 @@
 package h265
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 
@@ -128,7 +129,9 @@ func getPTSDTSDiff(buf []byte, sps *SPS, pps *PPS) (int, error) {
 
 // DTSExtractor computes DTS from PTS.
 type DTSExtractor struct {
+	sps             []byte
 	spsp            *SPS
+	pps             []byte
 	ppsp            *PPS
 	prevDTSFilled   bool
 	prevDTS         int64
@@ -155,34 +158,36 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, error) {
 		typ := NALUType((nalu[0] >> 1) & 0b111111)
 		switch typ {
 		case NALUType_SPS_NUT:
-			var spsp SPS
-			err := spsp.Unmarshal(nalu)
-			if err != nil {
-				return 0, fmt.Errorf("invalid SPS: %w", err)
-			}
+			if !bytes.Equal(d.sps, nalu) {
+				var spsp SPS
+				err := spsp.Unmarshal(nalu)
+				if err != nil {
+					return 0, fmt.Errorf("invalid SPS: %w", err)
+				}
 
-			if spsp.VUI != nil && spsp.VUI.TimingInfo != nil && spsp.VUI.TimingInfo.TimeScale == 0 {
-				return 0, fmt.Errorf("invalid SPS VUI TimeScale")
-			}
+				d.spsp = &spsp
+				d.sps = nalu
 
-			d.spsp = &spsp
-
-			// reset state
-			d.prevDTSFilled = false
-			if len(d.spsp.MaxNumReorderPics) == 1 {
-				d.reorderedFrames = int(d.spsp.MaxNumReorderPics[0])
-			} else {
-				d.reorderedFrames = 0
+				// reset state
+				if len(d.spsp.MaxNumReorderPics) == 1 {
+					d.reorderedFrames = int(d.spsp.MaxNumReorderPics[0])
+				} else {
+					d.reorderedFrames = 0
+				}
+				d.pause = d.reorderedFrames
 			}
-			d.pause = d.reorderedFrames
 
 		case NALUType_PPS_NUT:
-			var ppsp PPS
-			err := ppsp.Unmarshal(nalu)
-			if err != nil {
-				return 0, fmt.Errorf("invalid PPS: %w", err)
+			if !bytes.Equal(d.pps, nalu) {
+				var ppsp PPS
+				err := ppsp.Unmarshal(nalu)
+				if err != nil {
+					return 0, fmt.Errorf("invalid PPS: %w", err)
+				}
+
+				d.ppsp = &ppsp
+				d.pps = nalu
 			}
-			d.ppsp = &ppsp
 
 		case NALUType_IDR_W_RADL, NALUType_IDR_N_LP:
 			idr = nalu
@@ -226,13 +231,6 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, error) {
 	if d.pause > 0 {
 		d.pause--
 		if !d.prevDTSFilled {
-			if d.spsp.VUI != nil && d.spsp.VUI.TimingInfo != nil {
-				timeDiff := int64(d.pause+1) * 90000 *
-					int64(d.spsp.VUI.TimingInfo.NumUnitsInTick) / int64(d.spsp.VUI.TimingInfo.TimeScale)
-				dts := pts - timeDiff
-				d.pause = 0
-				return dts, nil
-			}
 			return pts, nil
 		}
 		return d.prevDTS + 90, nil
