@@ -156,6 +156,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, error) {
 
 	for _, nalu := range au {
 		typ := NALUType((nalu[0] >> 1) & 0b111111)
+
 		switch typ {
 		case NALUType_SPS_NUT:
 			if !bytes.Equal(d.sps, nalu) {
@@ -231,13 +232,27 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, error) {
 	if d.pause > 0 {
 		d.pause--
 		if !d.prevDTSFilled {
-			return pts, nil
+			var timeDiff int64
+			if d.spsp.VUI != nil && d.spsp.VUI.TimingInfo != nil && d.spsp.VUI.TimingInfo.TimeScale != 0 {
+				timeDiff = int64(ptsDTSDiff) * 90000 *
+					int64(d.spsp.VUI.TimingInfo.NumUnitsInTick) / int64(d.spsp.VUI.TimingInfo.TimeScale)
+			} else {
+				timeDiff = 9000
+			}
+			return pts - timeDiff, nil
 		}
 		return d.prevDTS + 90, nil
 	}
 
 	if !d.prevDTSFilled {
-		return pts, nil
+		var timeDiff int64
+		if d.spsp.VUI != nil && d.spsp.VUI.TimingInfo != nil && d.spsp.VUI.TimingInfo.TimeScale != 0 {
+			timeDiff = int64(ptsDTSDiff) * 90000 *
+				int64(d.spsp.VUI.TimingInfo.NumUnitsInTick) / int64(d.spsp.VUI.TimingInfo.TimeScale)
+		} else {
+			timeDiff = 9000
+		}
+		return pts - timeDiff, nil
 	}
 
 	return d.prevDTS + (pts-d.prevDTS)/(int64(ptsDTSDiff)+1), nil
