@@ -12,7 +12,7 @@ type PartTrack struct {
 	Samples  []*Sample
 }
 
-func (pt *PartTrack) marshal(w *imp4.Writer) (*amp4.Trun, int, error) {
+func (pt PartTrack) marshal(w *imp4.Writer) (*amp4.Trun, int, error) {
 	/*
 		|traf|
 		|    |tfhd|

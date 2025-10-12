@@ -848,7 +848,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 }
 
 // Marshal encodes a Presentation.
-func (p *Presentation) Marshal(w io.Writer) error {
+func (p Presentation) Marshal(w io.Writer) error {
 	/*
 		|ftyp|
 		|moov|

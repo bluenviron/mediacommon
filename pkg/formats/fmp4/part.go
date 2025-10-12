@@ -24,7 +24,7 @@ type Part struct {
 }
 
 // Marshal encodes a fMP4 part.
-func (p *Part) Marshal(w io.WriteSeeker) error {
+func (p Part) Marshal(w io.WriteSeeker) error {
 	/*
 		|moof|
 		|    |mfhd|
