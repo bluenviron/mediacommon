@@ -210,7 +210,7 @@ type Track struct {
 	mp3Checked bool // Writer-only
 }
 
-func (t *Track) marshal() (*astits.PMTElementaryStream, error) {
+func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 	return t.Codec.marshal(t.PID)
 }
 

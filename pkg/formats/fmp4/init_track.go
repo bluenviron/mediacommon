@@ -32,7 +32,7 @@ type InitTrack struct {
 	Codec mp4.Codec
 }
 
-func (it *InitTrack) marshal(w *imp4.Writer) error {
+func (it InitTrack) marshal(w *imp4.Writer) error {
 	/*
 		|trak|
 		|    |tkhd|

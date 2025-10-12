@@ -211,8 +211,8 @@ func (ps *Parts) Unmarshal(byts []byte) error {
 }
 
 // Marshal encodes a one or more fMP4 part.
-func (ps *Parts) Marshal(w io.WriteSeeker) error {
-	for _, p := range *ps {
+func (ps Parts) Marshal(w io.WriteSeeker) error {
+	for _, p := range ps {
 		err := p.Marshal(w)
 		if err != nil {
 			return err

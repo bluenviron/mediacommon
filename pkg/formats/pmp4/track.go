@@ -36,7 +36,7 @@ type Track struct {
 	Samples    []*Sample
 }
 
-func (t *Track) marshal(w *imp4.Writer) (*headerTrackMarshalResult, error) {
+func (t Track) marshal(w *imp4.Writer) (*headerTrackMarshalResult, error) {
 	/*
 		|trak|
 		|    |tkhd|
