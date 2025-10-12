@@ -133,7 +133,8 @@ func esdsFindDecoderSpecificInfo(descriptors []amp4.Descriptor) []byte {
 
 // Init is a fMP4 initialization block.
 type Init struct {
-	Tracks []*InitTrack
+	Tracks   []*InitTrack
+	UserData []amp4.IBox
 }
 
 // Unmarshal decodes a fMP4 initialization block.
@@ -164,12 +165,21 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 	var channelCount int
 
 	_, err := amp4.ReadBoxStructure(r, func(h *amp4.ReadHandle) (interface{}, error) {
-		if !h.BoxInfo.IsSupportedType() {
+		switch {
+		case len(h.Path) >= 3 && h.Path[0].String() == "moov" && h.Path[1].String() == "udta":
+			box, _, err := h.ReadPayload()
+			if err != nil {
+				return nil, err
+			}
+			i.UserData = append(i.UserData, box)
+
+		case !h.BoxInfo.IsSupportedType():
 			if state != waitingTrak {
 				i.Tracks = i.Tracks[:len(i.Tracks)-1]
 				state = waitingTrak
 			}
-		} else {
+
+		default:
 			switch h.BoxInfo.Type.String() {
 			case "moov":
 				return h.Expand()
@@ -183,6 +193,11 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 				i.Tracks = append(i.Tracks, curTrack)
 				state = waitingTkhd
 				return h.Expand()
+
+			case "udta":
+				if state == waitingTrak {
+					return h.Expand()
+				}
 
 			case "tkhd":
 				if state != waitingTkhd {
@@ -599,6 +614,8 @@ func (i Init) Marshal(w io.WriteSeeker) error {
 		|    |    |trex|
 		|    |    |trex|
 		|    |    |....|
+		|    |udta|
+		|    |    |....|
 	*/
 
 	mw := &imp4.Writer{W: w}
@@ -659,6 +676,25 @@ func (i Init) Marshal(w io.WriteSeeker) error {
 	err = mw.WriteBoxEnd() // </mvex>
 	if err != nil {
 		return err
+	}
+
+	if len(i.UserData) != 0 {
+		_, err = mw.WriteBoxStart(&amp4.Udta{}) // <udta>
+		if err != nil {
+			return err
+		}
+
+		for _, box := range i.UserData {
+			_, err = mw.WriteBox(box)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = mw.WriteBoxEnd() // </udta>
+		if err != nil {
+			return err
+		}
 	}
 
 	err = mw.WriteBoxEnd() // </moov>
