@@ -79,6 +79,8 @@ type DTSExtractor struct {
 	reorderedFrames int
 	pause           int
 	pocIncrement    int
+	prevPOC         uint32
+	prevPrevPOC     uint32
 }
 
 // Initialize initializes a DTSExtractor.
@@ -125,6 +127,8 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, bool, error)
 				d.reorderedFrames = 0
 				d.pause = 0
 				d.pocIncrement = 2
+				d.prevPOC = 0
+				d.prevPrevPOC = 0
 			}
 
 		case NALUTypeIDR:
@@ -157,8 +161,13 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, bool, error)
 			return 0, false, err
 		}
 
-		if (d.expectedPOC%2) != 0 && d.pocIncrement == 2 {
-			d.pocIncrement = 1
+		if d.pocIncrement == 2 {
+			if (d.expectedPOC % 2) != 0 {
+				d.pocIncrement = 1
+			}
+
+			d.prevPrevPOC = d.expectedPOC
+			d.prevPOC = d.expectedPOC
 		}
 
 		ptsDTSDiff = 0
@@ -169,18 +178,27 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, bool, error)
 			return 0, false, err
 		}
 
-		if (poc%2) != 0 && d.pocIncrement == 2 {
-			d.pocIncrement = 1
-			d.expectedPOC /= 2
-			if d.reorderedFrames != 0 {
-				increase := d.reorderedFrames
-				if (d.reorderedFrames + increase) > maxReorderedFrames {
-					return 0, false, fmt.Errorf("too many reordered frames (%d)", d.reorderedFrames+increase)
-				}
+		if d.pocIncrement == 2 {
+			if (poc % 2) != 0 {
+				d.pocIncrement = 1
+				d.expectedPOC /= 2
+				if d.reorderedFrames != 0 {
+					increase := d.reorderedFrames
+					if (d.reorderedFrames + increase) > maxReorderedFrames {
+						return 0, false, fmt.Errorf("too many reordered frames (%d)", d.reorderedFrames+increase)
+					}
 
-				d.reorderedFrames += increase
-				d.pause += increase
+					d.reorderedFrames += increase
+					d.pause += increase
+				}
+			} else if poc != d.prevPOC && d.prevPOC != d.prevPrevPOC &&
+				poc == (d.prevPOC+4) && d.prevPOC == (d.prevPrevPOC+4) {
+				d.pocIncrement = 4
+				d.expectedPOC *= 2
 			}
+
+			d.prevPrevPOC = d.prevPOC
+			d.prevPOC = poc
 		}
 
 		d.expectedPOC += uint32(d.pocIncrement)
