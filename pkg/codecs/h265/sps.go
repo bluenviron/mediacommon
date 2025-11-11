@@ -35,7 +35,7 @@ type SPS_ScalingListData struct { //nolint:revive
 }
 
 func (d *SPS_ScalingListData) unmarshal(buf []byte, pos *int) error {
-	for sizeID := 0; sizeID < 4; sizeID++ {
+	for sizeID := range 4 {
 		var matrixIDIncr int
 		if sizeID == 3 {
 			matrixIDIncr = 3
@@ -65,7 +65,7 @@ func (d *SPS_ScalingListData) unmarshal(buf []byte, pos *int) error {
 					}
 				}
 
-				for i := 0; i < coefNum; i++ {
+				for range coefNum {
 					_, err = bits.ReadGolombSigned(buf, pos) // scalingListDeltaCoef
 					if err != nil {
 						return err
@@ -344,7 +344,7 @@ func (p *SPS_ProfileTierLevel) unmarshal(buf []byte, pos *int, maxSubLayersMinus
 	p.GeneralTierFlag = uint8(bits.ReadBitsUnsafe(buf, pos, 1))
 	p.GeneralProfileIdc = uint8(bits.ReadBitsUnsafe(buf, pos, 5))
 
-	for j := 0; j < 32; j++ {
+	for j := range 32 {
 		p.GeneralProfileCompatibilityFlag[j] = bits.ReadFlagUnsafe(buf, pos)
 	}
 
@@ -387,7 +387,7 @@ func (p *SPS_ProfileTierLevel) unmarshal(buf []byte, pos *int, maxSubLayersMinus
 			return err
 		}
 
-		for j := uint8(0); j < maxSubLayersMinus1; j++ {
+		for j := range maxSubLayersMinus1 {
 			p.SubLayerProfilePresentFlag[j] = bits.ReadFlagUnsafe(buf, pos)
 			p.SubLayerLevelPresentFlag[j] = bits.ReadFlagUnsafe(buf, pos)
 		}
@@ -402,7 +402,7 @@ func (p *SPS_ProfileTierLevel) unmarshal(buf []byte, pos *int, maxSubLayersMinus
 		*pos += int(8-maxSubLayersMinus1) * 2
 	}
 
-	for i := uint8(0); i < maxSubLayersMinus1; i++ {
+	for i := range maxSubLayersMinus1 {
 		if p.SubLayerProfilePresentFlag[i] {
 			return fmt.Errorf("SubLayerProfilePresentFlag not supported yet")
 		}
@@ -891,7 +891,7 @@ func (s *SPS) Unmarshal(buf []byte) error {
 
 		s.ShortTermRefPicSets = make([]*SPS_ShortTermRefPicSet, numShortTermRefPicSets)
 
-		for i := uint32(0); i < numShortTermRefPicSets; i++ {
+		for i := range numShortTermRefPicSets {
 			s.ShortTermRefPicSets[i] = &SPS_ShortTermRefPicSet{}
 			err = s.ShortTermRefPicSets[i].unmarshal(buf, &pos, i, numShortTermRefPicSets, s.ShortTermRefPicSets)
 			if err != nil {

@@ -132,7 +132,7 @@ func TestAnnexBMarshal(t *testing.T) {
 }
 
 func BenchmarkAnnexBUnmarshal(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		var dec AnnexB
 		dec.Unmarshal([]byte{ //nolint:errcheck
 			0x00, 0x00, 0x00, 0x01,

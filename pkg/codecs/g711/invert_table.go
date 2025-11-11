@@ -6,7 +6,7 @@ func invertTable(in [256]uint16, mask uint8) [16384]uint8 {
 	j := uint16(1)
 	res[8192] = mask
 
-	for i := uint8(0); i < 127; i++ {
+	for i := range uint8(127) {
 		v1 := in[i^mask]
 		v2 := in[(i+1)^mask]
 		v := (v1 + v2 + 4) >> 3

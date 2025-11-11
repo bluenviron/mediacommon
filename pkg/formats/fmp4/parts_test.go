@@ -190,7 +190,7 @@ func FuzzPartsUnmarshal(f *testing.F) {
 }
 
 func BenchmarkPartsUnmarshal(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		for _, ca := range casesParts {
 			var parts Parts
 			parts.Unmarshal(ca.enc) //nolint:errcheck
@@ -206,14 +206,14 @@ func BenchmarkPartsMarshal(b *testing.B) {
 		}},
 	}}
 
-	for i := 0; i < 10000; i++ {
+	for i := range 10000 {
 		parts[0].Tracks[0].Samples[i] = &Sample{
 			Duration: 90000,
 			Payload:  bytes.Repeat([]byte{1}, 16),
 		}
 	}
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		var buf seekablebuffer.Buffer
 		parts.Marshal(&buf) //nolint:errcheck
 	}

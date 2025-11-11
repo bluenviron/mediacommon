@@ -4,7 +4,7 @@ import "fmt"
 
 var mulawDecodeTable = func() [256]uint16 {
 	var ret [256]uint16
-	for i := 0; i < 256; i++ {
+	for i := range 256 {
 		v := ^i
 
 		tmp := (((uint16(v) & 0x0F) << 3) + 0x84) << ((v & 0x70) >> 4)
@@ -51,7 +51,7 @@ func (c Mulaw) Marshal() ([]byte, error) {
 	le := len(c) / 2
 	enc := make([]byte, le)
 
-	for i := 0; i < le; i++ {
+	for i := range le {
 		sample := uint16(c[i*2])<<8 | uint16(c[(i*2)+1])
 		enc[i] = mulawEncodeTable[(sample+32768)>>2]
 	}

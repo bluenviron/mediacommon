@@ -36,7 +36,7 @@ func TestTimeDecoderOverflow(t *testing.T) {
 	const stride = 150
 	lim := int64(uint64(0x1FFFFFFFF - (stride * 90000)))
 
-	for n := 0; n < 100; n++ {
+	for range 100 {
 		// overflow
 		i += 90000 * stride
 		secs += stride

@@ -2280,7 +2280,7 @@ func FuzzInitUnmarshal(f *testing.F) {
 }
 
 func BenchmarkInitUnmarshal(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		for _, ca := range casesInit {
 			var init Init
 			init.Unmarshal(bytes.NewReader(ca.enc)) //nolint:errcheck
