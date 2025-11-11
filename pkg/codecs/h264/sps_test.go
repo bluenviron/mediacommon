@@ -497,7 +497,7 @@ func TestSPSUnmarshal(t *testing.T) {
 }
 
 func BenchmarkSPSUnmarshal(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		var sps SPS
 		sps.Unmarshal([]byte{ //nolint:errcheck
 			103, 77, 0, 41, 154, 100, 3, 192,

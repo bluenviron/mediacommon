@@ -193,7 +193,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 	var curChunks []*chunk
 	var curSampleSizes []uint32
 
-	_, err := amp4.ReadBoxStructure(r, func(h *amp4.ReadHandle) (interface{}, error) {
+	_, err := amp4.ReadBoxStructure(r, func(h *amp4.ReadHandle) (any, error) {
 		switch h.BoxInfo.Type.String() {
 		case "ftyp", "hdlr", "vmhd", "dinf", "smhd":
 

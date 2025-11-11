@@ -33,7 +33,7 @@ func (ps *Parts) Unmarshal(byts []byte) error {
 	var tfdt *amp4.Tfdt
 	var tfhd *amp4.Tfhd
 
-	_, err := amp4.ReadBoxStructure(bytes.NewReader(byts), func(h *amp4.ReadHandle) (interface{}, error) {
+	_, err := amp4.ReadBoxStructure(bytes.NewReader(byts), func(h *amp4.ReadHandle) (any, error) {
 		if h.BoxInfo.IsSupportedType() {
 			switch h.BoxInfo.Type.String() {
 			case "moof":

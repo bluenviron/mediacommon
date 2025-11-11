@@ -19,10 +19,7 @@ func countNalUnits(buf []byte) (int, error) {
 	auSize := 0
 
 	for i < len(buf) {
-		lim := 4
-		if lim > len(buf)-i {
-			lim = len(buf) - i
-		}
+		lim := min(4, len(buf)-i)
 		data := buf[i : i+lim]
 
 		switch {
@@ -92,10 +89,7 @@ func (a *AnnexB) Unmarshal(buf []byte) error {
 	start := 0
 
 	for i < len(buf) {
-		lim := 4
-		if lim > len(buf)-i {
-			lim = len(buf) - i
-		}
+		lim := min(4, len(buf)-i)
 		data := buf[i : i+lim]
 
 		switch {

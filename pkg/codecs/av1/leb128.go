@@ -14,7 +14,7 @@ func (l *LEB128) Unmarshal(buf []byte) (int, error) {
 	*l = 0
 	n := 0
 
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		if len(buf) == 0 {
 			return 0, fmt.Errorf("not enough bytes")
 		}

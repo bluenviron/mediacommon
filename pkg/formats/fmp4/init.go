@@ -164,7 +164,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 	var sampleRate int
 	var channelCount int
 
-	_, err := amp4.ReadBoxStructure(r, func(h *amp4.ReadHandle) (interface{}, error) {
+	_, err := amp4.ReadBoxStructure(r, func(h *amp4.ReadHandle) (any, error) {
 		switch {
 		case len(h.Path) >= 3 && h.Path[0].String() == "moov" && h.Path[1].String() == "udta":
 			box, _, err := h.ReadPayload()

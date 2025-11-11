@@ -16,7 +16,7 @@ func readScalingList(buf []byte, pos *int, size int) ([]int32, bool, error) {
 	scalingList := make([]int32, size)
 	var useDefaultScalingMatrixFlag bool
 
-	for j := 0; j < size; j++ {
+	for j := range size {
 		if nextScale != 0 {
 			deltaScale, err := bits.ReadGolombSigned(buf, pos)
 			if err != nil {
