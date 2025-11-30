@@ -78,6 +78,7 @@ type DTSExtractor struct {
 	expectedPOC     uint32
 	reorderedFrames int
 	pause           int
+	auCount         int
 	pocIncrement    int
 	prevPOC         uint32
 	prevPrevPOC     uint32
@@ -126,6 +127,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, bool, error)
 				d.expectedPOC = 0
 				d.reorderedFrames = 0
 				d.pause = 0
+				d.auCount = 0
 				d.pocIncrement = 2
 				d.prevPOC = 0
 				d.prevPrevPOC = 0
@@ -166,7 +168,8 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, bool, error)
 				d.pocIncrement = 1
 			}
 
-			d.prevPrevPOC = d.expectedPOC
+			d.auCount = 1
+			d.prevPrevPOC = 0
 			d.prevPOC = d.expectedPOC
 		}
 
@@ -178,10 +181,11 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, bool, error)
 			return 0, false, err
 		}
 
-		if d.pocIncrement == 2 {
+		if d.auCount < 5 && d.pocIncrement == 2 {
 			if (poc % 2) != 0 {
 				d.pocIncrement = 1
 				d.expectedPOC /= 2
+
 				if d.reorderedFrames != 0 {
 					increase := d.reorderedFrames
 					if (d.reorderedFrames + increase) > maxReorderedFrames {
@@ -191,12 +195,12 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, bool, error)
 					d.reorderedFrames += increase
 					d.pause += increase
 				}
-			} else if poc != d.prevPOC && d.prevPOC != d.prevPrevPOC &&
-				poc == (d.prevPOC+4) && d.prevPOC == (d.prevPrevPOC+4) {
+			} else if d.auCount >= 2 && (poc%4) == 0 && poc == (d.prevPOC+4) && d.prevPOC == (d.prevPrevPOC+4) {
 				d.pocIncrement = 4
 				d.expectedPOC *= 2
 			}
 
+			d.auCount++
 			d.prevPrevPOC = d.prevPOC
 			d.prevPOC = poc
 		}
