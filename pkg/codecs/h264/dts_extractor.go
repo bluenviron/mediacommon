@@ -75,6 +75,7 @@ type DTSExtractor struct {
 	spsp            *SPS
 	prevDTSFilled   bool
 	prevDTS         int64
+	randomReceived  bool
 	expectedPOC     uint32
 	reorderedFrames int
 	pause           int
@@ -112,6 +113,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, bool, error)
 	for _, nalu := range au {
 		typ := NALUType(nalu[0] & 0x1F)
 		nonZeroNalRefIDFound = nonZeroNalRefIDFound || ((nalu[0] & 0x60) > 0)
+
 		switch typ {
 		case NALUTypeSPS:
 			if !bytes.Equal(d.sps, nalu) {
@@ -124,6 +126,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, bool, error)
 				d.spsp = &spsp
 
 				// reset state
+				d.randomReceived = false
 				d.expectedPOC = 0
 				d.reorderedFrames = 0
 				d.pause = 0
@@ -151,6 +154,13 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, bool, error)
 
 	if d.spsp.PicOrderCntType == 1 {
 		return 0, false, fmt.Errorf("pic_order_cnt_type = 1 is not supported yet")
+	}
+
+	if !d.randomReceived {
+		if idr == nil {
+			return 0, false, fmt.Errorf("random access frame not received yet")
+		}
+		d.randomReceived = true
 	}
 
 	var ptsDTSDiff int
