@@ -135,8 +135,9 @@ type DTSExtractor struct {
 	ppsp            *PPS
 	prevDTSFilled   bool
 	prevDTS         int64
-	pause           int
+	randomReceived  bool
 	reorderedFrames int
+	pause           int
 }
 
 // Initialize initializes a DTSExtractor.
@@ -152,6 +153,7 @@ func NewDTSExtractor() *DTSExtractor {
 
 func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, error) {
 	var idr []byte
+	var cra []byte
 	var nonIDR []byte
 
 	for _, nalu := range au {
@@ -170,6 +172,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, error) {
 				d.sps = nalu
 
 				// reset state
+				d.randomReceived = false
 				if len(d.spsp.MaxNumReorderPics) == 1 {
 					d.reorderedFrames = int(d.spsp.MaxNumReorderPics[0])
 				} else {
@@ -193,7 +196,10 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, error) {
 		case NALUType_IDR_W_RADL, NALUType_IDR_N_LP:
 			idr = nalu
 
-		case NALUType_TRAIL_N, NALUType_TRAIL_R, NALUType_CRA_NUT, NALUType_RASL_N, NALUType_RASL_R:
+		case NALUType_CRA_NUT:
+			cra = nalu
+
+		case NALUType_TRAIL_N, NALUType_TRAIL_R, NALUType_RASL_N, NALUType_RASL_R:
 			nonIDR = nalu
 		}
 	}
@@ -206,11 +212,25 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, error) {
 		return 0, fmt.Errorf("PPS not received yet")
 	}
 
+	if !d.randomReceived {
+		if idr == nil && cra == nil {
+			return 0, fmt.Errorf("random access frame not received yet")
+		}
+		d.randomReceived = true
+	}
+
 	var ptsDTSDiff int
 
 	switch {
 	case idr != nil:
 		ptsDTSDiff = 0
+
+	case cra != nil:
+		var err error
+		ptsDTSDiff, err = getPTSDTSDiff(cra, d.spsp, d.ppsp)
+		if err != nil {
+			return 0, err
+		}
 
 	case nonIDR != nil:
 		var err error
