@@ -343,19 +343,23 @@ func (t *Track) marshalELST(w *imp4.Writer, sampleDuration uint32) error {
 }
 
 func (t *Track) marshalSTTS(w *imp4.Writer) error {
-	entries := []amp4.SttsEntry{{
-		SampleCount: 1,
-		SampleDelta: t.Samples[0].Duration,
-	}}
+	entries := []amp4.SttsEntry{}
 
-	for _, sa := range t.Samples[1:] {
-		if sa.Duration == entries[len(entries)-1].SampleDelta {
-			entries[len(entries)-1].SampleCount++
-		} else {
-			entries = append(entries, amp4.SttsEntry{
-				SampleCount: 1,
-				SampleDelta: sa.Duration,
-			})
+	if len(t.Samples) != 0 {
+		entries = []amp4.SttsEntry{{
+			SampleCount: 1,
+			SampleDelta: t.Samples[0].Duration,
+		}}
+
+		for _, sa := range t.Samples[1:] {
+			if sa.Duration == entries[len(entries)-1].SampleDelta {
+				entries[len(entries)-1].SampleCount++
+			} else {
+				entries = append(entries, amp4.SttsEntry{
+					SampleCount: 1,
+					SampleDelta: sa.Duration,
+				})
+			}
 		}
 	}
 
@@ -389,19 +393,23 @@ func (t *Track) marshalSTSS(w *imp4.Writer) error {
 }
 
 func (t *Track) marshalCTTS(w *imp4.Writer) error {
-	entries := []amp4.CttsEntry{{
-		SampleCount:    1,
-		SampleOffsetV1: t.Samples[0].PTSOffset,
-	}}
+	entries := []amp4.CttsEntry{}
 
-	for _, sa := range t.Samples[1:] {
-		if sa.PTSOffset == entries[len(entries)-1].SampleOffsetV1 {
-			entries[len(entries)-1].SampleCount++
-		} else {
-			entries = append(entries, amp4.CttsEntry{
-				SampleCount:    1,
-				SampleOffsetV1: sa.PTSOffset,
-			})
+	if len(t.Samples) != 0 {
+		entries = []amp4.CttsEntry{{
+			SampleCount:    1,
+			SampleOffsetV1: t.Samples[0].PTSOffset,
+		}}
+
+		for _, sa := range t.Samples[1:] {
+			if sa.PTSOffset == entries[len(entries)-1].SampleOffsetV1 {
+				entries[len(entries)-1].SampleCount++
+			} else {
+				entries = append(entries, amp4.CttsEntry{
+					SampleCount:    1,
+					SampleOffsetV1: sa.PTSOffset,
+				})
+			}
 		}
 	}
 
@@ -416,36 +424,40 @@ func (t *Track) marshalCTTS(w *imp4.Writer) error {
 }
 
 func (t *Track) marshalSTSC(w *imp4.Writer) error {
-	entries := []amp4.StscEntry{{
-		FirstChunk:             1,
-		SamplesPerChunk:        1,
-		SampleDescriptionIndex: 1,
-	}}
+	entries := []amp4.StscEntry{}
 
-	firstSample := t.Samples[0]
-	off := firstSample.offset + firstSample.PayloadSize
+	if len(t.Samples) != 0 {
+		entries = []amp4.StscEntry{{
+			FirstChunk:             1,
+			SamplesPerChunk:        1,
+			SampleDescriptionIndex: 1,
+		}}
 
-	for _, sa := range t.Samples[1:] {
-		if sa.offset == off {
-			entries[len(entries)-1].SamplesPerChunk++
-		} else {
-			entries = append(entries, amp4.StscEntry{
-				FirstChunk:             uint32(len(entries) + 1),
-				SamplesPerChunk:        1,
-				SampleDescriptionIndex: 1,
-			})
+		firstSample := t.Samples[0]
+		off := firstSample.offset + firstSample.PayloadSize
+
+		for _, sa := range t.Samples[1:] {
+			if sa.offset == off {
+				entries[len(entries)-1].SamplesPerChunk++
+			} else {
+				entries = append(entries, amp4.StscEntry{
+					FirstChunk:             uint32(len(entries) + 1),
+					SamplesPerChunk:        1,
+					SampleDescriptionIndex: 1,
+				})
+			}
+
+			off = sa.offset + sa.PayloadSize
 		}
 
-		off = sa.offset + sa.PayloadSize
-	}
-
-	// further compression
-	for i := len(entries) - 1; i >= 1; i-- {
-		if entries[i].SamplesPerChunk == entries[i-1].SamplesPerChunk {
-			for j := i; j < len(entries)-1; j++ {
-				entries[j] = entries[j+1]
+		// compress further
+		for i := len(entries) - 1; i >= 1; i-- {
+			if entries[i].SamplesPerChunk == entries[i-1].SamplesPerChunk {
+				for j := i; j < len(entries)-1; j++ {
+					entries[j] = entries[j+1]
+				}
+				entries = entries[:len(entries)-1]
 			}
-			entries = entries[:len(entries)-1]
 		}
 	}
 
@@ -472,16 +484,20 @@ func (t *Track) marshalSTSZ(w *imp4.Writer) error {
 }
 
 func (t *Track) marshalSTCO(w *imp4.Writer) (*amp4.Stco, int, error) {
-	firstSample := t.Samples[0]
-	off := firstSample.offset + firstSample.PayloadSize
+	entries := []uint32{}
 
-	entries := []uint32{firstSample.offset}
+	if len(t.Samples) != 0 {
+		firstSample := t.Samples[0]
+		off := firstSample.offset + firstSample.PayloadSize
 
-	for _, sa := range t.Samples[1:] {
-		if sa.offset != off {
-			entries = append(entries, sa.offset)
+		entries = []uint32{firstSample.offset}
+
+		for _, sa := range t.Samples[1:] {
+			if sa.offset != off {
+				entries = append(entries, sa.offset)
+			}
+			off = sa.offset + sa.PayloadSize
 		}
-		off = sa.offset + sa.PayloadSize
 	}
 
 	stco := &amp4.Stco{
