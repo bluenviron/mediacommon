@@ -67,7 +67,7 @@ func (ps *Parts) Unmarshal(byts []byte) error {
 				}
 
 				if curTrack != nil {
-					if tfdt == nil || tfhd == nil || curTrack.Samples == nil {
+					if tfdt == nil || tfhd == nil {
 						return nil, fmt.Errorf("parse error")
 					}
 				}
@@ -129,57 +129,59 @@ func (ps *Parts) Unmarshal(byts []byte) error {
 				}
 				trun := box.(*amp4.Trun)
 
-				trunFlags := uint16(trun.Flags[1])<<8 | uint16(trun.Flags[2])
-				if (trunFlags & trunFlagDataOffsetPreset) == 0 {
-					return nil, fmt.Errorf("unsupported flags")
-				}
-
-				existing := len(curTrack.Samples)
-				tmp := make([]*Sample, existing+len(trun.Entries))
-				copy(tmp, curTrack.Samples)
-				curTrack.Samples = tmp
-
-				pos := uint64(trun.DataOffset) + moofOffset
-				if uint64(len(byts)) < pos {
-					return nil, fmt.Errorf("invalid data_offset / moof_offset")
-				}
-
-				ptr := byts[pos:]
-
-				for i, e := range trun.Entries {
-					s := &Sample{}
-
-					if (trunFlags & trunFlagSampleDurationPresent) != 0 {
-						s.Duration = e.SampleDuration
-					} else {
-						s.Duration = tfhd.DefaultSampleDuration
+				if len(trun.Entries) != 0 {
+					trunFlags := uint16(trun.Flags[1])<<8 | uint16(trun.Flags[2])
+					if (trunFlags & trunFlagDataOffsetPreset) == 0 {
+						return nil, fmt.Errorf("unsupported flags")
 					}
 
-					s.PTSOffset = e.SampleCompositionTimeOffsetV1
+					existing := len(curTrack.Samples)
+					tmp := make([]*Sample, existing+len(trun.Entries))
+					copy(tmp, curTrack.Samples)
+					curTrack.Samples = tmp
 
-					var sampleFlags uint32
-					if (trunFlags & trunFlagSampleFlagsPresent) != 0 {
-						sampleFlags = e.SampleFlags
-					} else {
-						sampleFlags = tfhd.DefaultSampleFlags
-					}
-					s.IsNonSyncSample = ((sampleFlags & sampleFlagIsNonSyncSample) != 0)
-
-					var size uint32
-					if (trunFlags & trunFlagSampleSizePresent) != 0 {
-						size = e.SampleSize
-					} else {
-						size = tfhd.DefaultSampleSize
+					pos := uint64(trun.DataOffset) + moofOffset
+					if uint64(len(byts)) < pos {
+						return nil, fmt.Errorf("invalid data_offset / moof_offset")
 					}
 
-					if len(ptr) < int(size) {
-						return nil, fmt.Errorf("invalid sample size")
+					ptr := byts[pos:]
+
+					for i, e := range trun.Entries {
+						s := &Sample{}
+
+						if (trunFlags & trunFlagSampleDurationPresent) != 0 {
+							s.Duration = e.SampleDuration
+						} else {
+							s.Duration = tfhd.DefaultSampleDuration
+						}
+
+						s.PTSOffset = e.SampleCompositionTimeOffsetV1
+
+						var sampleFlags uint32
+						if (trunFlags & trunFlagSampleFlagsPresent) != 0 {
+							sampleFlags = e.SampleFlags
+						} else {
+							sampleFlags = tfhd.DefaultSampleFlags
+						}
+						s.IsNonSyncSample = ((sampleFlags & sampleFlagIsNonSyncSample) != 0)
+
+						var size uint32
+						if (trunFlags & trunFlagSampleSizePresent) != 0 {
+							size = e.SampleSize
+						} else {
+							size = tfhd.DefaultSampleSize
+						}
+
+						if len(ptr) < int(size) {
+							return nil, fmt.Errorf("invalid sample size")
+						}
+
+						s.Payload = ptr[:size]
+						ptr = ptr[size:]
+
+						curTrack.Samples[existing+i] = s
 					}
-
-					s.Payload = ptr[:size]
-					ptr = ptr[size:]
-
-					curTrack.Samples[existing+i] = s
 				}
 
 			case "mdat":
@@ -188,7 +190,7 @@ func (ps *Parts) Unmarshal(byts []byte) error {
 				}
 
 				if curTrack != nil {
-					if tfdt == nil || tfhd == nil || curTrack.Samples == nil {
+					if tfdt == nil || tfhd == nil {
 						return nil, fmt.Errorf("parse error")
 					}
 				}
