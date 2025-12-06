@@ -708,51 +708,49 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			}
 			stsc := box.(*amp4.Stsc)
 
-			if len(stsc.Entries) == 0 {
-				return nil, fmt.Errorf("invalid stsc")
-			}
+			if len(stsc.Entries) != 0 {
+				prevFirstChunk := uint32(0)
+				i := 0
 
-			prevFirstChunk := uint32(0)
-			i := 0
+				for _, entry := range stsc.Entries {
+					chunkCount := entry.FirstChunk - prevFirstChunk
 
-			for _, entry := range stsc.Entries {
-				chunkCount := entry.FirstChunk - prevFirstChunk
-
-				if (len(curChunks) + int(chunkCount)) > maxChunks {
-					return nil, fmt.Errorf("invalid stsc")
-				}
-
-				if entry.SamplesPerChunk == 0 {
-					return nil, fmt.Errorf("invalid stsc")
-				}
-
-				for range chunkCount {
-					if (i + int(entry.SamplesPerChunk)) > len(curTrack.Samples) {
+					if (len(curChunks) + int(chunkCount)) > maxChunks {
 						return nil, fmt.Errorf("invalid stsc")
 					}
 
-					curChunks = append(curChunks, &chunk{
-						sampleCount: int(entry.SamplesPerChunk),
-					})
+					if entry.SamplesPerChunk == 0 {
+						return nil, fmt.Errorf("invalid stsc")
+					}
 
-					i += int(entry.SamplesPerChunk)
+					for range chunkCount {
+						if (i + int(entry.SamplesPerChunk)) > len(curTrack.Samples) {
+							return nil, fmt.Errorf("invalid stsc")
+						}
+
+						curChunks = append(curChunks, &chunk{
+							sampleCount: int(entry.SamplesPerChunk),
+						})
+
+						i += int(entry.SamplesPerChunk)
+					}
+					prevFirstChunk = entry.FirstChunk
 				}
-				prevFirstChunk = entry.FirstChunk
-			}
 
-			if i != len(curTrack.Samples) {
-				remaining := len(curTrack.Samples) - i
-				lastEntry := stsc.Entries[len(stsc.Entries)-1]
+				if i != len(curTrack.Samples) {
+					remaining := len(curTrack.Samples) - i
+					lastEntry := stsc.Entries[len(stsc.Entries)-1]
 
-				if (remaining % int(lastEntry.SamplesPerChunk)) != 0 {
-					return nil, fmt.Errorf("invalid stsc")
-				}
+					if (remaining % int(lastEntry.SamplesPerChunk)) != 0 {
+						return nil, fmt.Errorf("invalid stsc")
+					}
 
-				count := remaining / int(lastEntry.SamplesPerChunk)
-				for range count {
-					curChunks = append(curChunks, &chunk{
-						sampleCount: int(lastEntry.SamplesPerChunk),
-					})
+					count := remaining / int(lastEntry.SamplesPerChunk)
+					for range count {
+						curChunks = append(curChunks, &chunk{
+							sampleCount: int(lastEntry.SamplesPerChunk),
+						})
+					}
 				}
 			}
 
