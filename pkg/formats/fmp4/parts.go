@@ -156,7 +156,11 @@ func (ps *Parts) Unmarshal(byts []byte) error {
 							s.Duration = tfhd.DefaultSampleDuration
 						}
 
-						s.PTSOffset = e.SampleCompositionTimeOffsetV1
+						if trun.Version == 0 {
+							s.PTSOffset = int32(e.SampleCompositionTimeOffsetV0)
+						} else {
+							s.PTSOffset = e.SampleCompositionTimeOffsetV1
+						}
 
 						var sampleFlags uint32
 						if (trunFlags & trunFlagSampleFlagsPresent) != 0 {
