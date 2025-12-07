@@ -156,6 +156,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, error) {
 	var cra []byte
 	var nonIDR []byte
 
+outer:
 	for _, nalu := range au {
 		typ := NALUType((nalu[0] >> 1) & 0b111111)
 
@@ -195,12 +196,15 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, error) {
 
 		case NALUType_IDR_W_RADL, NALUType_IDR_N_LP:
 			idr = nalu
+			break outer
 
 		case NALUType_CRA_NUT:
 			cra = nalu
+			break outer
 
 		case NALUType_TRAIL_N, NALUType_TRAIL_R, NALUType_RASL_N, NALUType_RASL_R:
 			nonIDR = nalu
+			break outer
 		}
 	}
 
