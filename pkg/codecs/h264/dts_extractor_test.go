@@ -373,7 +373,7 @@ var casesDTSExtractor = []struct {
 		},
 	},
 	{
-		"issue mediamtx/3614 Only SEI received",
+		"issue mediamtx/3614 (only SEI received)",
 		[]sample{
 			{
 				[][]byte{

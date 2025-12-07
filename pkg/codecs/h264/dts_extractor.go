@@ -110,6 +110,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, bool, error)
 	// maintain the integrity of the reference pictures.
 	nonZeroNalRefIDFound := false
 
+outer:
 	for _, nalu := range au {
 		typ := NALUType(nalu[0] & 0x1F)
 		nonZeroNalRefIDFound = nonZeroNalRefIDFound || ((nalu[0] & 0x60) > 0)
@@ -138,9 +139,11 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, bool, error)
 
 		case NALUTypeIDR:
 			idr = nalu
+			break outer
 
 		case NALUTypeNonIDR:
 			nonIDR = nalu
+			break outer
 		}
 	}
 
