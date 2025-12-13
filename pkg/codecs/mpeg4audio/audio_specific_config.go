@@ -86,17 +86,23 @@ func (c *AudioSpecificConfig) unmarshalBits(buf []byte, pos *int) error {
 	}
 
 	switch {
-	case channelConfig == 0:
-		return fmt.Errorf("not yet supported")
-
 	case channelConfig >= 1 && channelConfig <= 6:
 		c.ChannelCount = int(channelConfig)
 
 	case channelConfig == 7:
 		c.ChannelCount = 8
 
+	case channelConfig == 0:
+		// Channel configuration 0 means the channel layout is defined by a
+		// Program Config Element (PCE) in the AAC bitstream.
+		// The actual channel count will be determined when the raw_data_block
+		// containing the PCE is parsed. For now, set to 0 to indicate unknown.
+		// The caller should use ParsePCEFromRawDataBlock on the first AU.
+		c.ChannelCount = 0
+
 	default:
-		return fmt.Errorf("invalid channel configuration (%d)", channelConfig)
+		// Channel configs 8-15 are reserved.
+		return fmt.Errorf("unsupported channel configuration (%d)", channelConfig)
 	}
 
 	if c.Type == ObjectTypeSBR || c.Type == ObjectTypePS {

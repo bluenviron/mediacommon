@@ -62,8 +62,59 @@ func (ps *ADTSPackets) Unmarshal(buf []byte) error {
 		case channelConfig == 7:
 			pkt.ChannelCount = 8
 
+		case channelConfig == 0:
+			// Channel configuration 0 means the channel layout is defined either by:
+			// 1. An explicit PCE at the start of the raw_data_block, or
+			// 2. Implicit ordering based on the syntactic elements present
+			//
+			// FFmpeg typically uses implicit ordering without PCE, so we try both.
+			frameLen := int(((uint16(buf[pos+3])&0x03)<<11)|
+				(uint16(buf[pos+4])<<3)|
+				((uint16(buf[pos+5])>>5)&0x07)) - 7
+
+			if frameLen <= 0 {
+				return fmt.Errorf("invalid FrameLen")
+			}
+
+			if frameLen > MaxAccessUnitSize {
+				return fmt.Errorf("access unit size (%d) is too big, maximum is %d", frameLen, MaxAccessUnitSize)
+			}
+
+			frameCount := buf[pos+6] & 0x03
+			if frameCount != 0 {
+				return fmt.Errorf("frame count greater than 1 is not supported")
+			}
+
+			if len(buf[pos+7:]) < frameLen {
+				return fmt.Errorf("invalid frame length")
+			}
+
+			pkt.AU = buf[pos+7 : pos+7+frameLen]
+
+			// Try to parse PCE first, fall back to counting elements
+			pce, err := ParsePCEFromRawDataBlock(pkt.AU)
+			if err == nil {
+				pkt.ChannelCount = pce.ChannelCount
+			} else {
+				// No PCE - count channels from syntactic elements
+				channelCount, err := CountChannelsFromRawDataBlock(pkt.AU)
+				if err != nil {
+					return fmt.Errorf("channel_config=0: %w", err)
+				}
+				pkt.ChannelCount = channelCount
+			}
+
+			pos += 7 + frameLen
+			*ps = append(*ps, pkt)
+
+			if (bl - pos) == 0 {
+				return nil
+			}
+			continue
+
 		default:
-			return fmt.Errorf("invalid channel configuration: %d", channelConfig)
+			// Channel configs 8-15 are reserved.
+			return fmt.Errorf("unsupported channel configuration: %d", channelConfig)
 		}
 
 		frameLen := int(((uint16(buf[pos+3])&0x03)<<11)|
