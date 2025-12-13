@@ -433,6 +433,8 @@ func (r *Reader) OnDataAC3(track *Track, cb ReaderOnDataAC3Func) {
 }
 
 // OnDataEAC3 sets a callback that is called when data from an E-AC-3 track is received.
+// E-AC3 supports multiple substreams (independent + dependent) concatenated together.
+// We validate only the first substream's sync header and pass the full data to the callback.
 func (r *Reader) OnDataEAC3(track *Track, cb ReaderOnDataEAC3Func) {
 	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
 		if pts != dts {
@@ -440,18 +442,19 @@ func (r *Reader) OnDataEAC3(track *Track, cb ReaderOnDataEAC3Func) {
 			return nil
 		}
 
+		// Validate E-AC3 sync header
 		var syncInfo eac3.SyncInfo
 		err := syncInfo.Unmarshal(data)
 		if err != nil {
 			r.onDecodeError(err)
 			return nil
 		}
-		size := syncInfo.FrameSize()
 
-		if size != len(data) {
-			r.onDecodeError(fmt.Errorf("unexpected frame size: got %d, expected %d", len(data), size))
-			return nil
-		}
+		// E-AC3 allows multiple substreams concatenated together (independent + dependent).
+		// The frmsiz in the header only covers the first substream.
+		// Rather than parsing all substreams, we just validate the sync header and
+		// pass the full data. The downstream decoder will handle substream parsing.
+		// This matches how other decoders (FFmpeg) handle E-AC3 PES packets.
 
 		return cb(pts, data)
 	}

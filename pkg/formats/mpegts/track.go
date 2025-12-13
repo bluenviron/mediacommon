@@ -254,6 +254,63 @@ func findCodec(dem *robustDemuxer, es *astits.PMTElementaryStream) (codecs.Codec
 	return &codecs.Unsupported{}, nil
 }
 
+// ac3ComponentType builds the DVB component_type byte for AC-3.
+// Per ETSI EN 300 468, the AC3 descriptor uses a similar format to E-AC-3.
+func ac3ComponentType(channels int, fullService bool) uint8 {
+	var ct uint8 = 0
+
+	// Set full_service_flag (bit 0)
+	if fullService {
+		ct |= 0x01
+	}
+
+	// Encode channel configuration in bits 3-1
+	switch {
+	case channels <= 2:
+		ct |= (0x02 << 1) // 2ch stereo
+	case channels <= 4:
+		ct |= (0x05 << 1) // multichannel stereo
+	default:
+		ct |= (0x06 << 1) // multichannel surround (5.1, etc.)
+	}
+
+	return ct
+}
+
+// componentTypeFromConfig builds the DVB component_type byte.
+// Per ETSI EN 300 468, table D.1:
+// Bits 7-4: service_type_flag (0=complete main, 1=music/effects, etc.)
+// Bits 3-1: number_of_channels mapping
+// Bit 0: full_service_flag
+//
+// For E-AC-3, the component_type encodes channel configuration:
+//
+//	0x00-0x3F: Full service, complete main
+//	Bits 2-0 encode channel config: 0=mono/stereo, 1=mono, 2=stereo, 3=2ch, etc.
+func eac3ComponentType(channels int, fullService bool) uint8 {
+	// Start with full service, complete main audio (bits 7-4 = 0000)
+	var ct uint8 = 0
+
+	// Set full_service_flag (bit 0)
+	if fullService {
+		ct |= 0x01
+	}
+
+	// Encode channel configuration in bits 3-1 (number_of_channels)
+	// Per EN 300 468: 0=1-2ch, 1=mono, 2=2ch stereo, 3=2ch surround,
+	//                 4=multichannel mono, 5=multichannel stereo, 6=multichannel surround
+	switch {
+	case channels <= 2:
+		ct |= (0x02 << 1) // 2ch stereo
+	case channels <= 4:
+		ct |= (0x05 << 1) // multichannel stereo
+	default:
+		ct |= (0x06 << 1) // multichannel surround (5.1, 7.1, etc.)
+	}
+
+	return ct
+}
+
 // Track is a MPEG-TS track.
 type Track struct {
 	PID   uint16
@@ -325,12 +382,42 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 		return &astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypeAC3Audio,
+			ElementaryStreamDescriptors: []*astits.Descriptor{
+				{
+					// Length must be different than zero for astits writer
+					// 1 byte flags + 1 byte component_type + 1 byte BSID = 3 bytes
+					Length: 3,
+					Tag:    astits.DescriptorTagAC3,
+					AC3: &astits.DescriptorAC3{
+						HasComponentType: true,
+						ComponentType:    ac3ComponentType(c.ChannelCount, true),
+						// BSID for standard AC-3 (not E-AC-3)
+						HasBSID: true,
+						BSID:    8,
+					},
+				},
+			},
 		}, nil
 
 	case *codecs.EAC3:
 		return &astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypeEAC3Audio,
+			ElementaryStreamDescriptors: []*astits.Descriptor{
+				{
+					// Length must be different than zero for astits writer
+					// 1 byte flags + 1 byte component_type + 1 byte BSID = 3 bytes
+					Length: 3,
+					Tag:    astits.DescriptorTagEnhancedAC3,
+					EnhancedAC3: &astits.DescriptorEnhancedAC3{
+						HasComponentType: true,
+						ComponentType:    eac3ComponentType(c.ChannelCount, true),
+						// BSID=16 indicates E-AC-3
+						HasBSID: true,
+						BSID:    16,
+					},
+				},
+			},
 		}, nil
 
 	case *codecs.MPEG4Audio:
