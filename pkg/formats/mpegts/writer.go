@@ -298,6 +298,15 @@ func (w *Writer) WriteAC3(
 	return w.writeAudio(track, pts, frame)
 }
 
+// WriteEAC3 writes an E-AC-3 (Dolby Digital Plus) frame.
+func (w *Writer) WriteEAC3(
+	track *Track,
+	pts int64,
+	frame []byte,
+) error {
+	return w.writeAudio(track, pts, frame)
+}
+
 // WriteKLV writes a KLV unit.
 func (w *Writer) WriteKLV(
 	track *Track,
