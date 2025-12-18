@@ -6,6 +6,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// casesADTS contains test cases for roundtrip (unmarshal -> marshal) tests.
+// These use AAC-LC profile which marshals back to the same bytes.
 var casesADTS = []struct {
 	name string
 	byts []byte
@@ -47,8 +49,70 @@ var casesADTS = []struct {
 	},
 }
 
+// casesADTSUnmarshalOnly contains test cases for unmarshal-only tests.
+// These test profile normalization where non-LC profiles are normalized to AAC-LC.
+var casesADTSUnmarshalOnly = []struct {
+	name string
+	byts []byte
+	pkts ADTSPackets
+}{
+	{
+		// AAC Main profile in ADTS header (profile=0) - normalized to AAC-LC
+		// Byte 2: 0x0c = profile(0)<<6 | sampleRateIndex(3)<<2 | channelConfig>>2
+		// Many streams incorrectly signal AAC Main but contain AAC-LC data
+		"aac_main_normalized",
+		[]byte{0xff, 0xf1, 0x0c, 0x80, 0x1, 0x3f, 0xfc, 0xaa, 0xbb},
+		ADTSPackets{
+			{
+				Type:         ObjectTypeAACLC, // Normalized to AAC-LC
+				SampleRate:   48000,
+				ChannelCount: 2,
+				AU:           []byte{0xaa, 0xbb},
+			},
+		},
+	},
+	{
+		// AAC SSR profile in ADTS header (profile=2) - normalized to AAC-LC
+		// Byte 2: 0x8c = profile(2)<<6 | sampleRateIndex(3)<<2 | channelConfig>>2
+		"aac_ssr_normalized",
+		[]byte{0xff, 0xf1, 0x8c, 0x80, 0x1, 0x3f, 0xfc, 0xaa, 0xbb},
+		ADTSPackets{
+			{
+				Type:         ObjectTypeAACLC, // Normalized to AAC-LC
+				SampleRate:   48000,
+				ChannelCount: 2,
+				AU:           []byte{0xaa, 0xbb},
+			},
+		},
+	},
+	{
+		// AAC LTP profile in ADTS header (profile=3) - normalized to AAC-LC
+		// Byte 2: 0xcc = profile(3)<<6 | sampleRateIndex(3)<<2 | channelConfig>>2
+		"aac_ltp_normalized",
+		[]byte{0xff, 0xf1, 0xcc, 0x80, 0x1, 0x3f, 0xfc, 0xaa, 0xbb},
+		ADTSPackets{
+			{
+				Type:         ObjectTypeAACLC, // Normalized to AAC-LC
+				SampleRate:   48000,
+				ChannelCount: 2,
+				AU:           []byte{0xaa, 0xbb},
+			},
+		},
+	},
+}
+
 func TestADTSUnmarshal(t *testing.T) {
+	// Test roundtrip cases
 	for _, ca := range casesADTS {
+		t.Run(ca.name, func(t *testing.T) {
+			var pkts ADTSPackets
+			err := pkts.Unmarshal(ca.byts)
+			require.NoError(t, err)
+			require.Equal(t, ca.pkts, pkts)
+		})
+	}
+	// Test unmarshal-only cases (profile normalization)
+	for _, ca := range casesADTSUnmarshalOnly {
 		t.Run(ca.name, func(t *testing.T) {
 			var pkts ADTSPackets
 			err := pkts.Unmarshal(ca.byts)

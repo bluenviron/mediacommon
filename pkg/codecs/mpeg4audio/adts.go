@@ -38,12 +38,16 @@ func (ps *ADTSPackets) Unmarshal(buf []byte) error {
 
 		pkt := &ADTSPacket{}
 
-		pkt.Type = ObjectType((buf[pos+2] >> 6) + 1)
-		switch pkt.Type {
-		case ObjectTypeAACLC:
-		default:
-			return fmt.Errorf("unsupported audio type: %d", pkt.Type)
+		// Parse profile from ADTS header (2-bit field maps to ObjectType as profile+1)
+		// Many streams incorrectly signal AAC Main (profile 0) when they actually
+		// contain AAC-LC data. Since AAC-LC is by far the most common profile and
+		// decoders expect it, we normalize all profiles to AAC-LC to handle
+		// mislabeled streams gracefully.
+		profile := (buf[pos+2] >> 6)
+		if profile > 3 {
+			return fmt.Errorf("invalid ADTS profile: %d", profile)
 		}
+		pkt.Type = ObjectTypeAACLC
 
 		sampleRateIndex := (buf[pos+2] >> 2) & 0x0F
 		switch {
