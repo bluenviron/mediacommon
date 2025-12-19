@@ -13,7 +13,7 @@ type CodecAC3 struct {
 
 // IsVideo implements Codec.
 func (CodecAC3) IsVideo() bool {
-	return true
+	return false
 }
 
 func (*CodecAC3) isCodec() {}
