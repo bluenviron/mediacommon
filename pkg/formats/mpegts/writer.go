@@ -95,6 +95,11 @@ func (w *Writer) Initialize() error {
 // This is useful for cases where PAT/PMT need to be captured before any
 // media data is written (e.g., to send to late-joining MPEG-TS clients).
 func (w *Writer) WriteTables() (int, error) {
+	// Ensure PCR PID is set before writing tables (required by astits)
+	// If no leading track has been chosen yet, use the first track's PID
+	if !w.leadingTrackChosen && len(w.Tracks) > 0 {
+		w.mux.SetPCRPID(w.Tracks[0].PID)
+	}
 	return w.mux.WriteTables()
 }
 
