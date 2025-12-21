@@ -38,12 +38,9 @@ func (ps *ADTSPackets) Unmarshal(buf []byte) error {
 
 		pkt := &ADTSPacket{}
 
+		// ADTS profile (2 bits) maps to ObjectType = profile + 1
+		// All profiles 0-3 are valid per ISO 14496-3
 		pkt.Type = ObjectType((buf[pos+2] >> 6) + 1)
-		switch pkt.Type {
-		case ObjectTypeAACLC:
-		default:
-			return fmt.Errorf("unsupported audio type: %d", pkt.Type)
-		}
 
 		sampleRateIndex := (buf[pos+2] >> 2) & 0x0F
 		switch {
@@ -114,6 +111,11 @@ func (ps ADTSPackets) Marshal() ([]byte, error) {
 	pos := 0
 
 	for _, pkt := range ps {
+		// ADTS only supports ObjectType 1-4 (profile 0-3)
+		if pkt.Type < 1 || pkt.Type > 4 {
+			return nil, fmt.Errorf("ADTS only supports ObjectType 1-4, got %d", pkt.Type)
+		}
+
 		sampleRateIndex, ok := reverseSampleRates[pkt.SampleRate]
 		if !ok {
 			return nil, fmt.Errorf("invalid sample rate: %d", pkt.SampleRate)
