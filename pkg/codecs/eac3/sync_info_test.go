@@ -40,8 +40,8 @@ func TestSyncInfoUnmarshal(t *testing.T) {
 	frame := []byte{
 		0x0B, 0x77, // sync word
 		0x01, 0xFF, // strmtyp=0, substreamid=0, frmsiz=0x1FF
-		0x3F, // fscod=0, numblkscod=3, acmod=7, lfeon=1
-		0x80, // bsid=16
+		0x3F,       // fscod=0, numblkscod=3, acmod=7, lfeon=1
+		0x80,       // bsid=16
 		0x00, 0x00, // padding
 	}
 

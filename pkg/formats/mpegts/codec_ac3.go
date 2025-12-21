@@ -21,7 +21,7 @@ func (*CodecAC3) isCodec() {}
 // ac3ComponentType builds the DVB component_type byte for AC-3.
 // Per ETSI EN 300 468, the AC3 descriptor uses a similar format to E-AC-3.
 func ac3ComponentType(channels int, fullService bool) uint8 {
-	var ct uint8 = 0
+	var ct uint8
 
 	// Set full_service_flag (bit 0)
 	if fullService {
