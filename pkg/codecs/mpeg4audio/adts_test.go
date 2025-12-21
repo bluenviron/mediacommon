@@ -45,6 +45,18 @@ var casesADTS = []struct {
 			},
 		},
 	},
+	{
+		"aac-ssr",
+		[]byte{0xff, 0xf1, 0x8c, 0x80, 0x1, 0x3f, 0xfc, 0xaa, 0xbb},
+		ADTSPackets{
+			{
+				Type:         3,
+				SampleRate:   48000,
+				ChannelCount: 2,
+				AU:           []byte{0xaa, 0xbb},
+			},
+		},
+	},
 }
 
 func TestADTSUnmarshal(t *testing.T) {
