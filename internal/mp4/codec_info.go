@@ -102,7 +102,7 @@ func (ci *CodecInfo) Fill(codec codecs.Codec) error {
 		ci.Height = codec.Height
 		return nil
 
-	case *codecs.Opus, *codecs.MPEG4Audio, *codecs.MPEG1Audio, *codecs.AC3, *codecs.LPCM:
+	case *codecs.Opus, *codecs.MPEG4Audio, *codecs.MPEG1Audio, *codecs.AC3, *codecs.EAC3, *codecs.LPCM:
 		return nil
 
 	default:
