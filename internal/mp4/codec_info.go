@@ -110,7 +110,7 @@ func ExtractCodecInfo(codec mp4.Codec) (*CodecInfo, error) {
 			Height: codec.Height,
 		}, nil
 
-	case *mp4.CodecOpus, *mp4.CodecMPEG4Audio, *mp4.CodecMPEG1Audio, *mp4.CodecAC3, *mp4.CodecLPCM:
+	case *mp4.CodecOpus, *mp4.CodecMPEG4Audio, *mp4.CodecMPEG1Audio, *mp4.CodecAC3, *mp4.CodecEAC3, *mp4.CodecLPCM:
 		return nil, nil
 
 	default:
