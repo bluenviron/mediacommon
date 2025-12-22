@@ -49,6 +49,9 @@ func TestWriter(t *testing.T) {
 				case *CodecAC3:
 					err = w.WriteAC3(ca.track, sample.pts, sample.data[0])
 
+				case *CodecEAC3:
+					err = w.WriteEAC3(ca.track, sample.pts, sample.data[0])
+
 				case *CodecKLV:
 					err = w.WriteKLV(ca.track, sample.pts, sample.data[0])
 

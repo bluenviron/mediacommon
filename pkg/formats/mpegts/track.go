@@ -5,6 +5,7 @@ import (
 
 	"github.com/asticode/go-astits"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/ac3"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/eac3"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 )
 
@@ -58,6 +59,27 @@ func findAC3Parameters(dem *robustDemuxer, pid uint16) (int, int, error) {
 		}
 
 		return syncInfo.SampleRate(), bsi.ChannelCount(), nil
+	}
+}
+
+func findEAC3Parameters(dem *robustDemuxer, pid uint16) (int, int, error) {
+	for {
+		data, err := dem.nextData()
+		if err != nil {
+			return 0, 0, err
+		}
+
+		if data.PES == nil || data.PID != pid {
+			continue
+		}
+
+		var syncInfo eac3.SyncInfo
+		err = syncInfo.Unmarshal(data.PES.Data)
+		if err != nil {
+			return 0, 0, fmt.Errorf("invalid E-AC-3 frame: %w", err)
+		}
+
+		return syncInfo.SampleRate(), syncInfo.ChannelCount(), nil
 	}
 }
 
@@ -161,6 +183,17 @@ func findCodec(dem *robustDemuxer, es *astits.PMTElementaryStream) (Codec, error
 		}
 
 		return &CodecAC3{
+			SampleRate:   sampleRate,
+			ChannelCount: channelCount,
+		}, nil
+
+	case astits.StreamTypeEAC3Audio:
+		sampleRate, channelCount, err := findEAC3Parameters(dem, es.ElementaryPID)
+		if err != nil {
+			return nil, err
+		}
+
+		return &CodecEAC3{
 			SampleRate:   sampleRate,
 			ChannelCount: channelCount,
 		}, nil
