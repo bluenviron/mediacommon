@@ -276,3 +276,121 @@ func TestWriterError(t *testing.T) {
 	err := w.Initialize()
 	require.Error(t, err)
 }
+
+func TestWriterWriteTables(t *testing.T) {
+	t.Run("single video track", func(t *testing.T) {
+		var buf bytes.Buffer
+		w := &Writer{
+			W: &buf,
+			Tracks: []*Track{
+				{
+					Codec: &CodecH264{},
+				},
+			},
+		}
+		err := w.Initialize()
+		require.NoError(t, err)
+
+		// Call WriteTables before any media data
+		n, err := w.WriteTables()
+		require.NoError(t, err)
+		require.Equal(t, 2*188, n) // PAT + PMT = 2 packets
+
+		// Verify the output can be demuxed
+		dem := astits.NewDemuxer(
+			context.Background(),
+			&buf,
+			astits.DemuxerOptPacketSize(188))
+
+		var pkts []*astits.Packet
+		for {
+			var pkt *astits.Packet
+			pkt, err = dem.NextPacket()
+			if errors.Is(err, astits.ErrNoMorePackets) {
+				break
+			}
+			require.NoError(t, err)
+			pkts = append(pkts, pkt)
+		}
+
+		require.Len(t, pkts, 2)
+
+		// First packet should be PAT (PID 0)
+		require.Equal(t, uint16(0), pkts[0].Header.PID)
+		require.True(t, pkts[0].Header.PayloadUnitStartIndicator)
+
+		// Second packet should be PMT (PID 4096)
+		require.Equal(t, uint16(4096), pkts[1].Header.PID)
+		require.True(t, pkts[1].Header.PayloadUnitStartIndicator)
+	})
+
+	t.Run("multiple tracks", func(t *testing.T) {
+		var buf bytes.Buffer
+		w := &Writer{
+			W: &buf,
+			Tracks: []*Track{
+				{
+					Codec: &CodecH264{},
+				},
+				{
+					Codec: &CodecMPEG4Audio{},
+				},
+			},
+		}
+		err := w.Initialize()
+		require.NoError(t, err)
+
+		n, err := w.WriteTables()
+		require.NoError(t, err)
+		require.Equal(t, 2*188, n) // Still 2 packets (PAT + PMT with both tracks)
+
+		// Verify output is valid
+		dem := astits.NewDemuxer(
+			context.Background(),
+			&buf,
+			astits.DemuxerOptPacketSize(188))
+
+		var pkts []*astits.Packet
+		for {
+			var pkt *astits.Packet
+			pkt, err = dem.NextPacket()
+			if errors.Is(err, astits.ErrNoMorePackets) {
+				break
+			}
+			require.NoError(t, err)
+			pkts = append(pkts, pkt)
+		}
+
+		require.Len(t, pkts, 2)
+		require.Equal(t, uint16(0), pkts[0].Header.PID)    // PAT
+		require.Equal(t, uint16(4096), pkts[1].Header.PID) // PMT
+	})
+
+	t.Run("called before and after media", func(t *testing.T) {
+		var buf bytes.Buffer
+		w := &Writer{
+			W: &buf,
+			Tracks: []*Track{
+				{
+					Codec: &CodecH264{},
+				},
+			},
+		}
+		err := w.Initialize()
+		require.NoError(t, err)
+
+		// WriteTables before media
+		n1, err := w.WriteTables()
+		require.NoError(t, err)
+		require.Equal(t, 2*188, n1)
+
+		// Write some media data
+		err = w.WriteH264(w.Tracks[0], 90000, 90000, [][]byte{{1, 2, 3, 4}})
+		require.NoError(t, err)
+
+		// WriteTables after media (should still work)
+		n2, err := w.WriteTables()
+		require.NoError(t, err)
+		require.Equal(t, 2*188, n2)
+	})
+}
