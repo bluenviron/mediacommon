@@ -36,6 +36,8 @@ func WriteCodecBoxes(w *Writer, codec mp4.Codec, trackID int, info *CodecInfo, a
 		|    |esds|
 		|ac-3| (AC-3)
 		|    |dac3|
+		|ec-3| (E-AC-3 / Dolby Digital Plus)
+		|    |dec3|
 		|ipcm| (LPCM)
 		|    |pcmC|
 	*/
@@ -556,6 +558,28 @@ func WriteCodecBoxes(w *Writer, codec mp4.Codec, trackID int, info *CodecInfo, a
 			}(),
 			BitRateCode: codec.BitRateCode,
 		})
+		if err != nil {
+			return err
+		}
+
+	case *mp4.CodecEAC3:
+		_, err := w.WriteBoxStart(&amp4.AudioSampleEntry{ // <ec-3>
+			SampleEntry: amp4.SampleEntry{
+				AnyTypeBox: amp4.AnyTypeBox{
+					Type: amp4.StrToBoxType("ec-3"),
+				},
+				DataReferenceIndex: 1,
+			},
+			ChannelCount: uint16(codec.ChannelCount),
+			SampleSize:   16,
+			SampleRate:   uint32(codec.SampleRate * 65536),
+		})
+		if err != nil {
+			return err
+		}
+
+		// Write dec3 box using actual codec parameters
+		_, err = w.WriteBox(FromCodec(codec))
 		if err != nil {
 			return err
 		}

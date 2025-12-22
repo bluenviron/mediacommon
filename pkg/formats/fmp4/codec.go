@@ -17,6 +17,11 @@ type CodecAC3 = mp4.CodecAC3
 // Deprecated: replaced by mp4.Codec.
 type CodecAV1 = mp4.CodecAV1
 
+// CodecEAC3 is the E-AC-3 (Enhanced AC-3 / Dolby Digital Plus) codec.
+//
+// Deprecated: replaced by mp4.CodecEAC3.
+type CodecEAC3 = mp4.CodecEAC3
+
 // CodecH264 is the H264 codec.
 //
 // Deprecated: replaced by mp4.CodecH264.
