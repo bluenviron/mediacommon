@@ -11,7 +11,7 @@ import (
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h265"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
-	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4/codecs"
 )
 
 func av1FindSequenceHeader(buf []byte) ([]byte, error) {
@@ -260,7 +260,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 					return nil, err
 				}
 
-				curTrack.Codec = &mp4.CodecH264{
+				curTrack.Codec = &codecs.H264{
 					SPS: sps,
 					PPS: pps,
 				}
@@ -297,7 +297,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 				}
 				vpcc := box.(*amp4.VpcC)
 
-				curTrack.Codec = &mp4.CodecVP9{
+				curTrack.Codec = &codecs.VP9{
 					Width:             width,
 					Height:            height,
 					Profile:           vpcc.Profile,
@@ -333,7 +333,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 					return nil, err
 				}
 
-				curTrack.Codec = &mp4.CodecH265{
+				curTrack.Codec = &codecs.H265{
 					VPS: vps,
 					SPS: sps,
 					PPS: pps,
@@ -363,7 +363,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 					return nil, err
 				}
 
-				curTrack.Codec = &mp4.CodecAV1{
+				curTrack.Codec = &codecs.AV1{
 					SequenceHeader: sequenceHeader,
 				}
 				state = waitingTrak
@@ -386,7 +386,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 				}
 				dops := box.(*amp4.DOps)
 
-				curTrack.Codec = &mp4.CodecOpus{
+				curTrack.Codec = &codecs.Opus{
 					ChannelCount: int(dops.OutputChannelCount),
 				}
 				state = waitingTrak
@@ -444,7 +444,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 							return nil, fmt.Errorf("unable to find decoder specific info")
 						}
 
-						curTrack.Codec = &mp4.CodecMPEG4Video{
+						curTrack.Codec = &codecs.MPEG4Video{
 							Config: spec,
 						}
 
@@ -454,7 +454,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 							return nil, fmt.Errorf("unable to find decoder specific info")
 						}
 
-						curTrack.Codec = &mp4.CodecMPEG1Video{
+						curTrack.Codec = &codecs.MPEG1Video{
 							Config: spec,
 						}
 
@@ -463,7 +463,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 							return nil, fmt.Errorf("M-JPEG parameters not provided")
 						}
 
-						curTrack.Codec = &mp4.CodecMJPEG{
+						curTrack.Codec = &codecs.MJPEG{
 							Width:  width,
 							Height: height,
 						}
@@ -488,12 +488,12 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 							return nil, fmt.Errorf("invalid MPEG-4 Audio configuration: %w", err)
 						}
 
-						curTrack.Codec = &mp4.CodecMPEG4Audio{
+						curTrack.Codec = &codecs.MPEG4Audio{
 							Config: c,
 						}
 
 					case imp4.ObjectTypeIndicationAudioISO11172part3:
-						curTrack.Codec = &mp4.CodecMPEG1Audio{
+						curTrack.Codec = &codecs.MPEG1Audio{
 							SampleRate:   sampleRate,
 							ChannelCount: channelCount,
 						}
@@ -535,7 +535,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 				}
 				dac3 := box.(*amp4.Dac3)
 
-				curTrack.Codec = &mp4.CodecAC3{
+				curTrack.Codec = &codecs.AC3{
 					SampleRate:   sampleRate,
 					ChannelCount: channelCount,
 					Fscod:        dac3.Fscod,
@@ -574,7 +574,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 				}
 				pcmc := box.(*amp4.PcmC)
 
-				curTrack.Codec = &mp4.CodecLPCM{
+				curTrack.Codec = &codecs.LPCM{
 					LittleEndian: (pcmc.FormatFlags & 0x01) != 0,
 					BitDepth:     int(pcmc.PCMSampleSize),
 					SampleRate:   sampleRate,

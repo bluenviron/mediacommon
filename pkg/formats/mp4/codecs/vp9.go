@@ -1,7 +1,7 @@
-package mp4
+package codecs
 
-// CodecVP9 is the VP9 codec.
-type CodecVP9 struct {
+// VP9 is the VP9 codec.
+type VP9 struct {
 	Width             int
 	Height            int
 	Profile           uint8
@@ -11,8 +11,8 @@ type CodecVP9 struct {
 }
 
 // IsVideo implements Codec.
-func (CodecVP9) IsVideo() bool {
+func (*VP9) IsVideo() bool {
 	return true
 }
 
-func (*CodecVP9) isCodec() {}
+func (*VP9) isCodec() {}

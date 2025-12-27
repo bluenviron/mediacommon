@@ -1,7 +1,7 @@
-package mp4
+package codecs
 
-// CodecAC3 is the AC-3 codec.
-type CodecAC3 struct {
+// AC3 is the AC-3 codec.
+type AC3 struct {
 	SampleRate   int
 	ChannelCount int
 	Fscod        uint8
@@ -13,8 +13,8 @@ type CodecAC3 struct {
 }
 
 // IsVideo implements Codec.
-func (CodecAC3) IsVideo() bool {
+func (*AC3) IsVideo() bool {
 	return false
 }
 
-func (*CodecAC3) isCodec() {}
+func (*AC3) isCodec() {}

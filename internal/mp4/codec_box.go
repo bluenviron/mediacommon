@@ -7,7 +7,7 @@ import (
 
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/av1"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h265"
-	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4/codecs"
 )
 
 func boolToUint8(v bool) uint8 {
@@ -18,7 +18,7 @@ func boolToUint8(v bool) uint8 {
 }
 
 // WriteCodecBoxes writes codec-related boxes.
-func WriteCodecBoxes(w *Writer, codec mp4.Codec, trackID int, info *CodecInfo, avgBitrate, maxBitrate uint32) error {
+func WriteCodecBoxes(w *Writer, codec codecs.Codec, trackID int, info *CodecInfo, avgBitrate, maxBitrate uint32) error {
 	/*
 		|av01| (AV1)
 		|    |av1C|
@@ -41,7 +41,7 @@ func WriteCodecBoxes(w *Writer, codec mp4.Codec, trackID int, info *CodecInfo, a
 	*/
 
 	switch codec := codec.(type) {
-	case *mp4.CodecAV1:
+	case *codecs.AV1:
 		_, err := w.WriteBoxStart(&amp4.VisualSampleEntry{ // <av01>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
@@ -85,7 +85,7 @@ func WriteCodecBoxes(w *Writer, codec mp4.Codec, trackID int, info *CodecInfo, a
 			return err
 		}
 
-	case *mp4.CodecVP9:
+	case *codecs.VP9:
 		_, err := w.WriteBoxStart(&amp4.VisualSampleEntry{ // <vp09>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
@@ -119,7 +119,7 @@ func WriteCodecBoxes(w *Writer, codec mp4.Codec, trackID int, info *CodecInfo, a
 			return err
 		}
 
-	case *mp4.CodecH265:
+	case *codecs.H265:
 		_, err := w.WriteBoxStart(&amp4.VisualSampleEntry{ // <hev1>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
@@ -190,7 +190,7 @@ func WriteCodecBoxes(w *Writer, codec mp4.Codec, trackID int, info *CodecInfo, a
 			return err
 		}
 
-	case *mp4.CodecH264:
+	case *codecs.H264:
 		_, err := w.WriteBoxStart(&amp4.VisualSampleEntry{ // <avc1>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
@@ -238,7 +238,7 @@ func WriteCodecBoxes(w *Writer, codec mp4.Codec, trackID int, info *CodecInfo, a
 			return err
 		}
 
-	case *mp4.CodecMPEG4Video: //nolint:dupl
+	case *codecs.MPEG4Video: //nolint:dupl
 		_, err := w.WriteBoxStart(&amp4.VisualSampleEntry{ // <mp4v>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
@@ -294,7 +294,7 @@ func WriteCodecBoxes(w *Writer, codec mp4.Codec, trackID int, info *CodecInfo, a
 			return err
 		}
 
-	case *mp4.CodecMPEG1Video: //nolint:dupl
+	case *codecs.MPEG1Video: //nolint:dupl
 		_, err := w.WriteBoxStart(&amp4.VisualSampleEntry{ // <mp4v>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
@@ -350,7 +350,7 @@ func WriteCodecBoxes(w *Writer, codec mp4.Codec, trackID int, info *CodecInfo, a
 			return err
 		}
 
-	case *mp4.CodecMJPEG: //nolint:dupl
+	case *codecs.MJPEG: //nolint:dupl
 		_, err := w.WriteBoxStart(&amp4.VisualSampleEntry{ // <mp4v>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
@@ -401,7 +401,7 @@ func WriteCodecBoxes(w *Writer, codec mp4.Codec, trackID int, info *CodecInfo, a
 			return err
 		}
 
-	case *mp4.CodecOpus:
+	case *codecs.Opus:
 		_, err := w.WriteBoxStart(&amp4.AudioSampleEntry{ // <Opus>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
@@ -426,7 +426,7 @@ func WriteCodecBoxes(w *Writer, codec mp4.Codec, trackID int, info *CodecInfo, a
 			return err
 		}
 
-	case *mp4.CodecMPEG4Audio:
+	case *codecs.MPEG4Audio:
 		_, err := w.WriteBoxStart(&amp4.AudioSampleEntry{ // <mp4a>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
@@ -480,7 +480,7 @@ func WriteCodecBoxes(w *Writer, codec mp4.Codec, trackID int, info *CodecInfo, a
 			return err
 		}
 
-	case *mp4.CodecMPEG1Audio:
+	case *codecs.MPEG1Audio:
 		_, err := w.WriteBoxStart(&amp4.AudioSampleEntry{ // <mp4a>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
@@ -527,7 +527,7 @@ func WriteCodecBoxes(w *Writer, codec mp4.Codec, trackID int, info *CodecInfo, a
 			return err
 		}
 
-	case *mp4.CodecAC3:
+	case *codecs.AC3:
 		_, err := w.WriteBoxStart(&amp4.AudioSampleEntry{ // <ac-3>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
@@ -560,7 +560,7 @@ func WriteCodecBoxes(w *Writer, codec mp4.Codec, trackID int, info *CodecInfo, a
 			return err
 		}
 
-	case *mp4.CodecLPCM:
+	case *codecs.LPCM:
 		_, err := w.WriteBoxStart(&amp4.AudioSampleEntry{ // <ipcm>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{

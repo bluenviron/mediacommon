@@ -13,6 +13,7 @@ import (
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg1audio"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4video"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/codecs"
 )
 
 const (
@@ -222,7 +223,7 @@ func (w *Writer) WriteMPEG4Audio(
 	pts int64,
 	aus [][]byte,
 ) error {
-	codec := track.Codec.(*CodecMPEG4Audio)
+	codec := track.Codec.(*codecs.MPEG4Audio)
 
 	pkts := make(mpeg4audio.ADTSPackets, len(aus))
 
@@ -303,7 +304,7 @@ func (w *Writer) WriteKLV(
 	pts int64,
 	unit []byte,
 ) error {
-	codec := track.Codec.(*CodecKLV)
+	codec := track.Codec.(*codecs.KLV)
 
 	if codec.Synchronous {
 		out, err := writeMetadataAUWrapper(unit)
