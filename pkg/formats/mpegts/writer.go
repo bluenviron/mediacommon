@@ -80,13 +80,27 @@ func (w *Writer) Initialize() error {
 		}
 	}
 
-	// WriteTables() is not necessary
+	// WriteTables() is not necessary for normal operation
 	// since it's called automatically when WriteData() is called with
 	// * PID == PCRPID
 	// * AdaptationField != nil
 	// * RandomAccessIndicator = true
+	// However, it can be called explicitly via Writer.WriteTables() when PAT/PMT
+	// need to be written before any media data (e.g., for late-joining clients).
 
 	return nil
+}
+
+// WriteTables explicitly writes PAT and PMT tables to the output.
+// This is useful for cases where PAT/PMT need to be captured before any
+// media data is written (e.g., to send to late-joining MPEG-TS clients).
+func (w *Writer) WriteTables() (int, error) {
+	// Ensure PCR PID is set before writing tables (required by astits)
+	// If no leading track has been chosen yet, use the first track's PID
+	if !w.leadingTrackChosen && len(w.Tracks) > 0 {
+		w.mux.SetPCRPID(w.Tracks[0].PID)
+	}
+	return w.mux.WriteTables()
 }
 
 // NewWriter allocates a Writer.
