@@ -13,6 +13,7 @@ import (
 
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h265"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/codecs"
 )
 
 var testH265SPS = []byte{
@@ -53,7 +54,7 @@ var casesReadWriter = []struct {
 		"h265",
 		&Track{
 			PID:   257,
-			Codec: &CodecH265{},
+			Codec: &codecs.H265{},
 		},
 		[]sample{
 			{
@@ -153,7 +154,7 @@ var casesReadWriter = []struct {
 		"h264",
 		&Track{
 			PID:   256,
-			Codec: &CodecH264{},
+			Codec: &codecs.H264{},
 		},
 		[]sample{
 			{
@@ -248,7 +249,7 @@ var casesReadWriter = []struct {
 		"mpeg-4 video",
 		&Track{
 			PID:   257,
-			Codec: &CodecMPEG4Video{},
+			Codec: &codecs.MPEG4Video{},
 		},
 		[]sample{
 			{
@@ -308,7 +309,7 @@ var casesReadWriter = []struct {
 		"mpeg-1 video",
 		&Track{
 			PID:   257,
-			Codec: &CodecMPEG1Video{},
+			Codec: &codecs.MPEG1Video{},
 		},
 		[]sample{
 			{
@@ -368,7 +369,7 @@ var casesReadWriter = []struct {
 		"opus",
 		&Track{
 			PID: 257,
-			Codec: &CodecOpus{
+			Codec: &codecs.Opus{
 				ChannelCount: 2,
 			},
 		},
@@ -482,7 +483,7 @@ var casesReadWriter = []struct {
 		"mpeg-4 audio",
 		&Track{
 			PID: 257,
-			Codec: &CodecMPEG4Audio{
+			Codec: &codecs.MPEG4Audio{
 				Config: mpeg4audio.AudioSpecificConfig{
 					Type:         2,
 					SampleRate:   48000,
@@ -549,7 +550,7 @@ var casesReadWriter = []struct {
 		"mpeg-4 audio LATM",
 		&Track{
 			PID:   257,
-			Codec: &CodecMPEG4AudioLATM{},
+			Codec: &codecs.MPEG4AudioLATM{},
 		},
 		[]sample{
 			{
@@ -609,7 +610,7 @@ var casesReadWriter = []struct {
 		"mpeg-1 audio",
 		&Track{
 			PID:   257,
-			Codec: &CodecMPEG1Audio{},
+			Codec: &codecs.MPEG1Audio{},
 		},
 		[]sample{
 			{
@@ -736,7 +737,7 @@ var casesReadWriter = []struct {
 		"ac-3",
 		&Track{
 			PID: 257,
-			Codec: &CodecAC3{
+			Codec: &codecs.AC3{
 				SampleRate:   48000,
 				ChannelCount: 1,
 			},
@@ -919,7 +920,7 @@ var casesReadWriter = []struct {
 		"klv sync",
 		&Track{
 			PID: 257,
-			Codec: &CodecKLV{
+			Codec: &codecs.KLV{
 				Synchronous: true,
 			},
 		},
@@ -984,7 +985,7 @@ var casesReadWriter = []struct {
 		"dvb subtitles",
 		&Track{
 			PID: 257,
-			Codec: &CodecDVBSubtitle{
+			Codec: &codecs.DVBSubtitle{
 				Items: []*astits.DescriptorSubtitlingItem{
 					{
 						AncillaryPageID:   123,
@@ -1077,7 +1078,7 @@ func TestReader(t *testing.T) {
 			i := 0
 
 			switch ca.track.Codec.(type) {
-			case *CodecH265:
+			case *codecs.H265:
 				r.OnDataH265(ca.track, func(pts int64, dts int64, au [][]byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
 					require.Equal(t, ca.samples[i].dts, dts)
@@ -1086,7 +1087,7 @@ func TestReader(t *testing.T) {
 					return nil
 				})
 
-			case *CodecH264:
+			case *codecs.H264:
 				r.OnDataH264(ca.track, func(pts int64, dts int64, au [][]byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
 					require.Equal(t, ca.samples[i].dts, dts)
@@ -1095,7 +1096,7 @@ func TestReader(t *testing.T) {
 					return nil
 				})
 
-			case *CodecMPEG4Video:
+			case *codecs.MPEG4Video:
 				r.OnDataMPEGxVideo(ca.track, func(pts int64, frame []byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
 					require.Equal(t, ca.samples[i].data[0], frame)
@@ -1103,7 +1104,7 @@ func TestReader(t *testing.T) {
 					return nil
 				})
 
-			case *CodecMPEG1Video:
+			case *codecs.MPEG1Video:
 				r.OnDataMPEGxVideo(ca.track, func(pts int64, frame []byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
 					require.Equal(t, ca.samples[i].data[0], frame)
@@ -1111,7 +1112,7 @@ func TestReader(t *testing.T) {
 					return nil
 				})
 
-			case *CodecOpus:
+			case *codecs.Opus:
 				r.OnDataOpus(ca.track, func(pts int64, packets [][]byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
 					require.Equal(t, ca.samples[i].data, packets)
@@ -1119,7 +1120,7 @@ func TestReader(t *testing.T) {
 					return nil
 				})
 
-			case *CodecMPEG4Audio:
+			case *codecs.MPEG4Audio:
 				r.OnDataMPEG4Audio(ca.track, func(pts int64, aus [][]byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
 					require.Equal(t, ca.samples[i].data, aus)
@@ -1127,7 +1128,7 @@ func TestReader(t *testing.T) {
 					return nil
 				})
 
-			case *CodecMPEG4AudioLATM:
+			case *codecs.MPEG4AudioLATM:
 				r.OnDataMPEG4AudioLATM(ca.track, func(pts int64, aus [][]byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
 					require.Equal(t, ca.samples[i].data, aus)
@@ -1135,7 +1136,7 @@ func TestReader(t *testing.T) {
 					return nil
 				})
 
-			case *CodecMPEG1Audio:
+			case *codecs.MPEG1Audio:
 				r.OnDataMPEG1Audio(ca.track, func(pts int64, frames [][]byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
 					require.Equal(t, ca.samples[i].data, frames)
@@ -1143,7 +1144,7 @@ func TestReader(t *testing.T) {
 					return nil
 				})
 
-			case *CodecAC3:
+			case *codecs.AC3:
 				r.OnDataAC3(ca.track, func(pts int64, frame []byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
 					require.Equal(t, ca.samples[i].data[0], frame)
@@ -1151,7 +1152,7 @@ func TestReader(t *testing.T) {
 					return nil
 				})
 
-			case *CodecKLV:
+			case *codecs.KLV:
 				r.OnDataKLV(ca.track, func(pts int64, frame []byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
 					require.Equal(t, ca.samples[i].data[0], frame)
@@ -1159,7 +1160,7 @@ func TestReader(t *testing.T) {
 					return nil
 				})
 
-			case *CodecDVBSubtitle:
+			case *codecs.DVBSubtitle:
 				r.OnDataDVBSubtitle(ca.track, func(pts int64, data []byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
 					require.Equal(t, ca.samples[i].data[0], data)
@@ -1271,11 +1272,11 @@ func TestReaderKLVAsync(t *testing.T) {
 	require.Equal(t, []*Track{
 		{
 			PID:   256,
-			Codec: &CodecH264{},
+			Codec: &codecs.H264{},
 		},
 		{
 			PID: 257,
-			Codec: &CodecKLV{
+			Codec: &codecs.KLV{
 				Synchronous: false,
 			},
 		},

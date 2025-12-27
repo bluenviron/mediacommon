@@ -4,7 +4,7 @@ import (
 	amp4 "github.com/abema/go-mp4"
 
 	imp4 "github.com/bluenviron/mediacommon/v2/internal/mp4"
-	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4/codecs"
 )
 
 const (
@@ -32,7 +32,7 @@ type Track struct {
 	ID         int
 	TimeScale  uint32
 	TimeOffset int32
-	Codec      mp4.Codec
+	Codec      codecs.Codec
 	Samples    []*Sample
 }
 

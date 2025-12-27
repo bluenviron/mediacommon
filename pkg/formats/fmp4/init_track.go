@@ -4,7 +4,7 @@ import (
 	amp4 "github.com/abema/go-mp4"
 
 	imp4 "github.com/bluenviron/mediacommon/v2/internal/mp4"
-	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4/codecs"
 )
 
 const (
@@ -29,7 +29,7 @@ type InitTrack struct {
 	MaxBitrate uint32
 
 	// codec.
-	Codec mp4.Codec
+	Codec codecs.Codec
 }
 
 func (it InitTrack) marshal(w *imp4.Writer) error {

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/asticode/go-astits"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/codecs"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,37 +23,37 @@ func TestWriter(t *testing.T) {
 				var err error
 
 				switch ca.track.Codec.(type) {
-				case *CodecH265:
+				case *codecs.H265:
 					err = w.WriteH265(ca.track, sample.pts, sample.dts, sample.data)
 
-				case *CodecH264:
+				case *codecs.H264:
 					err = w.WriteH264(ca.track, sample.pts, sample.dts, sample.data)
 
-				case *CodecMPEG4Video:
+				case *codecs.MPEG4Video:
 					err = w.WriteMPEG4Video(ca.track, sample.pts, sample.data[0])
 
-				case *CodecMPEG1Video:
+				case *codecs.MPEG1Video:
 					err = w.WriteMPEG1Video(ca.track, sample.pts, sample.data[0])
 
-				case *CodecOpus:
+				case *codecs.Opus:
 					err = w.WriteOpus(ca.track, sample.pts, sample.data)
 
-				case *CodecMPEG4Audio:
+				case *codecs.MPEG4Audio:
 					err = w.WriteMPEG4Audio(ca.track, sample.pts, sample.data)
 
-				case *CodecMPEG4AudioLATM:
+				case *codecs.MPEG4AudioLATM:
 					err = w.WriteMPEG4AudioLATM(ca.track, sample.pts, sample.data)
 
-				case *CodecMPEG1Audio:
+				case *codecs.MPEG1Audio:
 					err = w.WriteMPEG1Audio(ca.track, sample.pts, sample.data)
 
-				case *CodecAC3:
+				case *codecs.AC3:
 					err = w.WriteAC3(ca.track, sample.pts, sample.data[0])
 
-				case *CodecKLV:
+				case *codecs.KLV:
 					err = w.WriteKLV(ca.track, sample.pts, sample.data[0])
 
-				case *CodecDVBSubtitle:
+				case *codecs.DVBSubtitle:
 					err = w.WriteDVBSubtitle(ca.track, sample.pts, sample.data[0])
 
 				default:
@@ -88,10 +89,10 @@ func TestWriterKLVAsync(t *testing.T) {
 		W: &buf,
 		Tracks: []*Track{
 			{
-				Codec: &CodecH264{},
+				Codec: &codecs.H264{},
 			},
 			{
-				Codec: &CodecKLV{
+				Codec: &codecs.KLV{
 					Synchronous: false,
 				},
 			},
@@ -204,7 +205,7 @@ func TestWriterReaderLongKLVSync(t *testing.T) {
 		W: &buf,
 		Tracks: []*Track{
 			{
-				Codec: &CodecKLV{
+				Codec: &codecs.KLV{
 					Synchronous: true,
 				},
 			},
@@ -224,7 +225,7 @@ func TestWriterReaderLongKLVSync(t *testing.T) {
 
 	require.Equal(t, []*Track{{
 		PID: 256,
-		Codec: &CodecKLV{
+		Codec: &codecs.KLV{
 			Synchronous: true,
 		},
 	}}, r.Tracks())
@@ -250,7 +251,7 @@ func TestWriterReaderLongKLVSync(t *testing.T) {
 
 func TestWriterAutomaticPID(t *testing.T) {
 	track := &Track{
-		Codec: &CodecH265{},
+		Codec: &codecs.H265{},
 	}
 
 	var buf bytes.Buffer
@@ -265,11 +266,11 @@ func TestWriterError(t *testing.T) {
 		Tracks: []*Track{
 			{
 				PID:   11,
-				Codec: &CodecH265{},
+				Codec: &codecs.H265{},
 			},
 			{
 				PID:   11,
-				Codec: &CodecH265{},
+				Codec: &codecs.H265{},
 			},
 		},
 	}
@@ -284,7 +285,7 @@ func TestWriterWriteTables(t *testing.T) {
 			W: &buf,
 			Tracks: []*Track{
 				{
-					Codec: &CodecH264{},
+					Codec: &codecs.H264{},
 				},
 			},
 		}
@@ -330,10 +331,10 @@ func TestWriterWriteTables(t *testing.T) {
 			W: &buf,
 			Tracks: []*Track{
 				{
-					Codec: &CodecH264{},
+					Codec: &codecs.H264{},
 				},
 				{
-					Codec: &CodecMPEG4Audio{},
+					Codec: &codecs.MPEG4Audio{},
 				},
 			},
 		}
@@ -372,7 +373,7 @@ func TestWriterWriteTables(t *testing.T) {
 			W: &buf,
 			Tracks: []*Track{
 				{
-					Codec: &CodecH264{},
+					Codec: &codecs.H264{},
 				},
 			},
 		}

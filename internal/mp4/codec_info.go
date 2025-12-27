@@ -6,7 +6,7 @@ import (
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/av1"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h265"
-	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4/codecs"
 )
 
 // CodecInfo contains codec-dependent infos.
@@ -18,10 +18,10 @@ type CodecInfo struct {
 	H264SPS           *h264.SPS
 }
 
-// Fill fills CodecInfo from a mp4.Codec.
-func (ci *CodecInfo) Fill(codec mp4.Codec) error {
+// Fill fills CodecInfo from a codecs.Codec.
+func (ci *CodecInfo) Fill(codec codecs.Codec) error {
 	switch codec := codec.(type) {
-	case *mp4.CodecAV1:
+	case *codecs.AV1:
 		av1SequenceHeader := &av1.SequenceHeader{}
 		err := av1SequenceHeader.Unmarshal(codec.SequenceHeader)
 		if err != nil {
@@ -33,7 +33,7 @@ func (ci *CodecInfo) Fill(codec mp4.Codec) error {
 		ci.AV1SequenceHeader = av1SequenceHeader
 		return nil
 
-	case *mp4.CodecVP9:
+	case *codecs.VP9:
 		if codec.Width == 0 {
 			return fmt.Errorf("VP9 parameters not provided")
 		}
@@ -42,7 +42,7 @@ func (ci *CodecInfo) Fill(codec mp4.Codec) error {
 		ci.Height = codec.Height
 		return nil
 
-	case *mp4.CodecH265:
+	case *codecs.H265:
 		if len(codec.VPS) == 0 || len(codec.SPS) == 0 || len(codec.PPS) == 0 {
 			return fmt.Errorf("H265 parameters not provided")
 		}
@@ -58,7 +58,7 @@ func (ci *CodecInfo) Fill(codec mp4.Codec) error {
 		ci.H265SPS = h265SPS
 		return nil
 
-	case *mp4.CodecH264:
+	case *codecs.H264:
 		if len(codec.SPS) == 0 || len(codec.PPS) == 0 {
 			return fmt.Errorf("H264 parameters not provided")
 		}
@@ -74,7 +74,7 @@ func (ci *CodecInfo) Fill(codec mp4.Codec) error {
 		ci.H264SPS = h264SPS
 		return nil
 
-	case *mp4.CodecMPEG4Video:
+	case *codecs.MPEG4Video:
 		if len(codec.Config) == 0 {
 			return fmt.Errorf("MPEG-4 Video config not provided")
 		}
@@ -83,7 +83,7 @@ func (ci *CodecInfo) Fill(codec mp4.Codec) error {
 		ci.Height = 600
 		return nil
 
-	case *mp4.CodecMPEG1Video:
+	case *codecs.MPEG1Video:
 		if len(codec.Config) == 0 {
 			return fmt.Errorf("MPEG-1/2 Video config not provided")
 		}
@@ -93,7 +93,7 @@ func (ci *CodecInfo) Fill(codec mp4.Codec) error {
 		ci.Height = 600
 		return nil
 
-	case *mp4.CodecMJPEG:
+	case *codecs.MJPEG:
 		if codec.Width == 0 {
 			return fmt.Errorf("M-JPEG parameters not provided")
 		}
@@ -102,7 +102,7 @@ func (ci *CodecInfo) Fill(codec mp4.Codec) error {
 		ci.Height = codec.Height
 		return nil
 
-	case *mp4.CodecOpus, *mp4.CodecMPEG4Audio, *mp4.CodecMPEG1Audio, *mp4.CodecAC3, *mp4.CodecLPCM:
+	case *codecs.Opus, *codecs.MPEG4Audio, *codecs.MPEG1Audio, *codecs.AC3, *codecs.LPCM:
 		return nil
 
 	default:

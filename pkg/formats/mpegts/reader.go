@@ -11,6 +11,7 @@ import (
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h265"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg1audio"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/codecs"
 	"github.com/bluenviron/mediacommon/v2/pkg/rewindablereader"
 )
 
@@ -429,7 +430,7 @@ func (r *Reader) OnDataAC3(track *Track, cb ReaderOnDataAC3Func) {
 
 // OnDataKLV sets a callback that is called when data from a KLV track is received.
 func (r *Reader) OnDataKLV(track *Track, cb ReaderOnDataKLVFunc) {
-	codec := track.Codec.(*CodecKLV)
+	codec := track.Codec.(*codecs.KLV)
 
 	if codec.Synchronous {
 		r.onData[track.PID] = func(pts int64, _ int64, data []byte) error {
@@ -475,7 +476,7 @@ func (r *Reader) Read() error {
 	var pts int64
 	var dts int64
 
-	if klvCodec, ok2 := track.Codec.(*CodecKLV); ok2 && !klvCodec.Synchronous {
+	if klvCodec, ok2 := track.Codec.(*codecs.KLV); ok2 && !klvCodec.Synchronous {
 		if !r.lastPTSReceived {
 			return nil
 		}

@@ -9,7 +9,7 @@ import (
 
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/fmp4/seekablebuffer"
-	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4/codecs"
 )
 
 var testSPS = []byte{
@@ -19,12 +19,12 @@ var testSPS = []byte{
 	0x20,
 }
 
-var testVideoTrack = &mp4.CodecH264{
+var testVideoTrack = &codecs.H264{
 	SPS: testSPS,
 	PPS: []byte{0x08},
 }
 
-var testAudioTrack = &mp4.CodecMPEG4Audio{
+var testAudioTrack = &codecs.MPEG4Audio{
 	Config: mpeg4audio.AudioSpecificConfig{
 		Type:         2,
 		SampleRate:   44100,
@@ -128,7 +128,7 @@ var casesInit = []struct {
 			Tracks: []*InitTrack{{
 				ID:        1,
 				TimeScale: 90000,
-				Codec: &mp4.CodecAV1{
+				Codec: &codecs.AV1{
 					SequenceHeader: []byte{
 						0x08, 0x00, 0x00, 0x00, 0x42, 0xa7, 0xbf, 0xe4,
 						0x60, 0x0d, 0x00, 0x40,
@@ -227,7 +227,7 @@ var casesInit = []struct {
 			Tracks: []*InitTrack{{
 				ID:        1,
 				TimeScale: 90000,
-				Codec: &mp4.CodecVP9{
+				Codec: &codecs.VP9{
 					Width:             1920,
 					Height:            1080,
 					Profile:           1,
@@ -341,7 +341,7 @@ var casesInit = []struct {
 				{
 					ID:        1,
 					TimeScale: 90000,
-					Codec: &mp4.CodecH265{
+					Codec: &codecs.H265{
 						VPS: []byte{0x01, 0x02, 0x03, 0x04},
 						SPS: []byte{
 							0x42, 0x01, 0x01, 0x01, 0x60, 0x00, 0x00, 0x03,
@@ -570,7 +570,7 @@ var casesInit = []struct {
 				{
 					ID:        1,
 					TimeScale: 90000,
-					Codec: &mp4.CodecMPEG4Video{
+					Codec: &codecs.MPEG4Video{
 						Config: []byte{
 							0x00, 0x00, 0x01, 0xb0, 0x01, 0x00, 0x00, 0x01,
 							0xb5, 0x89, 0x13, 0x00, 0x00, 0x01, 0x00, 0x00,
@@ -682,7 +682,7 @@ var casesInit = []struct {
 				{
 					ID:        1,
 					TimeScale: 90000,
-					Codec: &mp4.CodecMPEG1Video{
+					Codec: &codecs.MPEG1Video{
 						Config: []byte{
 							0x00, 0x00, 0x01, 0xb3, 0x78, 0x04, 0x38, 0x35,
 							0xff, 0xff, 0xe0, 0x18, 0x00, 0x00, 0x01, 0xb5,
@@ -787,7 +787,7 @@ var casesInit = []struct {
 				{
 					ID:        1,
 					TimeScale: 90000,
-					Codec: &mp4.CodecMJPEG{
+					Codec: &codecs.MJPEG{
 						Width:  640,
 						Height: 480,
 					},
@@ -882,7 +882,7 @@ var casesInit = []struct {
 				{
 					ID:        1,
 					TimeScale: 48000,
-					Codec: &mp4.CodecOpus{
+					Codec: &codecs.Opus{
 						ChannelCount: 2,
 					},
 				},
@@ -1089,7 +1089,7 @@ var casesInit = []struct {
 				{
 					ID:        1,
 					TimeScale: 90000,
-					Codec: &mp4.CodecMPEG1Audio{
+					Codec: &codecs.MPEG1Audio{
 						SampleRate:   48000,
 						ChannelCount: 2,
 					},
@@ -1180,7 +1180,7 @@ var casesInit = []struct {
 				{
 					ID:        1,
 					TimeScale: 90000,
-					Codec: &mp4.CodecAC3{
+					Codec: &codecs.AC3{
 						SampleRate:   48000,
 						ChannelCount: 6,
 						Fscod:        0x0,
@@ -1278,7 +1278,7 @@ var casesInit = []struct {
 				{
 					ID:        1,
 					TimeScale: 90000,
-					Codec: &mp4.CodecLPCM{
+					Codec: &codecs.LPCM{
 						BitDepth:     24,
 						SampleRate:   48000,
 						ChannelCount: 2,
@@ -1569,7 +1569,7 @@ var casesInit = []struct {
 			Tracks: []*InitTrack{{
 				ID:        1,
 				TimeScale: 90000,
-				Codec: &mp4.CodecH264{
+				Codec: &codecs.H264{
 					SPS: []byte{
 						0x67, 0x42, 0xc0, 0x1f, 0xd9, 0x00, 0xf0, 0x11,
 						0x7e, 0xf0, 0x11, 0x00, 0x00, 0x03, 0x00, 0x01,
@@ -1718,7 +1718,7 @@ func TestInitUnmarshalExternal(t *testing.T) {
 					{
 						ID:        256,
 						TimeScale: 10000000,
-						Codec: &mp4.CodecH264{
+						Codec: &codecs.H264{
 							SPS: []byte{
 								0x67, 0x42, 0xc0, 0x1f, 0xd9, 0x00, 0xf0, 0x11,
 								0x7e, 0xf0, 0x11, 0x00, 0x00, 0x03, 0x00, 0x01,
@@ -1892,7 +1892,7 @@ func TestInitUnmarshalExternal(t *testing.T) {
 				Tracks: []*InitTrack{{
 					ID:        1,
 					TimeScale: 6000,
-					Codec: &mp4.CodecH265{
+					Codec: &codecs.H265{
 						VPS: []byte{
 							0x40, 0x01, 0x0c, 0x01, 0xff, 0xff, 0x02, 0x20,
 							0x00, 0x00, 0x03, 0x00, 0xb0, 0x00, 0x00, 0x03,
@@ -2011,7 +2011,7 @@ func TestInitUnmarshalExternal(t *testing.T) {
 					{
 						ID:        257,
 						TimeScale: 10000000,
-						Codec: &mp4.CodecMPEG4Audio{
+						Codec: &codecs.MPEG4Audio{
 							Config: mpeg4audio.AudioSpecificConfig{
 								Type:         mpeg4audio.ObjectTypeAACLC,
 								SampleRate:   48000,
@@ -2170,7 +2170,7 @@ func TestInitUnmarshalExternal(t *testing.T) {
 				Tracks: []*InitTrack{{
 					ID:        1,
 					TimeScale: 6000,
-					Codec: &mp4.CodecH264{
+					Codec: &codecs.H264{
 						SPS: []byte{
 							0x27, 0x64, 0x00, 0x2a, 0xac, 0x52, 0x14, 0x07,
 							0x80, 0x22, 0x7e, 0x5f, 0xfc, 0x00, 0x04, 0x00,
@@ -2208,35 +2208,35 @@ func TestInitMarshal(t *testing.T) {
 func TestInitMarshalEmptyParameters(t *testing.T) {
 	for _, ca := range []struct {
 		name  string
-		codec mp4.Codec
+		codec codecs.Codec
 	}{
 		{
 			"av1",
-			&mp4.CodecAV1{},
+			&codecs.AV1{},
 		},
 		{
 			"vp9",
-			&mp4.CodecVP9{},
+			&codecs.VP9{},
 		},
 		{
 			"h265",
-			&mp4.CodecH265{},
+			&codecs.H265{},
 		},
 		{
 			"h264",
-			&mp4.CodecH264{},
+			&codecs.H264{},
 		},
 		{
 			"mpeg-4 video",
-			&mp4.CodecMPEG4Video{},
+			&codecs.MPEG4Video{},
 		},
 		{
 			"mpeg-1 video",
-			&mp4.CodecMPEG1Video{},
+			&codecs.MPEG1Video{},
 		},
 		{
 			"mjpeg",
-			&mp4.CodecMJPEG{},
+			&codecs.MJPEG{},
 		},
 	} {
 		t.Run(ca.name, func(t *testing.T) {

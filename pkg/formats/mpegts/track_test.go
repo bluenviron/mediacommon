@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/codecs"
 )
 
 func TestTrackUnmarshalExternal(t *testing.T) {
@@ -70,7 +71,7 @@ func TestTrackUnmarshalExternal(t *testing.T) {
 			},
 			&Track{
 				PID:   65,
-				Codec: &CodecH264{},
+				Codec: &codecs.H264{},
 			},
 		},
 		{
@@ -127,7 +128,7 @@ func TestTrackUnmarshalExternal(t *testing.T) {
 			},
 			&Track{
 				PID:   256,
-				Codec: &CodecH264{},
+				Codec: &codecs.H264{},
 			},
 		},
 		{
@@ -184,7 +185,7 @@ func TestTrackUnmarshalExternal(t *testing.T) {
 			},
 			&Track{
 				PID:   256,
-				Codec: &CodecH265{},
+				Codec: &codecs.H265{},
 			},
 		},
 		{
@@ -623,7 +624,7 @@ func TestTrackUnmarshalExternal(t *testing.T) {
 			},
 			&Track{
 				PID: 256,
-				Codec: &CodecMPEG4Audio{
+				Codec: &codecs.MPEG4Audio{
 					Config: mpeg4audio.AudioSpecificConfig{
 						Type:         2,
 						SampleRate:   48000,
@@ -686,7 +687,7 @@ func TestTrackUnmarshalExternal(t *testing.T) {
 			},
 			&Track{
 				PID: 256,
-				Codec: &CodecOpus{
+				Codec: &codecs.Opus{
 					ChannelCount: 2,
 				},
 			},

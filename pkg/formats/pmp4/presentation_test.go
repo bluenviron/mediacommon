@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
-	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4/codecs"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,7 +22,7 @@ var casesPresentation = []struct {
 					ID:         1,
 					TimeScale:  90000,
 					TimeOffset: -90000,
-					Codec: &mp4.CodecH264{
+					Codec: &codecs.H264{
 						SPS: []byte{ // 1920x1080 baseline
 							0x67, 0x42, 0xc0, 0x28, 0xd9, 0x00, 0x78, 0x02,
 							0x27, 0xe5, 0x84, 0x00, 0x00, 0x03, 0x00, 0x04,
@@ -61,7 +61,7 @@ var casesPresentation = []struct {
 				{
 					ID:        2,
 					TimeScale: 90000,
-					Codec: &mp4.CodecH265{
+					Codec: &codecs.H265{
 						VPS: []byte{0x01, 0x02, 0x03, 0x04},
 						SPS: []byte{
 							0x42, 0x01, 0x01, 0x01, 0x60, 0x00, 0x00, 0x03,
@@ -84,7 +84,7 @@ var casesPresentation = []struct {
 				{
 					ID:        3,
 					TimeScale: 90000,
-					Codec: &mp4.CodecVP9{
+					Codec: &codecs.VP9{
 						Width:             1920,
 						Height:            1080,
 						Profile:           1,
@@ -103,7 +103,7 @@ var casesPresentation = []struct {
 				{
 					ID:        4,
 					TimeScale: 90000,
-					Codec: &mp4.CodecAV1{
+					Codec: &codecs.AV1{
 						SequenceHeader: []byte{
 							8, 0, 0, 0, 66, 167, 191, 228, 96, 13, 0, 64,
 						},
@@ -119,7 +119,7 @@ var casesPresentation = []struct {
 				{
 					ID:        5,
 					TimeScale: 90000,
-					Codec: &mp4.CodecMPEG4Video{
+					Codec: &codecs.MPEG4Video{
 						Config: []byte{
 							0x00, 0x00, 0x01, 0xb0, 0x01, 0x00, 0x00, 0x01,
 							0xb5, 0x89, 0x13, 0x00, 0x00, 0x01, 0x00, 0x00,
@@ -140,7 +140,7 @@ var casesPresentation = []struct {
 				{
 					ID:        6,
 					TimeScale: 90000,
-					Codec: &mp4.CodecMPEG1Video{
+					Codec: &codecs.MPEG1Video{
 						Config: []byte{
 							0x00, 0x00, 0x01, 0xb3, 0x78, 0x04, 0x38, 0x35,
 							0xff, 0xff, 0xe0, 0x18, 0x00, 0x00, 0x01, 0xb5,
@@ -158,7 +158,7 @@ var casesPresentation = []struct {
 				{
 					ID:        7,
 					TimeScale: 90000,
-					Codec: &mp4.CodecMJPEG{
+					Codec: &codecs.MJPEG{
 						Width:  640,
 						Height: 480,
 					},
@@ -173,7 +173,7 @@ var casesPresentation = []struct {
 				{
 					ID:        7,
 					TimeScale: 90000,
-					Codec: &mp4.CodecOpus{
+					Codec: &codecs.Opus{
 						ChannelCount: 2,
 					},
 					Samples: []*Sample{{
@@ -187,7 +187,7 @@ var casesPresentation = []struct {
 				{
 					ID:        8,
 					TimeScale: 90000,
-					Codec: &mp4.CodecMPEG4Audio{
+					Codec: &codecs.MPEG4Audio{
 						Config: mpeg4audio.AudioSpecificConfig{
 							Type:         2,
 							SampleRate:   44100,
@@ -205,7 +205,7 @@ var casesPresentation = []struct {
 				{
 					ID:        9,
 					TimeScale: 90000,
-					Codec: &mp4.CodecMPEG1Audio{
+					Codec: &codecs.MPEG1Audio{
 						SampleRate:   48000,
 						ChannelCount: 2,
 					},
@@ -220,7 +220,7 @@ var casesPresentation = []struct {
 				{
 					ID:        10,
 					TimeScale: 90000,
-					Codec: &mp4.CodecAC3{
+					Codec: &codecs.AC3{
 						SampleRate:   48000,
 						ChannelCount: 6,
 						Fscod:        0x0,
@@ -241,7 +241,7 @@ var casesPresentation = []struct {
 				{
 					ID:        10,
 					TimeScale: 90000,
-					Codec: &mp4.CodecLPCM{
+					Codec: &codecs.LPCM{
 						BitDepth:     24,
 						SampleRate:   48000,
 						ChannelCount: 2,
@@ -1103,7 +1103,7 @@ var casesPresentation = []struct {
 				{
 					ID:        2,
 					TimeScale: 90000,
-					Codec: &mp4.CodecH265{
+					Codec: &codecs.H265{
 						VPS: []byte{0x01, 0x02, 0x03, 0x04},
 						SPS: []byte{
 							0x42, 0x01, 0x01, 0x01, 0x60, 0x00, 0x00, 0x03,
@@ -1126,7 +1126,7 @@ var casesPresentation = []struct {
 				{
 					ID:        3,
 					TimeScale: 90000,
-					Codec: &mp4.CodecVP9{
+					Codec: &codecs.VP9{
 						Width:             1920,
 						Height:            1080,
 						Profile:           1,
