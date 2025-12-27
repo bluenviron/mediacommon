@@ -61,7 +61,8 @@ func (it InitTrack) marshal(w *imp4.Writer) error {
 		return err
 	}
 
-	info, err := imp4.ExtractCodecInfo(it.Codec)
+	var info imp4.CodecInfo
+	err = info.Fill(it.Codec)
 	if err != nil {
 		return err
 	}
@@ -207,7 +208,7 @@ func (it InitTrack) marshal(w *imp4.Writer) error {
 		}
 	}
 
-	err = imp4.WriteCodecBoxes(w, it.Codec, it.ID, info, avgBitrate, maxBitrate)
+	err = imp4.WriteCodecBoxes(w, it.Codec, it.ID, &info, avgBitrate, maxBitrate)
 	if err != nil {
 		return err
 	}
