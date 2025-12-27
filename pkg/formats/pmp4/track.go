@@ -68,7 +68,8 @@ func (t Track) marshal(w *imp4.Writer) (*headerTrackMarshalResult, error) {
 		return nil, err
 	}
 
-	info, err := imp4.ExtractCodecInfo(t.Codec)
+	var info imp4.CodecInfo
+	err = info.Fill(t.Codec)
 	if err != nil {
 		return nil, err
 	}
@@ -235,7 +236,7 @@ func (t Track) marshal(w *imp4.Writer) (*headerTrackMarshalResult, error) {
 		maxBitrate = audioBitrate
 	}
 
-	err = imp4.WriteCodecBoxes(w, t.Codec, t.ID, info, uint32(avgBitrate), uint32(maxBitrate))
+	err = imp4.WriteCodecBoxes(w, t.Codec, t.ID, &info, uint32(avgBitrate), uint32(maxBitrate))
 	if err != nil {
 		return nil, err
 	}
