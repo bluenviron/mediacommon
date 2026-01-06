@@ -7,6 +7,7 @@ import (
 	"github.com/asticode/go-astits"
 
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/ac3"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/eac3"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h265"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg1audio"
@@ -41,6 +42,9 @@ type ReaderOnDataMPEG1AudioFunc func(pts int64, frames [][]byte) error
 
 // ReaderOnDataAC3Func is the prototype of the callback passed to OnDataAC3.
 type ReaderOnDataAC3Func func(pts int64, frame []byte) error
+
+// ReaderOnDataEAC3Func is the prototype of the callback passed to OnDataEAC3.
+type ReaderOnDataEAC3Func func(pts int64, frame []byte) error
 
 // ReaderOnDataKLVFunc is the prototype of the callback passed to OnDataKLV.
 type ReaderOnDataKLVFunc func(pts int64, data []byte) error
@@ -423,6 +427,34 @@ func (r *Reader) OnDataAC3(track *Track, cb ReaderOnDataAC3Func) {
 			r.onDecodeError(fmt.Errorf("unexpected frame size: got %d, expected %d", len(data), size))
 			return nil
 		}
+
+		return cb(pts, data)
+	}
+}
+
+// OnDataEAC3 sets a callback that is called when data from an E-AC-3 track is received.
+// E-AC3 supports multiple substreams (independent + dependent) concatenated together.
+// We validate only the first substream's sync header and pass the full data to the callback.
+func (r *Reader) OnDataEAC3(track *Track, cb ReaderOnDataEAC3Func) {
+	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
+		if pts != dts {
+			r.onDecodeError(fmt.Errorf("PTS is not equal to DTS"))
+			return nil
+		}
+
+		// Validate E-AC3 sync header
+		var syncInfo eac3.SyncInfo
+		err := syncInfo.Unmarshal(data)
+		if err != nil {
+			r.onDecodeError(err)
+			return nil
+		}
+
+		// E-AC3 allows multiple substreams concatenated together (independent + dependent).
+		// The frmsiz in the header only covers the first substream.
+		// Rather than parsing all substreams, we just validate the sync header and
+		// pass the full data. The downstream decoder will handle substream parsing.
+		// This matches how other decoders (FFmpeg) handle E-AC3 PES packets.
 
 		return cb(pts, data)
 	}

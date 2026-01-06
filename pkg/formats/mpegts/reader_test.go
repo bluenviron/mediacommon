@@ -818,10 +818,14 @@ var casesReadWriter = []struct {
 					PID:                       4096,
 				},
 				Payload: append([]byte{
-					0x00, 0x02, 0xb0, 0x12, 0x00, 0x01, 0xc1, 0x00,
+					// PMT with AC-3 descriptor (ETSI EN 300 468)
+					0x00, 0x02, 0xb0, 0x17, 0x00, 0x01, 0xc1, 0x00,
 					0x00, 0xe1, 0x01, 0xf0, 0x00, 0x81, 0xe1, 0x01,
-					0xf0, 0x00, 0x12, 0x71, 0xfd, 0xb7,
-				}, bytes.Repeat([]byte{0xff}, 162)...),
+					// ES info length=5, AC-3 descriptor tag=0x6a, len=3, flags=0xcf, component_type=0x05, bsid=0x08
+					0xf0, 0x05, 0x6a, 0x03, 0xcf, 0x05, 0x08,
+					// CRC32
+					0x35, 0x4a, 0x57, 0xb7,
+				}, bytes.Repeat([]byte{0xff}, 157)...),
 			},
 			{ // PES
 				AdaptationField: &astits.PacketAdaptationField{
@@ -913,6 +917,81 @@ var casesReadWriter = []struct {
 					0xfd, 0x3c, 0x01, 0x86, 0xfe, 0x56, 0x59, 0x74,
 					0x44, 0x3a, 0x40, 0x00, 0xec, 0xfc,
 				},
+			},
+		},
+	},
+	{
+		"e-ac-3",
+		&Track{
+			PID: 257,
+			Codec: &codecs.EAC3{
+				SampleRate:   48000,
+				ChannelCount: 2,
+			},
+		},
+		[]sample{
+			{
+				30 * 90000,
+				30 * 90000,
+				// E-AC-3 frame: sync word 0x0B77, bsid=16
+				// strmtyp=0, substreamid=0, frmsiz=63 (128 bytes)
+				// fscod=0 (48kHz), numblkscod=3 (6 blocks)
+				// acmod=2 (stereo), lfeon=0, bsid=16
+				[][]byte{append([]byte{
+					0x0b, 0x77, 0x00, 0x3f, 0x34, 0x80,
+				}, bytes.Repeat([]byte{0x00}, 122)...)},
+			},
+		},
+		[]*astits.Packet{
+			{ // PMT
+				Header: astits.PacketHeader{
+					HasPayload:                true,
+					PayloadUnitStartIndicator: true,
+					PID:                       0,
+				},
+				Payload: append([]byte{
+					0x00, 0x00, 0xb0, 0x0d, 0x00, 0x00, 0xc1, 0x00,
+					0x00, 0x00, 0x01, 0xf0, 0x00, 0x71, 0x10, 0xd8,
+					0x78,
+				}, bytes.Repeat([]byte{0xff}, 167)...),
+			},
+			{ // PAT
+				Header: astits.PacketHeader{
+					HasPayload:                true,
+					PayloadUnitStartIndicator: true,
+					PID:                       4096,
+				},
+				Payload: append([]byte{
+					// PMT with E-AC-3 descriptor (ETSI EN 300 468)
+					0x00, 0x02, 0xb0, 0x17, 0x00, 0x01, 0xc1, 0x00,
+					0x00, 0xe1, 0x01, 0xf0, 0x00, 0x87, 0xe1, 0x01,
+					// ES info length=5, E-AC-3 descriptor tag=0x7a, len=3, flags=0xc0, component_type=0x05, bsid=0x10
+					0xf0, 0x05, 0x7a, 0x03, 0xc0, 0x05, 0x10,
+					// CRC32
+					0xd9, 0x6f, 0xab, 0x55,
+				}, bytes.Repeat([]byte{0xff}, 157)...),
+			},
+			{ // PES
+				AdaptationField: &astits.PacketAdaptationField{
+					Length:                41,
+					StuffingLength:        34,
+					HasPCR:                true,
+					PCR:                   &astits.ClockReference{Base: 2691000},
+					RandomAccessIndicator: true,
+				},
+				Header: astits.PacketHeader{
+					HasAdaptationField:        true,
+					HasPayload:                true,
+					PayloadUnitStartIndicator: true,
+					PID:                       257,
+				},
+				Payload: append([]byte{
+					// PES header: start code + stream_id + length (0x88=136 = 8 header + 128 frame)
+					0x00, 0x00, 0x01, 0xc0, 0x00, 0x88, 0x80, 0x80,
+					0x05, 0x21, 0x00, 0xa5, 0x65, 0xc1,
+					// E-AC-3 frame (128 bytes)
+					0x0b, 0x77, 0x00, 0x3f, 0x34, 0x80,
+				}, bytes.Repeat([]byte{0x00}, 122)...),
 			},
 		},
 	},
@@ -1146,6 +1225,14 @@ func TestReader(t *testing.T) {
 
 			case *codecs.AC3:
 				r.OnDataAC3(ca.track, func(pts int64, frame []byte) error {
+					require.Equal(t, ca.samples[i].pts, pts)
+					require.Equal(t, ca.samples[i].data[0], frame)
+					i++
+					return nil
+				})
+
+			case *codecs.EAC3:
+				r.OnDataEAC3(ca.track, func(pts int64, frame []byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
 					require.Equal(t, ca.samples[i].data[0], frame)
 					i++
