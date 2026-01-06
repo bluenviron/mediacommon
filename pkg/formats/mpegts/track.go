@@ -257,7 +257,7 @@ func findCodec(dem *robustDemuxer, es *astits.PMTElementaryStream) (codecs.Codec
 // ac3ComponentType builds the DVB component_type byte for AC-3.
 // Per ETSI EN 300 468, the AC3 descriptor uses a similar format to E-AC-3.
 func ac3ComponentType(channels int, fullService bool) uint8 {
-	var ct uint8 = 0
+	var ct uint8
 
 	// Set full_service_flag (bit 0)
 	if fullService {
@@ -289,7 +289,7 @@ func ac3ComponentType(channels int, fullService bool) uint8 {
 //	Bits 2-0 encode channel config: 0=mono/stereo, 1=mono, 2=stereo, 3=2ch, etc.
 func eac3ComponentType(channels int, fullService bool) uint8 {
 	// Start with full service, complete main audio (bits 7-4 = 0000)
-	var ct uint8 = 0
+	var ct uint8
 
 	// Set full_service_flag (bit 0)
 	if fullService {
