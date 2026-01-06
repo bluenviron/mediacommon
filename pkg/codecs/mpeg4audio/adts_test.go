@@ -59,9 +59,10 @@ var casesADTS = []struct {
 	},
 }
 
-// casesADTSChannelConfig0 contains test cases for channel_config=0 which
-// requires parsing the AU to determine channel count. These cases only
-// support Unmarshal, not Marshal (since we can't roundtrip channel_config=0).
+// casesADTSChannelConfig0 contains test cases for channel_config=0.
+// The parser preserves ChannelCount=0 to allow round-trip encoding.
+// Callers needing the actual channel count should use ParsePCEFromRawDataBlock
+// or CountChannelsFromRawDataBlock on the AU.
 var casesADTSChannelConfig0 = []struct {
 	name string
 	byts []byte
@@ -80,7 +81,7 @@ var casesADTSChannelConfig0 = []struct {
 			{
 				Type:         ObjectTypeAACLC,
 				SampleRate:   48000,
-				ChannelCount: 2, // Detected from CPE element
+				ChannelCount: 0, // Preserved as 0, use CountChannelsFromRawDataBlock to get 2
 				AU:           []byte{0x20, 0x00, 0x00, 0x00},
 			},
 		},
@@ -97,7 +98,7 @@ var casesADTSChannelConfig0 = []struct {
 			{
 				Type:         ObjectTypeAACLC,
 				SampleRate:   48000,
-				ChannelCount: 1, // Detected from SCE element
+				ChannelCount: 0, // Preserved as 0, use CountChannelsFromRawDataBlock to get 1
 				AU:           []byte{0x00, 0x00, 0x00, 0x00},
 			},
 		},
@@ -114,7 +115,7 @@ var casesADTSChannelConfig0 = []struct {
 			{
 				Type:         ObjectTypeAACLC,
 				SampleRate:   48000,
-				ChannelCount: 1, // Detected from LFE element
+				ChannelCount: 0, // Preserved as 0, use CountChannelsFromRawDataBlock to get 1
 				AU:           []byte{0x60, 0x00, 0x00, 0x00},
 			},
 		},
@@ -132,7 +133,7 @@ var casesADTSChannelConfig0 = []struct {
 			{
 				Type:         ObjectTypeAACLC,
 				SampleRate:   48000,
-				ChannelCount: 2, // Detected from PCE
+				ChannelCount: 0, // Preserved as 0, use ParsePCEFromRawDataBlock to get 2
 				AU:           []byte{0xA0, 0xA0, 0x80, 0x00, 0x04, 0x00},
 			},
 		},
@@ -157,6 +158,16 @@ func TestADTSUnmarshalChannelConfig0(t *testing.T) {
 			err := pkts.Unmarshal(ca.byts)
 			require.NoError(t, err)
 			require.Equal(t, ca.pkts, pkts)
+		})
+	}
+}
+
+func TestADTSMarshalChannelConfig0(t *testing.T) {
+	for _, ca := range casesADTSChannelConfig0 {
+		t.Run(ca.name, func(t *testing.T) {
+			byts, err := ca.pkts.Marshal()
+			require.NoError(t, err)
+			require.Equal(t, ca.byts, byts)
 		})
 	}
 }

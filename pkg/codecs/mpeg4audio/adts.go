@@ -60,54 +60,16 @@ func (ps *ADTSPackets) Unmarshal(buf []byte) error {
 			pkt.ChannelCount = 8
 
 		case channelConfig == 0:
-			// Channel configuration 0 means the channel layout is defined either by:
-			// 1. An explicit PCE at the start of the raw_data_block, or
-			// 2. Implicit ordering based on the syntactic elements present
+			// Channel configuration 0 means the channel layout is defined by a
+			// Program Config Element (PCE), which may be present either:
+			// 1. Within GASpecificConfig in the AudioSpecificConfig, or
+			// 2. At the start of raw_data_block in each access unit
 			//
-			// FFmpeg typically uses implicit ordering without PCE, so we try both.
-			frameLen := int(((uint16(buf[pos+3])&0x03)<<11)|
-				(uint16(buf[pos+4])<<3)|
-				((uint16(buf[pos+5])>>5)&0x07)) - 7
-
-			if frameLen <= 0 {
-				return fmt.Errorf("invalid FrameLen")
-			}
-
-			if frameLen > MaxAccessUnitSize {
-				return fmt.Errorf("access unit size (%d) is too big, maximum is %d", frameLen, MaxAccessUnitSize)
-			}
-
-			frameCount := buf[pos+6] & 0x03
-			if frameCount != 0 {
-				return fmt.Errorf("frame count greater than 1 is not supported")
-			}
-
-			if len(buf[pos+7:]) < frameLen {
-				return fmt.Errorf("invalid frame length")
-			}
-
-			pkt.AU = buf[pos+7 : pos+7+frameLen]
-
-			// Try to parse PCE first, fall back to counting elements
-			pce, err := ParsePCEFromRawDataBlock(pkt.AU)
-			if err == nil {
-				pkt.ChannelCount = pce.ChannelCount
-			} else {
-				// No PCE - count channels from syntactic elements
-				channelCount, err := CountChannelsFromRawDataBlock(pkt.AU)
-				if err != nil {
-					return fmt.Errorf("channel_config=0: %w", err)
-				}
-				pkt.ChannelCount = channelCount
-			}
-
-			pos += 7 + frameLen
-			*ps = append(*ps, pkt)
-
-			if (bl - pos) == 0 {
-				return nil
-			}
-			continue
+			// We preserve the original value (0) to allow re-encoding the packet
+			// in its original form. Callers needing the actual channel count
+			// should use ParsePCEFromRawDataBlock or CountChannelsFromRawDataBlock
+			// on the access unit.
+			pkt.ChannelCount = 0
 
 		default:
 			// Channel configs 8-15 are reserved.
@@ -174,6 +136,10 @@ func (ps ADTSPackets) Marshal() ([]byte, error) {
 
 		var channelConfig int
 		switch {
+		case pkt.ChannelCount == 0:
+			// channel_config=0 indicates PCE in bitstream
+			channelConfig = 0
+
 		case pkt.ChannelCount >= 1 && pkt.ChannelCount <= 6:
 			channelConfig = pkt.ChannelCount
 

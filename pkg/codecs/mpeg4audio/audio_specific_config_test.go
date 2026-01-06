@@ -77,6 +77,18 @@ var audioSpecificConfigCases = []struct {
 		},
 	},
 	{
+		"aac-lc 48khz channel_config=0",
+		// Object type (5 bits): 2 (AAC-LC), Sample rate idx (4 bits): 3 (48kHz),
+		// Channel config (4 bits): 0, GASpecificConfig: 000
+		// 00010 0011 0000 000 = 0x11 0x80
+		[]byte{0x11, 0x80},
+		AudioSpecificConfig{
+			Type:         ObjectTypeAACLC,
+			SampleRate:   48000,
+			ChannelCount: 0, // PCE defines channel layout
+		},
+	},
+	{
 		"sbr (he-aac v1) 44.1khz mono",
 		[]byte{0x2b, 0x8a, 0x08, 0x00},
 		AudioSpecificConfig{
@@ -158,10 +170,19 @@ func TestAudioSpecificConfigMarshal(t *testing.T) {
 }
 
 func TestAudioSpecificConfigMarshalErrors(t *testing.T) {
+	// ChannelCount=0 is valid (indicates PCE in bitstream)
 	_, err := AudioSpecificConfig{
 		Type:         ObjectTypeAACLC,
 		SampleRate:   44100,
 		ChannelCount: 0,
+	}.Marshal()
+	require.NoError(t, err)
+
+	// Invalid channel count should error
+	_, err = AudioSpecificConfig{
+		Type:         ObjectTypeAACLC,
+		SampleRate:   44100,
+		ChannelCount: 9,
 	}.Marshal()
 	require.Error(t, err)
 }

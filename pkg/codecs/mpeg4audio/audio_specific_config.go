@@ -94,10 +94,13 @@ func (c *AudioSpecificConfig) unmarshalBits(buf []byte, pos *int) error {
 
 	case channelConfig == 0:
 		// Channel configuration 0 means the channel layout is defined by a
-		// Program Config Element (PCE) in the AAC bitstream.
-		// The actual channel count will be determined when the raw_data_block
-		// containing the PCE is parsed. For now, set to 0 to indicate unknown.
-		// The caller should use ParsePCEFromRawDataBlock on the first AU.
+		// Program Config Element (PCE), which may be present either:
+		// 1. Within GASpecificConfig (in this AudioSpecificConfig), or
+		// 2. At the start of raw_data_block in each access unit
+		//
+		// We preserve the original value (0) to allow re-encoding in original form.
+		// Callers needing the actual channel count should use
+		// ParsePCEFromRawDataBlock or CountChannelsFromRawDataBlock on the AU.
 		c.ChannelCount = 0
 
 	default:
@@ -240,6 +243,10 @@ func (c AudioSpecificConfig) marshalToBits(buf []byte, pos *int) error {
 
 	var channelConfig int
 	switch {
+	case c.ChannelCount == 0:
+		// channel_config=0 indicates PCE defines channel layout
+		channelConfig = 0
+
 	case c.ChannelCount >= 1 && c.ChannelCount <= 6:
 		channelConfig = c.ChannelCount
 
