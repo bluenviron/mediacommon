@@ -80,8 +80,8 @@ func CountChannelsFromRawDataBlock(au []byte) (int, error) {
 
 		case idPCE:
 			// Found a PCE - parse it properly
-			var pce *ProgramConfigElement
-			pce, err = parsePCE(au, &pos)
+			var pce ProgramConfigElement
+			err = pce.unmarshal(au, &pos)
 			if err != nil {
 				return 0, fmt.Errorf("parsing PCE: %w", err)
 			}

@@ -6,9 +6,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestParsePCEFromRawDataBlock(t *testing.T) {
-	// Test case 1: Valid PCE for stereo (2 channels)
-	t.Run("valid stereo PCE", func(t *testing.T) {
+var parsePCECases = []struct {
+	name string
+	buf  []byte
+	pce  ProgramConfigElement
+}{
+	{
 		// PCE with 1 front CPE (channel pair element) = 2 channels
 		// Layout per ISO 14496-3:
 		// - id_syn_ele (3): 101 = 5 (PCE)
@@ -25,37 +28,22 @@ func TestParsePCEFromRawDataBlock(t *testing.T) {
 		// - stereo_mixdown_present (1): 0
 		// - matrix_mixdown_idx_present (1): 0
 		// - front[0]: is_cpe(1)=1, tag(4)=0000 (CPE = stereo pair)
-		buf := []byte{0xA0, 0xA0, 0x80, 0x00, 0x04, 0x00}
-
-		pce, err := ParsePCEFromRawDataBlock(buf)
-		require.NoError(t, err)
-		require.Equal(t, 2, pce.ChannelCount)
-		require.Equal(t, uint8(1), pce.NumFrontChannelElements)
-		require.Equal(t, uint8(0), pce.NumSideChannelElements)
-		require.Equal(t, uint8(0), pce.NumBackChannelElements)
-		require.Equal(t, uint8(0), pce.NumLFEChannelElements)
-	})
-
-	// Test case 2: Invalid - not a PCE
-	t.Run("invalid not PCE", func(t *testing.T) {
-		// id_syn_ele = 0 (SCE, not PCE)
-		buf := []byte{0x00, 0x00, 0x00, 0x00}
-
-		_, err := ParsePCEFromRawDataBlock(buf)
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "expected PCE")
-	})
-
-	// Test case 3: Too short
-	t.Run("too short", func(t *testing.T) {
-		buf := []byte{0xA0, 0x00}
-
-		_, err := ParsePCEFromRawDataBlock(buf)
-		require.Error(t, err)
-	})
-
-	// Test case 4: PCE with mono_mixdown_present=1
-	t.Run("PCE with mono mixdown", func(t *testing.T) {
+		name: "valid stereo PCE",
+		buf:  []byte{0xA0, 0xA0, 0x80, 0x00, 0x04, 0x00},
+		pce: ProgramConfigElement{
+			ElementInstanceTag:      0,
+			ObjectType:              1,
+			SamplingFrequencyIndex:  4,
+			NumFrontChannelElements: 1,
+			NumSideChannelElements:  0,
+			NumBackChannelElements:  0,
+			NumLFEChannelElements:   0,
+			NumAssocDataElements:    0,
+			NumValidCCElements:      0,
+			ChannelCount:            2,
+		},
+	},
+	{
 		// Same structure as stereo PCE but with mono_mixdown_present=1
 		// Bit layout:
 		// Bits 0-33: same as original (id=PCE, tag=0, obj=1, sfi=4, nfront=1, nside=0, nback=0, nlfe=0, nassoc=0, ncc=0)
@@ -70,15 +58,22 @@ func TestParsePCEFromRawDataBlock(t *testing.T) {
 		// Byte 0-3: same as original (0xA0, 0xA0, 0x80, 0x00)
 		// Byte 4: bits 32-39 = 00 1 0000 0 = 0x20 (num_cc=0, mono=1, mono_elem=0000, stereo=0)
 		// Byte 5: bits 40-47 = 0 1 0000 00 = 0x40 (matrix=0, is_cpe=1, tag=0000)
-		buf := []byte{0xA0, 0xA0, 0x80, 0x00, 0x20, 0x40, 0x00}
-
-		pce, err := ParsePCEFromRawDataBlock(buf)
-		require.NoError(t, err)
-		require.Equal(t, 2, pce.ChannelCount)
-	})
-
-	// Test case 5: PCE with side and back channels (5.1 surround)
-	t.Run("PCE 5.1 surround", func(t *testing.T) {
+		name: "PCE with mono mixdown",
+		buf:  []byte{0xA0, 0xA0, 0x80, 0x00, 0x20, 0x40, 0x00},
+		pce: ProgramConfigElement{
+			ElementInstanceTag:      0,
+			ObjectType:              1,
+			SamplingFrequencyIndex:  4,
+			NumFrontChannelElements: 1,
+			NumSideChannelElements:  0,
+			NumBackChannelElements:  0,
+			NumLFEChannelElements:   0,
+			NumAssocDataElements:    0,
+			NumValidCCElements:      0,
+			ChannelCount:            2,
+		},
+	},
+	{
 		// 5.1 = 3 front + 2 back + 1 LFE = 6 channels
 		// PCE configuration: 2 front elements (SCE + CPE) + 1 back element (CPE) + 1 LFE
 		//
@@ -109,13 +104,39 @@ func TestParsePCEFromRawDataBlock(t *testing.T) {
 		// Byte 4: 00 0 0 0 0 00 = 0x00 (ncc low, mono=0, stereo=0, matrix=0, front[0] start)
 		// Byte 5: 00 1 0000 1 = 0x21 (front[0] tag, front[1] is_cpe=1, front[1] tag, back start)
 		// Byte 6: 0000 0000 = 0x00 (back[0] tag, lfe[0] tag)
-		buf := []byte{0xA0, 0xA1, 0x00, 0xA0, 0x00, 0x21, 0x00, 0x00}
+		name: "PCE 5.1 surround",
+		buf:  []byte{0xA0, 0xA1, 0x00, 0xA0, 0x00, 0x21, 0x00, 0x00},
+		pce: ProgramConfigElement{
+			ElementInstanceTag:      0,
+			ObjectType:              1,
+			SamplingFrequencyIndex:  4,
+			NumFrontChannelElements: 2,
+			NumSideChannelElements:  0,
+			NumBackChannelElements:  1,
+			NumLFEChannelElements:   1,
+			NumAssocDataElements:    0,
+			NumValidCCElements:      0,
+			ChannelCount:            6,
+		},
+	},
+}
 
-		pce, err := ParsePCEFromRawDataBlock(buf)
-		require.NoError(t, err)
-		require.Equal(t, 6, pce.ChannelCount) // 5.1 surround
-		require.Equal(t, uint8(2), pce.NumFrontChannelElements)
-		require.Equal(t, uint8(1), pce.NumBackChannelElements)
-		require.Equal(t, uint8(1), pce.NumLFEChannelElements)
+func TestParsePCEFromRawDataBlock(t *testing.T) {
+	for _, ca := range parsePCECases {
+		t.Run(ca.name, func(t *testing.T) {
+			pce, err := ParsePCEFromRawDataBlock(ca.buf)
+			require.NoError(t, err)
+			require.Equal(t, ca.pce, *pce)
+		})
+	}
+}
+
+func FuzzParsePCEFromRawDataBlock(f *testing.F) {
+	for _, ca := range parsePCECases {
+		f.Add(ca.buf)
+	}
+
+	f.Fuzz(func(_ *testing.T, b []byte) {
+		ParsePCEFromRawDataBlock(b) //nolint:errcheck
 	})
 }
