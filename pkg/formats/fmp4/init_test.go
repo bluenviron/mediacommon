@@ -26,9 +26,10 @@ var testVideoTrack = &codecs.H264{
 
 var testAudioTrack = &codecs.MPEG4Audio{
 	Config: mpeg4audio.AudioSpecificConfig{
-		Type:         2,
-		SampleRate:   44100,
-		ChannelCount: 2,
+		Type:          2,
+		SampleRate:    44100,
+		ChannelConfig: 2,
+		ChannelCount:  2,
 	},
 }
 
@@ -2013,9 +2014,10 @@ func TestInitUnmarshalExternal(t *testing.T) {
 						TimeScale: 10000000,
 						Codec: &codecs.MPEG4Audio{
 							Config: mpeg4audio.AudioSpecificConfig{
-								Type:         mpeg4audio.ObjectTypeAACLC,
-								SampleRate:   48000,
-								ChannelCount: 2,
+								Type:          mpeg4audio.ObjectTypeAACLC,
+								SampleRate:    48000,
+								ChannelConfig: 2,
+								ChannelCount:  2,
 							},
 						},
 					},

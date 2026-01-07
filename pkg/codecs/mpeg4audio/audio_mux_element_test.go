@@ -21,17 +21,19 @@ var casesAudioMuxElement = []struct {
 						Layers: []*StreamMuxConfigLayer{
 							{
 								AudioSpecificConfig: &AudioSpecificConfig{
-									Type:         2,
-									SampleRate:   24000,
-									ChannelCount: 1,
+									Type:          2,
+									SampleRate:    24000,
+									ChannelConfig: 1,
+									ChannelCount:  1,
 								},
 								LatmBufferFullness: 255,
 							},
 							{
 								AudioSpecificConfig: &AudioSpecificConfig{
-									Type:         2,
-									SampleRate:   48000,
-									ChannelCount: 1,
+									Type:          2,
+									SampleRate:    48000,
+									ChannelConfig: 1,
+									ChannelCount:  1,
 								},
 								LatmBufferFullness: 255,
 							},
@@ -41,9 +43,10 @@ var casesAudioMuxElement = []struct {
 						Layers: []*StreamMuxConfigLayer{
 							{
 								AudioSpecificConfig: &AudioSpecificConfig{
-									Type:         2,
-									SampleRate:   44100,
-									ChannelCount: 1,
+									Type:          2,
+									SampleRate:    44100,
+									ChannelConfig: 1,
+									ChannelCount:  1,
 								},
 								LatmBufferFullness: 255,
 							},

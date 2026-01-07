@@ -427,6 +427,23 @@ func WriteCodecBoxes(w *Writer, codec codecs.Codec, trackID int, info *CodecInfo
 		}
 
 	case *codecs.MPEG4Audio:
+		var channelCount uint16
+
+		if codec.Config.ChannelCount != 0 { //nolint:staticcheck
+			channelCount = uint16(codec.Config.ChannelCount) //nolint:staticcheck
+		} else {
+			switch {
+			case codec.Config.ChannelConfig >= 1 && codec.Config.ChannelConfig <= 6:
+				channelCount = uint16(codec.Config.ChannelConfig)
+
+			case codec.Config.ChannelConfig == 7:
+				channelCount = 8
+
+			default:
+				return fmt.Errorf("MPEG-4 audio channelConfig = 0 is not supported (yet)")
+			}
+		}
+
 		_, err := w.WriteBoxStart(&amp4.AudioSampleEntry{ // <mp4a>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
@@ -434,7 +451,7 @@ func WriteCodecBoxes(w *Writer, codec codecs.Codec, trackID int, info *CodecInfo
 				},
 				DataReferenceIndex: 1,
 			},
-			ChannelCount: uint16(codec.Config.ChannelCount),
+			ChannelCount: channelCount,
 			SampleSize:   16,
 			SampleRate:   uint32(codec.Config.SampleRate * 65536),
 		})

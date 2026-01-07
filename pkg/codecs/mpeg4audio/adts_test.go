@@ -16,10 +16,11 @@ var casesADTS = []struct {
 		[]byte{0xff, 0xf1, 0x4c, 0x80, 0x1, 0x3f, 0xfc, 0xaa, 0xbb},
 		ADTSPackets{
 			{
-				Type:         ObjectTypeAACLC,
-				SampleRate:   48000,
-				ChannelCount: 2,
-				AU:           []byte{0xaa, 0xbb},
+				Type:          ObjectTypeAACLC,
+				SampleRate:    48000,
+				ChannelConfig: 2,
+				ChannelCount:  2,
+				AU:            []byte{0xaa, 0xbb},
 			},
 		},
 	},
@@ -32,16 +33,18 @@ var casesADTS = []struct {
 		},
 		ADTSPackets{
 			{
-				Type:         ObjectTypeAACLC,
-				SampleRate:   44100,
-				ChannelCount: 1,
-				AU:           []byte{0xaa, 0xbb},
+				Type:          ObjectTypeAACLC,
+				SampleRate:    44100,
+				ChannelConfig: 1,
+				ChannelCount:  1,
+				AU:            []byte{0xaa, 0xbb},
 			},
 			{
-				Type:         ObjectTypeAACLC,
-				SampleRate:   48000,
-				ChannelCount: 2,
-				AU:           []byte{0xcc, 0xdd},
+				Type:          ObjectTypeAACLC,
+				SampleRate:    48000,
+				ChannelConfig: 2,
+				ChannelCount:  2,
+				AU:            []byte{0xcc, 0xdd},
 			},
 		},
 	},
@@ -50,10 +53,84 @@ var casesADTS = []struct {
 		[]byte{0xff, 0xf1, 0x8c, 0x80, 0x1, 0x3f, 0xfc, 0xaa, 0xbb},
 		ADTSPackets{
 			{
-				Type:         3,
+				Type:          3,
+				SampleRate:    48000,
+				ChannelConfig: 2,
+				ChannelCount:  2,
+				AU:            []byte{0xaa, 0xbb},
+			},
+		},
+	},
+	{
+		// channel_config=0 with CPE (stereo pair) in AU
+		// ADTS header with channel_config=0, frame_length=11
+		// AU contains: CPE id_syn_ele (3 bits) = 001, element_instance_tag (4 bits) = 0000
+		"channel_config_0_cpe",
+		[]byte{
+			0xff, 0xf1, 0x4c, 0x00, 0x01, 0x7f, 0xfc,
+			0x20, 0x00, 0x00, 0x00, // AU: CPE element (stereo)
+		},
+		ADTSPackets{
+			{
+				Type:          ObjectTypeAACLC,
+				SampleRate:    48000,
+				ChannelConfig: 0,
+				ChannelCount:  0, // Preserved as 0, use CountChannelsFromRawDataBlock to get 2
+				AU:            []byte{0x20, 0x00, 0x00, 0x00},
+			},
+		},
+	},
+	{
+		// channel_config=0 with SCE (mono) in AU
+		// AU contains: SCE id_syn_ele (3 bits) = 000, element_instance_tag (4 bits) = 0000
+		"channel_config_0_sce",
+		[]byte{
+			0xff, 0xf1, 0x4c, 0x00, 0x01, 0x7f, 0xfc,
+			0x00, 0x00, 0x00, 0x00, // AU: SCE element (mono)
+		},
+		ADTSPackets{
+			{
+				Type:          ObjectTypeAACLC,
+				SampleRate:    48000,
+				ChannelConfig: 0,
+				ChannelCount:  0, // Preserved as 0, use CountChannelsFromRawDataBlock to get 1
+				AU:            []byte{0x00, 0x00, 0x00, 0x00},
+			},
+		},
+	},
+	{
+		// channel_config=0 with LFE in AU
+		// AU contains: LFE id_syn_ele (3 bits) = 011, element_instance_tag (4 bits) = 0000
+		"channel_config_0_lfe",
+		[]byte{
+			0xff, 0xf1, 0x4c, 0x00, 0x01, 0x7f, 0xfc,
+			0x60, 0x00, 0x00, 0x00, // AU: LFE element
+		},
+		ADTSPackets{
+			{
+				Type:          ObjectTypeAACLC,
+				SampleRate:    48000,
+				ChannelConfig: 0,
+				ChannelCount:  0, // Preserved as 0, use CountChannelsFromRawDataBlock to get 1
+				AU:            []byte{0x60, 0x00, 0x00, 0x00},
+			},
+		},
+	},
+	{
+		// channel_config=0 with PCE (stereo) in AU
+		// AU contains: PCE id_syn_ele (3 bits) = 101, then PCE data
+		// PCE with 1 front CPE = 2 channels
+		"channel_config_0_pce",
+		[]byte{
+			0xff, 0xf1, 0x4c, 0x00, 0x01, 0xbf, 0xfc,
+			0xA0, 0xA0, 0x80, 0x00, 0x04, 0x00, // AU: PCE element (stereo)
+		},
+		ADTSPackets{
+			{
+				Type:         ObjectTypeAACLC,
 				SampleRate:   48000,
-				ChannelCount: 2,
-				AU:           []byte{0xaa, 0xbb},
+				ChannelCount: 0, // Preserved as 0, use ParsePCEFromRawDataBlock to get 2
+				AU:           []byte{0xA0, 0xA0, 0x80, 0x00, 0x04, 0x00},
 			},
 		},
 	},
@@ -91,6 +168,8 @@ func FuzzADTSUnmarshal(f *testing.F) {
 		if err != nil {
 			return
 		}
+
+		require.NotZero(t, len(pkts))
 
 		_, err = pkts.Marshal()
 		require.NoError(t, err)
