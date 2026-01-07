@@ -250,10 +250,9 @@ func (c AudioSpecificConfig) marshalToBits(buf []byte, pos *int) error {
 		bits.WriteBitsUnsafe(buf, pos, uint64(sampleRateIndex), 4)
 	}
 
-	if c.ChannelConfig == 0 {
+	if c.ChannelCount != 0 {
 		switch {
 		case c.ChannelCount == 0:
-			// channel_config=0 indicates PCE defines channel layout
 			c.ChannelConfig = 0
 
 		case c.ChannelCount >= 1 && c.ChannelCount <= 6:
