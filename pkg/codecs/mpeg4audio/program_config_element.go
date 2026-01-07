@@ -10,16 +10,16 @@ import (
 // Per ISO/IEC 14496-3, the PCE is used when channel_configuration is 0
 // to describe arbitrary channel layouts.
 type ProgramConfigElement struct {
-	ElementInstanceTag        uint8
-	ObjectType                uint8
-	SamplingFrequencyIndex    uint8
-	NumFrontChannelElements   uint8
-	NumSideChannelElements    uint8
-	NumBackChannelElements    uint8
-	NumLFEChannelElements     uint8
-	NumAssocDataElements      uint8
-	NumValidCCElements        uint8
-	ChannelCount              int
+	ElementInstanceTag      uint8
+	ObjectType              uint8
+	SamplingFrequencyIndex  uint8
+	NumFrontChannelElements uint8
+	NumSideChannelElements  uint8
+	NumBackChannelElements  uint8
+	NumLFEChannelElements   uint8
+	NumAssocDataElements    uint8
+	NumValidCCElements      uint8
+	ChannelCount            int
 }
 
 // parsePCE parses a Program Config Element from an AAC raw_data_block.
@@ -162,7 +162,8 @@ func parsePCE(buf []byte, pos *int) (*ProgramConfigElement, error) {
 	// is_cpe=1 means stereo pair (2 channels), is_cpe=0 means mono (1 channel)
 	channels := 0
 	for i := uint8(0); i < pce.NumFrontChannelElements; i++ {
-		isCPE, err := bits.ReadFlag(buf, pos)
+		var isCPE bool
+		isCPE, err = bits.ReadFlag(buf, pos)
 		if err != nil {
 			return nil, fmt.Errorf("reading front element is_cpe: %w", err)
 		}
@@ -180,7 +181,8 @@ func parsePCE(buf []byte, pos *int) (*ProgramConfigElement, error) {
 
 	// Count channels from side elements
 	for i := uint8(0); i < pce.NumSideChannelElements; i++ {
-		isCPE, err := bits.ReadFlag(buf, pos)
+		var isCPE bool
+		isCPE, err = bits.ReadFlag(buf, pos)
 		if err != nil {
 			return nil, fmt.Errorf("reading side element is_cpe: %w", err)
 		}
@@ -198,7 +200,8 @@ func parsePCE(buf []byte, pos *int) (*ProgramConfigElement, error) {
 
 	// Count channels from back elements
 	for i := uint8(0); i < pce.NumBackChannelElements; i++ {
-		isCPE, err := bits.ReadFlag(buf, pos)
+		var isCPE bool
+		isCPE, err = bits.ReadFlag(buf, pos)
 		if err != nil {
 			return nil, fmt.Errorf("reading back element is_cpe: %w", err)
 		}
@@ -333,7 +336,8 @@ func CountChannelsFromRawDataBlock(au []byte) (int, error) {
 
 		case idPCE:
 			// Found a PCE - parse it properly
-			pce, err := parsePCE(au, &pos)
+			var pce *ProgramConfigElement
+			pce, err = parsePCE(au, &pos)
 			if err != nil {
 				return 0, fmt.Errorf("parsing PCE: %w", err)
 			}
@@ -349,19 +353,22 @@ func CountChannelsFromRawDataBlock(au []byte) (int, error) {
 				break
 			}
 			// data_byte_align_flag (1 bit)
-			alignFlag, err := bits.ReadFlag(au, &pos)
+			var alignFlag bool
+			alignFlag, err = bits.ReadFlag(au, &pos)
 			if err != nil {
 				break
 			}
 			// count (8 bits)
-			count, err := bits.ReadBits(au, &pos, 8)
+			var count uint64
+			count, err = bits.ReadBits(au, &pos, 8)
 			if err != nil {
 				break
 			}
 			totalCount := int(count)
 			// If count == 255, read esc_count
 			if count == 255 {
-				escCount, err := bits.ReadBits(au, &pos, 8)
+				var escCount uint64
+				escCount, err = bits.ReadBits(au, &pos, 8)
 				if err != nil {
 					break
 				}
@@ -379,13 +386,15 @@ func CountChannelsFromRawDataBlock(au []byte) (int, error) {
 		case idFIL:
 			// Fill Element - skip it
 			// FIL structure: count (4) + [esc_count (8) if count==15] + fill bytes
-			count, err := bits.ReadBits(au, &pos, 4)
+			var count uint64
+			count, err = bits.ReadBits(au, &pos, 4)
 			if err != nil {
 				break
 			}
 			totalCount := int(count)
 			if count == 15 {
-				escCount, err := bits.ReadBits(au, &pos, 8)
+				var escCount uint64
+				escCount, err = bits.ReadBits(au, &pos, 8)
 				if err != nil {
 					break
 				}

@@ -309,10 +309,10 @@ func TestCountChannelsFromRawDataBlock(t *testing.T) {
 
 		// Let me create the test with the right byte count
 		data := make([]byte, 20)
-		data[0] = 0xDF                            // FIL with count=15
-		data[1] = 0x00                            // esc_count=0 (total=14 bytes)
-		copy(data[2:16], make([]byte, 14))        // 14 fill bytes
-		data[16] = 0x20                           // CPE at bit 16*8=128... wait let me recalc
+		data[0] = 0xDF                     // FIL with count=15
+		data[1] = 0x00                     // esc_count=0 (total=14 bytes)
+		copy(data[2:16], make([]byte, 14)) // 14 fill bytes
+		data[16] = 0x20                    // CPE at bit 16*8=128... wait let me recalc
 		// FIL header: 3 + 4 = 7 bits, then esc_count: 8 bits = 15 bits
 		// Then 14*8 = 112 bits of fill
 		// Total FIL = 15 + 112 = 127 bits
