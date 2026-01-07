@@ -485,9 +485,10 @@ var casesReadWriter = []struct {
 			PID: 257,
 			Codec: &codecs.MPEG4Audio{
 				Config: mpeg4audio.AudioSpecificConfig{
-					Type:         2,
-					SampleRate:   48000,
-					ChannelCount: 2,
+					Type:          2,
+					SampleRate:    48000,
+					ChannelConfig: 2,
+					ChannelCount:  2,
 				},
 			},
 		},
@@ -1523,10 +1524,11 @@ func TestReaderDecodeErrors(t *testing.T) {
 
 			case "mpeg-4 audio pts != dts":
 				data, _ := mpeg4audio.ADTSPackets{{
-					Type:         mpeg4audio.ObjectTypeAACLC,
-					SampleRate:   44100,
-					ChannelCount: 1,
-					AU:           []byte{1, 2, 3, 4},
+					Type:          mpeg4audio.ObjectTypeAACLC,
+					SampleRate:    44100,
+					ChannelConfig: 1,
+					ChannelCount:  1,
+					AU:            []byte{1, 2, 3, 4},
 				}}.Marshal()
 
 				_, err := mux.WriteData(&astits.MuxerData{
@@ -1565,10 +1567,11 @@ func TestReaderDecodeErrors(t *testing.T) {
 
 			case "mpeg-4 audio invalid":
 				data, _ := mpeg4audio.ADTSPackets{{
-					Type:         mpeg4audio.ObjectTypeAACLC,
-					SampleRate:   44100,
-					ChannelCount: 1,
-					AU:           []byte{1, 2, 3, 4},
+					Type:          mpeg4audio.ObjectTypeAACLC,
+					SampleRate:    44100,
+					ChannelConfig: 1,
+					ChannelCount:  1,
+					AU:            []byte{1, 2, 3, 4},
 				}}.Marshal()
 
 				_, err := mux.WriteData(&astits.MuxerData{

@@ -42,9 +42,10 @@ func findMPEG4AudioConfig(dem *robustDemuxer, pid uint16) (*mpeg4audio.AudioSpec
 
 		pkt := adtsPkts[0]
 		return &mpeg4audio.AudioSpecificConfig{
-			Type:         pkt.Type,
-			SampleRate:   pkt.SampleRate,
-			ChannelCount: pkt.ChannelCount,
+			Type:          pkt.Type,
+			SampleRate:    pkt.SampleRate,
+			ChannelConfig: pkt.ChannelConfig,
+			ChannelCount:  pkt.ChannelCount, //nolint:staticcheck
 		}, nil
 	}
 }

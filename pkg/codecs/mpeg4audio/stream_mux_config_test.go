@@ -18,9 +18,10 @@ var streamMuxConfigCases = []struct {
 			Programs: []*StreamMuxConfigProgram{{
 				Layers: []*StreamMuxConfigLayer{{
 					AudioSpecificConfig: &AudioSpecificConfig{
-						Type:         2,
-						SampleRate:   24000,
-						ChannelCount: 2,
+						Type:          2,
+						SampleRate:    24000,
+						ChannelConfig: 2,
+						ChannelCount:  2,
 					},
 					LatmBufferFullness: 255,
 				}},
@@ -34,9 +35,10 @@ var streamMuxConfigCases = []struct {
 			Programs: []*StreamMuxConfigProgram{{
 				Layers: []*StreamMuxConfigLayer{{
 					AudioSpecificConfig: &AudioSpecificConfig{
-						Type:         2,
-						SampleRate:   24000,
-						ChannelCount: 1,
+						Type:          2,
+						SampleRate:    24000,
+						ChannelConfig: 1,
+						ChannelCount:  1,
 					},
 					LatmBufferFullness: 255,
 				}},
@@ -54,6 +56,7 @@ var streamMuxConfigCases = []struct {
 						ExtensionType:       5,
 						ExtensionSampleRate: 48000,
 						SampleRate:          24000,
+						ChannelConfig:       2,
 						ChannelCount:        2,
 					},
 					LatmBufferFullness: 255,
@@ -72,6 +75,7 @@ var streamMuxConfigCases = []struct {
 						ExtensionType:       29,
 						ExtensionSampleRate: 48000,
 						SampleRate:          24000,
+						ChannelConfig:       1,
 						ChannelCount:        1,
 					},
 					LatmBufferFullness: 255,
@@ -86,9 +90,10 @@ var streamMuxConfigCases = []struct {
 			Programs: []*StreamMuxConfigProgram{{
 				Layers: []*StreamMuxConfigLayer{{
 					AudioSpecificConfig: &AudioSpecificConfig{
-						Type:         2,
-						SampleRate:   44100,
-						ChannelCount: 1,
+						Type:          2,
+						SampleRate:    44100,
+						ChannelConfig: 1,
+						ChannelCount:  1,
 					},
 					FrameLengthType: 2,
 				}},
@@ -106,9 +111,10 @@ var streamMuxConfigCases = []struct {
 			Programs: []*StreamMuxConfigProgram{{
 				Layers: []*StreamMuxConfigLayer{{
 					AudioSpecificConfig: &AudioSpecificConfig{
-						Type:         2,
-						SampleRate:   44100,
-						ChannelCount: 1,
+						Type:          2,
+						SampleRate:    44100,
+						ChannelConfig: 1,
+						ChannelCount:  1,
 					},
 					FrameLengthType: 2,
 				}},
@@ -140,9 +146,10 @@ func TestStreamMuxConfigUnmarshalTruncated(t *testing.T) {
 		Programs: []*StreamMuxConfigProgram{{
 			Layers: []*StreamMuxConfigLayer{{
 				AudioSpecificConfig: &AudioSpecificConfig{
-					Type:         2,
-					SampleRate:   48000,
-					ChannelCount: 1,
+					Type:          2,
+					SampleRate:    48000,
+					ChannelConfig: 1,
+					ChannelCount:  1,
 				},
 				LatmBufferFullness: 255,
 			}},

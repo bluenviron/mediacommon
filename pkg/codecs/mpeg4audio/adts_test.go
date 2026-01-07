@@ -16,10 +16,11 @@ var casesADTS = []struct {
 		[]byte{0xff, 0xf1, 0x4c, 0x80, 0x1, 0x3f, 0xfc, 0xaa, 0xbb},
 		ADTSPackets{
 			{
-				Type:         ObjectTypeAACLC,
-				SampleRate:   48000,
-				ChannelCount: 2,
-				AU:           []byte{0xaa, 0xbb},
+				Type:          ObjectTypeAACLC,
+				SampleRate:    48000,
+				ChannelConfig: 2,
+				ChannelCount:  2,
+				AU:            []byte{0xaa, 0xbb},
 			},
 		},
 	},
@@ -32,16 +33,18 @@ var casesADTS = []struct {
 		},
 		ADTSPackets{
 			{
-				Type:         ObjectTypeAACLC,
-				SampleRate:   44100,
-				ChannelCount: 1,
-				AU:           []byte{0xaa, 0xbb},
+				Type:          ObjectTypeAACLC,
+				SampleRate:    44100,
+				ChannelConfig: 1,
+				ChannelCount:  1,
+				AU:            []byte{0xaa, 0xbb},
 			},
 			{
-				Type:         ObjectTypeAACLC,
-				SampleRate:   48000,
-				ChannelCount: 2,
-				AU:           []byte{0xcc, 0xdd},
+				Type:          ObjectTypeAACLC,
+				SampleRate:    48000,
+				ChannelConfig: 2,
+				ChannelCount:  2,
+				AU:            []byte{0xcc, 0xdd},
 			},
 		},
 	},
@@ -50,10 +53,11 @@ var casesADTS = []struct {
 		[]byte{0xff, 0xf1, 0x8c, 0x80, 0x1, 0x3f, 0xfc, 0xaa, 0xbb},
 		ADTSPackets{
 			{
-				Type:         3,
-				SampleRate:   48000,
-				ChannelCount: 2,
-				AU:           []byte{0xaa, 0xbb},
+				Type:          3,
+				SampleRate:    48000,
+				ChannelConfig: 2,
+				ChannelCount:  2,
+				AU:            []byte{0xaa, 0xbb},
 			},
 		},
 	},
@@ -68,10 +72,11 @@ var casesADTS = []struct {
 		},
 		ADTSPackets{
 			{
-				Type:         ObjectTypeAACLC,
-				SampleRate:   48000,
-				ChannelCount: 0, // Preserved as 0, use CountChannelsFromRawDataBlock to get 2
-				AU:           []byte{0x20, 0x00, 0x00, 0x00},
+				Type:          ObjectTypeAACLC,
+				SampleRate:    48000,
+				ChannelConfig: 0,
+				ChannelCount:  0, // Preserved as 0, use CountChannelsFromRawDataBlock to get 2
+				AU:            []byte{0x20, 0x00, 0x00, 0x00},
 			},
 		},
 	},
@@ -85,10 +90,11 @@ var casesADTS = []struct {
 		},
 		ADTSPackets{
 			{
-				Type:         ObjectTypeAACLC,
-				SampleRate:   48000,
-				ChannelCount: 0, // Preserved as 0, use CountChannelsFromRawDataBlock to get 1
-				AU:           []byte{0x00, 0x00, 0x00, 0x00},
+				Type:          ObjectTypeAACLC,
+				SampleRate:    48000,
+				ChannelConfig: 0,
+				ChannelCount:  0, // Preserved as 0, use CountChannelsFromRawDataBlock to get 1
+				AU:            []byte{0x00, 0x00, 0x00, 0x00},
 			},
 		},
 	},
@@ -102,10 +108,11 @@ var casesADTS = []struct {
 		},
 		ADTSPackets{
 			{
-				Type:         ObjectTypeAACLC,
-				SampleRate:   48000,
-				ChannelCount: 0, // Preserved as 0, use CountChannelsFromRawDataBlock to get 1
-				AU:           []byte{0x60, 0x00, 0x00, 0x00},
+				Type:          ObjectTypeAACLC,
+				SampleRate:    48000,
+				ChannelConfig: 0,
+				ChannelCount:  0, // Preserved as 0, use CountChannelsFromRawDataBlock to get 1
+				AU:            []byte{0x60, 0x00, 0x00, 0x00},
 			},
 		},
 	},
@@ -161,6 +168,8 @@ func FuzzADTSUnmarshal(f *testing.F) {
 		if err != nil {
 			return
 		}
+
+		require.NotZero(t, len(pkts))
 
 		_, err = pkts.Marshal()
 		require.NoError(t, err)

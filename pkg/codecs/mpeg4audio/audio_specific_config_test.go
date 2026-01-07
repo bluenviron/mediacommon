@@ -15,45 +15,50 @@ var audioSpecificConfigCases = []struct {
 		"aac-lc 16khz mono",
 		[]byte{0x14, 0x08},
 		AudioSpecificConfig{
-			Type:         ObjectTypeAACLC,
-			SampleRate:   16000,
-			ChannelCount: 1,
+			Type:          ObjectTypeAACLC,
+			SampleRate:    16000,
+			ChannelConfig: 1,
+			ChannelCount:  1,
 		},
 	},
 	{
 		"aac-lc 44.1khz mono",
 		[]byte{0x12, 0x08},
 		AudioSpecificConfig{
-			Type:         ObjectTypeAACLC,
-			SampleRate:   44100,
-			ChannelCount: 1,
+			Type:          ObjectTypeAACLC,
+			SampleRate:    44100,
+			ChannelConfig: 1,
+			ChannelCount:  1,
 		},
 	},
 	{
 		"aac-lc 44.1khz 5.1",
 		[]byte{0x12, 0x30},
 		AudioSpecificConfig{
-			Type:         ObjectTypeAACLC,
-			SampleRate:   44100,
-			ChannelCount: 6,
+			Type:          ObjectTypeAACLC,
+			SampleRate:    44100,
+			ChannelConfig: 6,
+			ChannelCount:  6,
 		},
 	},
 	{
 		"aac-lc 48khz stereo",
 		[]byte{17, 144},
 		AudioSpecificConfig{
-			Type:         ObjectTypeAACLC,
-			SampleRate:   48000,
-			ChannelCount: 2,
+			Type:          ObjectTypeAACLC,
+			SampleRate:    48000,
+			ChannelConfig: 2,
+			ChannelCount:  2,
 		},
 	},
 	{
 		"aac-lc 53khz stereo",
 		[]byte{0x17, 0x80, 0x67, 0x84, 0x10},
 		AudioSpecificConfig{
-			Type:         ObjectTypeAACLC,
-			SampleRate:   53000,
-			ChannelCount: 2,
+			Type:          ObjectTypeAACLC,
+			SampleRate:    53000,
+			ChannelConfig: 2,
+			ChannelCount:  2,
 		},
 	},
 	{
@@ -62,6 +67,7 @@ var audioSpecificConfigCases = []struct {
 		AudioSpecificConfig{
 			Type:               ObjectTypeAACLC,
 			SampleRate:         96000,
+			ChannelConfig:      2,
 			ChannelCount:       2,
 			DependsOnCoreCoder: true,
 			CoreCoderDelay:     385,
@@ -71,9 +77,10 @@ var audioSpecificConfigCases = []struct {
 		"aac-lc 44.1khz 8 chans",
 		[]byte{0x12, 0x38},
 		AudioSpecificConfig{
-			Type:         ObjectTypeAACLC,
-			SampleRate:   44100,
-			ChannelCount: 8,
+			Type:          ObjectTypeAACLC,
+			SampleRate:    44100,
+			ChannelConfig: 7,
+			ChannelCount:  8,
 		},
 	},
 	{
@@ -83,9 +90,10 @@ var audioSpecificConfigCases = []struct {
 		// 00010 0011 0000 000 = 0x11 0x80
 		[]byte{0x11, 0x80},
 		AudioSpecificConfig{
-			Type:         ObjectTypeAACLC,
-			SampleRate:   48000,
-			ChannelCount: 0, // PCE defines channel layout
+			Type:          ObjectTypeAACLC,
+			SampleRate:    48000,
+			ChannelConfig: 0,
+			ChannelCount:  0, // PCE defines channel layout
 		},
 	},
 	{
@@ -94,6 +102,7 @@ var audioSpecificConfigCases = []struct {
 		AudioSpecificConfig{
 			Type:                ObjectTypeAACLC,
 			SampleRate:          22050,
+			ChannelConfig:       1,
 			ChannelCount:        1,
 			ExtensionSampleRate: 44100,
 			ExtensionType:       ObjectTypeSBR,
@@ -105,6 +114,7 @@ var audioSpecificConfigCases = []struct {
 		AudioSpecificConfig{
 			Type:                ObjectTypeAACLC,
 			SampleRate:          22050,
+			ChannelConfig:       2,
 			ChannelCount:        2,
 			ExtensionSampleRate: 44100,
 			ExtensionType:       ObjectTypeSBR,
@@ -116,6 +126,7 @@ var audioSpecificConfigCases = []struct {
 		AudioSpecificConfig{
 			Type:                ObjectTypeAACLC,
 			SampleRate:          24000,
+			ChannelConfig:       1,
 			ChannelCount:        1,
 			ExtensionSampleRate: 48000,
 			ExtensionType:       ObjectTypePS,
@@ -144,9 +155,10 @@ func TestAudioSpecificConfigUnmarshalAdditional(t *testing.T) {
 			"additional bytes",
 			[]byte{0x11, 0x90, 0x08, 0x10},
 			AudioSpecificConfig{
-				Type:         ObjectTypeAACLC,
-				SampleRate:   48000,
-				ChannelCount: 2,
+				Type:          ObjectTypeAACLC,
+				SampleRate:    48000,
+				ChannelConfig: 2,
+				ChannelCount:  2,
 			},
 		},
 	} {

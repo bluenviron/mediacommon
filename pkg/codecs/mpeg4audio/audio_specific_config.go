@@ -14,8 +14,16 @@ type Config = AudioSpecificConfig
 // AudioSpecificConfig is an AudioSpecificConfig.
 // Specification: ISO 14496-3, 1.6.2.1
 type AudioSpecificConfig struct {
-	Type         ObjectType
-	SampleRate   int
+	Type       ObjectType
+	SampleRate int
+
+	// 0: channel layout defined by a PCE either in GASpecificConfig or the start of raw_data_block
+	// 1-6: channel count is equal to channel configuration
+	// 7: channel count is 8
+	// 8-15: reserved
+	ChannelConfig uint8
+
+	// Deprecated: replaced by ChannelConfig
 	ChannelCount int
 
 	// SBR / PS specific
@@ -80,19 +88,20 @@ func (c *AudioSpecificConfig) unmarshalBits(buf []byte, pos *int) error {
 		return fmt.Errorf("invalid sample rate index (%d)", sampleRateIndex)
 	}
 
-	channelConfig, err := bits.ReadBits(buf, pos, 4)
+	tmp, err = bits.ReadBits(buf, pos, 4)
 	if err != nil {
 		return err
 	}
+	c.ChannelConfig = uint8(tmp)
 
 	switch {
-	case channelConfig >= 1 && channelConfig <= 6:
-		c.ChannelCount = int(channelConfig)
+	case c.ChannelConfig >= 1 && c.ChannelConfig <= 6:
+		c.ChannelCount = int(c.ChannelConfig)
 
-	case channelConfig == 7:
+	case c.ChannelConfig == 7:
 		c.ChannelCount = 8
 
-	case channelConfig == 0:
+	case c.ChannelConfig == 0:
 		// Channel configuration 0 means the channel layout is defined by a
 		// Program Config Element (PCE), which may be present either:
 		// 1. Within GASpecificConfig (in this AudioSpecificConfig), or
@@ -105,7 +114,7 @@ func (c *AudioSpecificConfig) unmarshalBits(buf []byte, pos *int) error {
 
 	default:
 		// Channel configs 8-15 are reserved.
-		return fmt.Errorf("unsupported channel configuration (%d)", channelConfig)
+		return fmt.Errorf("unsupported channel configuration (%d)", c.ChannelConfig)
 	}
 
 	if c.Type == ObjectTypeSBR || c.Type == ObjectTypePS {
@@ -241,22 +250,24 @@ func (c AudioSpecificConfig) marshalToBits(buf []byte, pos *int) error {
 		bits.WriteBitsUnsafe(buf, pos, uint64(sampleRateIndex), 4)
 	}
 
-	var channelConfig int
-	switch {
-	case c.ChannelCount == 0:
-		// channel_config=0 indicates PCE defines channel layout
-		channelConfig = 0
+	if c.ChannelConfig == 0 {
+		switch {
+		case c.ChannelCount == 0:
+			// channel_config=0 indicates PCE defines channel layout
+			c.ChannelConfig = 0
 
-	case c.ChannelCount >= 1 && c.ChannelCount <= 6:
-		channelConfig = c.ChannelCount
+		case c.ChannelCount >= 1 && c.ChannelCount <= 6:
+			c.ChannelConfig = uint8(c.ChannelCount)
 
-	case c.ChannelCount == 8:
-		channelConfig = 7
+		case c.ChannelCount == 8:
+			c.ChannelConfig = 7
 
-	default:
-		return fmt.Errorf("invalid channel count (%d)", c.ChannelCount)
+		default:
+			return fmt.Errorf("invalid channel count (%d)", c.ChannelCount)
+		}
 	}
-	bits.WriteBitsUnsafe(buf, pos, uint64(channelConfig), 4)
+
+	bits.WriteBitsUnsafe(buf, pos, uint64(c.ChannelConfig), 4)
 
 	if c.ExtensionType == ObjectTypeSBR || c.ExtensionType == ObjectTypePS {
 		sampleRateIndex, ok = reverseSampleRates[c.ExtensionSampleRate]
