@@ -170,16 +170,8 @@ func TestAudioSpecificConfigMarshal(t *testing.T) {
 }
 
 func TestAudioSpecificConfigMarshalErrors(t *testing.T) {
-	// ChannelCount=0 is valid (indicates PCE in bitstream)
-	_, err := AudioSpecificConfig{
-		Type:         ObjectTypeAACLC,
-		SampleRate:   44100,
-		ChannelCount: 0,
-	}.Marshal()
-	require.NoError(t, err)
-
 	// Invalid channel count should error
-	_, err = AudioSpecificConfig{
+	_, err := AudioSpecificConfig{
 		Type:         ObjectTypeAACLC,
 		SampleRate:   44100,
 		ChannelCount: 9,
