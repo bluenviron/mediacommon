@@ -57,17 +57,6 @@ var casesADTS = []struct {
 			},
 		},
 	},
-}
-
-// casesADTSChannelConfig0 contains test cases for channel_config=0.
-// The parser preserves ChannelCount=0 to allow round-trip encoding.
-// Callers needing the actual channel count should use ParsePCEFromRawDataBlock
-// or CountChannelsFromRawDataBlock on the AU.
-var casesADTSChannelConfig0 = []struct {
-	name string
-	byts []byte
-	pkts ADTSPackets
-}{
 	{
 		// channel_config=0 with CPE (stereo pair) in AU
 		// ADTS header with channel_config=0, frame_length=11
@@ -147,27 +136,6 @@ func TestADTSUnmarshal(t *testing.T) {
 			err := pkts.Unmarshal(ca.byts)
 			require.NoError(t, err)
 			require.Equal(t, ca.pkts, pkts)
-		})
-	}
-}
-
-func TestADTSUnmarshalChannelConfig0(t *testing.T) {
-	for _, ca := range casesADTSChannelConfig0 {
-		t.Run(ca.name, func(t *testing.T) {
-			var pkts ADTSPackets
-			err := pkts.Unmarshal(ca.byts)
-			require.NoError(t, err)
-			require.Equal(t, ca.pkts, pkts)
-		})
-	}
-}
-
-func TestADTSMarshalChannelConfig0(t *testing.T) {
-	for _, ca := range casesADTSChannelConfig0 {
-		t.Run(ca.name, func(t *testing.T) {
-			byts, err := ca.pkts.Marshal()
-			require.NoError(t, err)
-			require.Equal(t, ca.byts, byts)
 		})
 	}
 }
