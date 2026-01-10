@@ -824,6 +824,9 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 
 			state = mdat
 
+		case "free", "pasp", "btrt", "udta", "fiel", "sdtp", "sgpd", "sbgp":
+			return nil, nil
+
 		default:
 			return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 		}
