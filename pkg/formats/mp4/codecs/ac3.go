@@ -4,12 +4,15 @@ package codecs
 type AC3 struct {
 	SampleRate   int
 	ChannelCount int
-	Fscod        uint8
-	Bsid         uint8
-	Bsmod        uint8
-	Acmod        uint8
-	LfeOn        bool
-	BitRateCode  uint8
+
+	// Deprecated: this is filled automatically from SampleRate.
+	Fscod uint8
+
+	Bsid        uint8
+	Bsmod       uint8
+	Acmod       uint8
+	LfeOn       bool
+	BitRateCode uint8
 }
 
 // IsVideo implements Codec.

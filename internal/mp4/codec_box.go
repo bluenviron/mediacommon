@@ -562,8 +562,20 @@ func WriteCodecBoxes(w *Writer, codec codecs.Codec, trackID int, info *CodecInfo
 			return err
 		}
 
+		var fscod uint8
+		switch codec.SampleRate {
+		case 48000:
+			fscod = 0
+		case 44100:
+			fscod = 1
+		case 32000:
+			fscod = 2
+		default:
+			return fmt.Errorf("unsupported sample rate: %v", codec.SampleRate)
+		}
+
 		_, err = w.WriteBox(&amp4.Dac3{ // <dac3/>
-			Fscod: codec.Fscod,
+			Fscod: fscod,
 			Bsid:  codec.Bsid,
 			Bsmod: codec.Bsmod,
 			Acmod: codec.Acmod,
