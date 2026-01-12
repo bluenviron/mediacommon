@@ -7,12 +7,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/fmp4/seekablebuffer"
-	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4/codecs"
 )
 
 func TestEAC3Roundtrip(t *testing.T) {
 	// Create an EAC3 codec with realistic values
-	codec := &mp4.CodecEAC3{
+	codec := &codecs.EAC3{
 		SampleRate:   48000,
 		ChannelCount: 6, // 5.1 surround
 		DataRate:     640,
@@ -52,7 +52,7 @@ func TestEAC3Roundtrip(t *testing.T) {
 	require.Equal(t, int(1), init2.Tracks[0].ID)
 	require.Equal(t, uint32(48000), init2.Tracks[0].TimeScale)
 
-	codec2, ok := init2.Tracks[0].Codec.(*mp4.CodecEAC3)
+	codec2, ok := init2.Tracks[0].Codec.(*codecs.EAC3)
 	require.True(t, ok, "expected CodecEAC3")
 
 	require.Equal(t, 48000, codec2.SampleRate)
@@ -71,7 +71,7 @@ func TestEAC3Roundtrip(t *testing.T) {
 
 func TestEAC3StereoRoundtrip(t *testing.T) {
 	// Test with stereo configuration
-	codec := &mp4.CodecEAC3{
+	codec := &codecs.EAC3{
 		SampleRate:   48000,
 		ChannelCount: 2, // Stereo
 		DataRate:     128,
@@ -104,7 +104,7 @@ func TestEAC3StereoRoundtrip(t *testing.T) {
 	err = init2.Unmarshal(bytes.NewReader(buf.Bytes()))
 	require.NoError(t, err)
 
-	codec2, ok := init2.Tracks[0].Codec.(*mp4.CodecEAC3)
+	codec2, ok := init2.Tracks[0].Codec.(*codecs.EAC3)
 	require.True(t, ok, "expected CodecEAC3")
 
 	require.Equal(t, 2, codec2.ChannelCount)
@@ -114,7 +114,7 @@ func TestEAC3StereoRoundtrip(t *testing.T) {
 
 func TestEAC3_44100HzRoundtrip(t *testing.T) {
 	// Test with 44.1 kHz sample rate
-	codec := &mp4.CodecEAC3{
+	codec := &codecs.EAC3{
 		SampleRate:   44100,
 		ChannelCount: 2,
 		DataRate:     128,
@@ -147,7 +147,7 @@ func TestEAC3_44100HzRoundtrip(t *testing.T) {
 	err = init2.Unmarshal(bytes.NewReader(buf.Bytes()))
 	require.NoError(t, err)
 
-	codec2, ok := init2.Tracks[0].Codec.(*mp4.CodecEAC3)
+	codec2, ok := init2.Tracks[0].Codec.(*codecs.EAC3)
 	require.True(t, ok, "expected CodecEAC3")
 
 	require.Equal(t, 44100, codec2.SampleRate)
@@ -156,7 +156,7 @@ func TestEAC3_44100HzRoundtrip(t *testing.T) {
 
 func TestEAC3WithDependentSubstream(t *testing.T) {
 	// Test with a dependent substream (7.1 surround via extension)
-	codec := &mp4.CodecEAC3{
+	codec := &codecs.EAC3{
 		SampleRate:   48000,
 		ChannelCount: 8, // 7.1 surround
 		DataRate:     768,
@@ -167,7 +167,7 @@ func TestEAC3WithDependentSubstream(t *testing.T) {
 		Bsmod:        0,
 		Acmod:        7,
 		LfeOn:        true,
-		NumDepSub:    1,             // 1 dependent substream
+		NumDepSub:    1,           // 1 dependent substream
 		ChanLoc:      0b000011000, // Lrs, Rrs positions
 	}
 
@@ -189,7 +189,7 @@ func TestEAC3WithDependentSubstream(t *testing.T) {
 	err = init2.Unmarshal(bytes.NewReader(buf.Bytes()))
 	require.NoError(t, err)
 
-	codec2, ok := init2.Tracks[0].Codec.(*mp4.CodecEAC3)
+	codec2, ok := init2.Tracks[0].Codec.(*codecs.EAC3)
 	require.True(t, ok, "expected CodecEAC3")
 
 	require.Equal(t, 8, codec2.ChannelCount)

@@ -2,8 +2,6 @@ package mp4
 
 import (
 	amp4 "github.com/abema/go-mp4"
-
-	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4"
 )
 
 func init() {
@@ -69,45 +67,4 @@ type Dec3 struct {
 // GetType returns the box type for dec3.
 func (*Dec3) GetType() amp4.BoxType {
 	return amp4.StrToBoxType("dec3")
-}
-
-// ToCodec converts the Dec3 box to a CodecEAC3.
-func (d *Dec3) ToCodec(sampleRate, channelCount int) *mp4.CodecEAC3 {
-	return &mp4.CodecEAC3{
-		SampleRate:   sampleRate,
-		ChannelCount: channelCount,
-		DataRate:     d.DataRate,
-		NumIndSub:    d.NumIndSub,
-		Fscod:        d.Fscod,
-		Bsid:         d.Bsid,
-		Asvc:         d.Asvc != 0,
-		Bsmod:        d.Bsmod,
-		Acmod:        d.Acmod,
-		LfeOn:        d.LfeOn != 0,
-		NumDepSub:    d.NumDepSub,
-		ChanLoc:      d.ChanLoc,
-	}
-}
-
-// FromCodec creates a Dec3 box from a CodecEAC3.
-func FromCodec(codec *mp4.CodecEAC3) *Dec3 {
-	var asvc, lfeon uint8
-	if codec.Asvc {
-		asvc = 1
-	}
-	if codec.LfeOn {
-		lfeon = 1
-	}
-	return &Dec3{
-		DataRate:  codec.DataRate,
-		NumIndSub: codec.NumIndSub,
-		Fscod:     codec.Fscod,
-		Bsid:      codec.Bsid,
-		Asvc:      asvc,
-		Bsmod:     codec.Bsmod,
-		Acmod:     codec.Acmod,
-		LfeOn:     lfeon,
-		NumDepSub: codec.NumDepSub,
-		ChanLoc:   codec.ChanLoc,
-	}
 }

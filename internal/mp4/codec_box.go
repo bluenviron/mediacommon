@@ -595,8 +595,18 @@ func WriteCodecBoxes(w *Writer, codec codecs.Codec, trackID int, info *CodecInfo
 			return err
 		}
 
-		// Write dec3 box using actual codec parameters
-		_, err = w.WriteBox(FromCodec(codec))
+		_, err = w.WriteBox(&Dec3{
+			DataRate:  codec.DataRate,
+			NumIndSub: codec.NumIndSub,
+			Fscod:     codec.Fscod,
+			Bsid:      codec.Bsid,
+			Asvc:      boolToUint8(codec.Asvc),
+			Bsmod:     codec.Bsmod,
+			Acmod:     codec.Acmod,
+			LfeOn:     boolToUint8(codec.LfeOn),
+			NumDepSub: codec.NumDepSub,
+			ChanLoc:   codec.ChanLoc,
+		})
 		if err != nil {
 			return err
 		}

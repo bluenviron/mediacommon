@@ -575,7 +575,20 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 				}
 				dec3 := box.(*imp4.Dec3)
 
-				curTrack.Codec = dec3.ToCodec(sampleRate, channelCount)
+				curTrack.Codec = &codecs.EAC3{
+					SampleRate:   sampleRate,
+					ChannelCount: channelCount,
+					DataRate:     dec3.DataRate,
+					NumIndSub:    dec3.NumIndSub,
+					Fscod:        dec3.Fscod,
+					Bsid:         dec3.Bsid,
+					Asvc:         dec3.Asvc != 0,
+					Bsmod:        dec3.Bsmod,
+					Acmod:        dec3.Acmod,
+					LfeOn:        dec3.LfeOn != 0,
+					NumDepSub:    dec3.NumDepSub,
+					ChanLoc:      dec3.ChanLoc,
+				}
 				state = waitingTrak
 
 			case "ipcm":
