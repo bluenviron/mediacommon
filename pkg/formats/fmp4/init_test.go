@@ -1195,7 +1195,7 @@ var casesInit = []struct {
 			},
 		},
 	},
-	{
+	{ //nolint:dupl
 		"e-ac-3 5.1",
 		[]byte{ //nolint:dupl
 			0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70,
@@ -1284,8 +1284,6 @@ var casesInit = []struct {
 						ChannelCount: 6, // 5.1 surround
 						DataRate:     640,
 						NumIndSub:    0, // 1 independent substream
-						Fscod:        0, // 48 kHz
-						Bsid:         16,
 						Asvc:         false,
 						Bsmod:        0,
 						Acmod:        7, // 3/2 (L, C, R, Ls, Rs)
@@ -1297,7 +1295,7 @@ var casesInit = []struct {
 			},
 		},
 	},
-	{
+	{ //nolint:dupl
 		"e-ac-3 7.1",
 		[]byte{ //nolint:dupl
 			0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70,
@@ -1386,8 +1384,6 @@ var casesInit = []struct {
 						ChannelCount: 8, // 7.1 surround
 						DataRate:     768,
 						NumIndSub:    0,
-						Fscod:        0,
-						Bsid:         16,
 						Asvc:         false,
 						Bsmod:        0,
 						Acmod:        7,

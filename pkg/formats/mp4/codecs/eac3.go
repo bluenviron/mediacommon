@@ -16,14 +16,6 @@ type EAC3 struct {
 	// Fields below are for the first (primary) independent substream.
 	// For multi-substream content, additional parsing would be needed.
 
-	// Fscod indicates the sample rate code (2 bits):
-	// 0 = 48 kHz, 1 = 44.1 kHz, 2 = 32 kHz, 3 = reserved
-	Fscod uint8
-
-	// Bsid is the bit stream identification (5 bits).
-	// For E-AC-3, this is typically 16.
-	Bsid uint8
-
 	// Asvc indicates if this is an associated audio service (1 bit).
 	Asvc bool
 

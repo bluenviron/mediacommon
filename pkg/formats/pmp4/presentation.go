@@ -617,8 +617,6 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 				ChannelCount: channelCount,
 				DataRate:     dec3.DataRate,
 				NumIndSub:    dec3.NumIndSub,
-				Fscod:        dec3.Fscod,
-				Bsid:         dec3.Bsid,
 				Asvc:         dec3.Asvc != 0,
 				Bsmod:        dec3.Bsmod,
 				Acmod:        dec3.Acmod,
