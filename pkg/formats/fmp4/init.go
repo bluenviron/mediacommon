@@ -154,6 +154,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 		waitingAudioEsds
 		waitingDOps
 		waitingDac3
+		waitingDec3
 		waitingPcmC
 	)
 
@@ -544,6 +545,47 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 					Acmod:        dac3.Acmod,
 					LfeOn:        dac3.LfeOn != 0,
 					BitRateCode:  dac3.BitRateCode,
+				}
+				state = waitingTrak
+
+			case "ec-3":
+				if state != waitingCodec {
+					return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+				}
+
+				box, _, err := h.ReadPayload()
+				if err != nil {
+					return nil, err
+				}
+				eac3 := box.(*amp4.AudioSampleEntry)
+
+				sampleRate = int(eac3.SampleRate / 65536)
+				channelCount = int(eac3.ChannelCount)
+				state = waitingDec3
+				return h.Expand()
+
+			case "dec3":
+				if state != waitingDec3 {
+					return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+				}
+
+				box, _, err := h.ReadPayload()
+				if err != nil {
+					return nil, err
+				}
+				dec3 := box.(*imp4.Dec3)
+
+				curTrack.Codec = &codecs.EAC3{
+					SampleRate:   sampleRate,
+					ChannelCount: channelCount,
+					DataRate:     dec3.DataRate,
+					NumIndSub:    dec3.NumIndSub,
+					Asvc:         dec3.Asvc != 0,
+					Bsmod:        dec3.Bsmod,
+					Acmod:        dec3.Acmod,
+					LfeOn:        dec3.LfeOn != 0,
+					NumDepSub:    dec3.NumDepSub,
+					ChanLoc:      dec3.ChanLoc,
 				}
 				state = waitingTrak
 

@@ -36,6 +36,8 @@ func WriteCodecBoxes(w *Writer, codec codecs.Codec, trackID int, info *CodecInfo
 		|    |esds|
 		|ac-3| (AC-3)
 		|    |dac3|
+		|ec-3| (E-AC-3 / Dolby Digital Plus)
+		|    |dec3|
 		|ipcm| (LPCM)
 		|    |pcmC|
 	*/
@@ -572,6 +574,50 @@ func WriteCodecBoxes(w *Writer, codec codecs.Codec, trackID int, info *CodecInfo
 				return 0
 			}(),
 			BitRateCode: codec.BitRateCode,
+		})
+		if err != nil {
+			return err
+		}
+
+	case *codecs.EAC3:
+		_, err := w.WriteBoxStart(&amp4.AudioSampleEntry{ // <ec-3>
+			SampleEntry: amp4.SampleEntry{
+				AnyTypeBox: amp4.AnyTypeBox{
+					Type: amp4.StrToBoxType("ec-3"),
+				},
+				DataReferenceIndex: 1,
+			},
+			ChannelCount: uint16(codec.ChannelCount),
+			SampleSize:   16,
+			SampleRate:   uint32(codec.SampleRate * 65536),
+		})
+		if err != nil {
+			return err
+		}
+
+		var fscod uint8
+		switch codec.SampleRate {
+		case 48000:
+			fscod = 0
+		case 44100:
+			fscod = 1
+		case 32000:
+			fscod = 2
+		default:
+			return fmt.Errorf("unsupported sample rate: %v", codec.SampleRate)
+		}
+
+		_, err = w.WriteBox(&Dec3{
+			DataRate:  codec.DataRate,
+			NumIndSub: codec.NumIndSub,
+			Fscod:     fscod,
+			Bsid:      16,
+			Asvc:      boolToUint8(codec.Asvc),
+			Bsmod:     codec.Bsmod,
+			Acmod:     codec.Acmod,
+			LfeOn:     boolToUint8(codec.LfeOn),
+			NumDepSub: codec.NumDepSub,
+			ChanLoc:   codec.ChanLoc,
 		})
 		if err != nil {
 			return err
