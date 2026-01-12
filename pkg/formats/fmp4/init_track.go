@@ -3,7 +3,6 @@ package fmp4
 import (
 	amp4 "github.com/abema/go-mp4"
 
-	"github.com/bluenviron/mediacommon/v2/internal/mp4"
 	imp4 "github.com/bluenviron/mediacommon/v2/internal/mp4"
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4/codecs"
 )
@@ -62,7 +61,7 @@ func (it InitTrack) marshal(w *imp4.Writer) error {
 		return err
 	}
 
-	var info mp4.CodecInfo
+	var info imp4.CodecInfo
 	err = info.Fill(it.Codec)
 	if err != nil {
 		return err

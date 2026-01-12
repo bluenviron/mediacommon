@@ -1306,7 +1306,7 @@ var casesPresentation = []struct {
 func getSampleData(t *testing.T, p *Presentation) map[int][][]byte {
 	sampleData := make(map[int][][]byte)
 	for _, track := range p.Tracks {
-		var trackData [][]byte
+		var trackData [][]byte //nolint:prealloc
 		for _, sample := range track.Samples {
 			pl, err := sample.GetPayload()
 			require.NoError(t, err)
@@ -1318,7 +1318,7 @@ func getSampleData(t *testing.T, p *Presentation) map[int][][]byte {
 }
 
 func removeGetPayloads(p *Presentation) []func() ([]byte, error) {
-	var ret []func() ([]byte, error)
+	var ret []func() ([]byte, error) //nolint:prealloc
 	for _, track := range p.Tracks {
 		for _, sample := range track.Samples {
 			ret = append(ret, sample.GetPayload)

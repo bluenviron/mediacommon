@@ -68,7 +68,7 @@ func (t Track) marshal(w *imp4.Writer) (*headerTrackMarshalResult, error) {
 		return nil, err
 	}
 
-	var info icodecs.Info
+	var info imp4.CodecInfo
 	err = info.Fill(t.Codec)
 	if err != nil {
 		return nil, err

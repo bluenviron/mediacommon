@@ -696,7 +696,7 @@ func TestDTSExtractor(t *testing.T) {
 }
 
 func serializeSequence(seq []sequenceSample) []byte {
-	var buf []byte
+	var buf []byte //nolint:prealloc
 
 	for _, sample := range seq {
 		tmp := make([]byte, 8)

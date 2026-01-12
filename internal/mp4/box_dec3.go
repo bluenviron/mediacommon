@@ -4,7 +4,7 @@ import (
 	amp4 "github.com/abema/go-mp4"
 )
 
-func init() {
+func init() { //nolint:gochecknoinits
 	// Register ec-3 as an AudioSampleEntry type (like ac-3)
 	amp4.AddAnyTypeBoxDef(&amp4.AudioSampleEntry{}, amp4.StrToBoxType("ec-3"))
 	// Register dec3 box type
