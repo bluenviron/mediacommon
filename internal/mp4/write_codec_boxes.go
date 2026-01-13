@@ -621,7 +621,7 @@ func WriteCodecBoxes(w *Writer, codec codecs.Codec, trackID int, info *CodecInfo
 
 		_, err = w.WriteBox(&Dec3{
 			DataRate:  codec.DataRate,
-			NumIndSub: codec.NumIndSub,
+			NumIndSub: 0,
 			Fscod:     fscod,
 			Bsid:      16,
 			Asvc:      boolToUint8(codec.Asvc),

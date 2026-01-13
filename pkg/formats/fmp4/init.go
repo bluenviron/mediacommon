@@ -579,7 +579,6 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 					SampleRate:   sampleRate,
 					ChannelCount: channelCount,
 					DataRate:     dec3.DataRate,
-					NumIndSub:    dec3.NumIndSub,
 					Asvc:         dec3.Asvc != 0,
 					Bsmod:        dec3.Bsmod,
 					Acmod:        dec3.Acmod,
