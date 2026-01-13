@@ -79,6 +79,7 @@ func (ci *CodecInfo) Fill(codec codecs.Codec) error {
 			return fmt.Errorf("MPEG-4 Video config not provided")
 		}
 
+		// TODO: parse config and use real values
 		ci.Width = 800
 		ci.Height = 600
 		return nil
