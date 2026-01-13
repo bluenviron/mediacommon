@@ -9,10 +9,6 @@ type EAC3 struct {
 	// DataRate is the data rate in kbps (from dec3 data_rate field, 13 bits).
 	DataRate uint16
 
-	// NumIndSub is the number of independent substreams minus 1 (from dec3 num_ind_sub field, 3 bits).
-	// Value of 0 means 1 independent substream.
-	NumIndSub uint8
-
 	// Fields below are for the first (primary) independent substream.
 	// For multi-substream content, additional parsing would be needed.
 

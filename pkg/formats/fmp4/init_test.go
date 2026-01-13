@@ -1283,7 +1283,6 @@ var casesInit = []struct {
 						SampleRate:   48000,
 						ChannelCount: 6, // 5.1 surround
 						DataRate:     640,
-						NumIndSub:    0, // 1 independent substream
 						Asvc:         false,
 						Bsmod:        0,
 						Acmod:        7, // 3/2 (L, C, R, Ls, Rs)
@@ -1383,7 +1382,6 @@ var casesInit = []struct {
 						SampleRate:   48000,
 						ChannelCount: 8, // 7.1 surround
 						DataRate:     768,
-						NumIndSub:    0,
 						Asvc:         false,
 						Bsmod:        0,
 						Acmod:        7,
