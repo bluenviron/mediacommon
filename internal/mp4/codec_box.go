@@ -123,7 +123,7 @@ func WriteCodecBoxes(w *Writer, codec mp4.Codec, trackID int, info *CodecInfo, a
 		_, err := w.WriteBoxStart(&amp4.VisualSampleEntry{ // <hev1>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
-					Type: amp4.BoxTypeHev1(),
+					Type: amp4.BoxTypeHvc1(),
 				},
 				DataReferenceIndex: 1,
 			},
