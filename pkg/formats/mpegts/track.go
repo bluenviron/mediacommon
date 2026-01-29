@@ -317,47 +317,43 @@ type Track struct {
 	PID   uint16
 	Codec codecs.Codec
 
-	ISO639Language string
-
 	isLeading  bool // Writer-only
 	mp3Checked bool // Writer-only
 }
 
 func (t Track) marshal() (*astits.PMTElementaryStream, error) {
-	var es *astits.PMTElementaryStream
-
 	switch c := t.Codec.(type) {
 	// video
 
 	case *codecs.H265:
-		es = &astits.PMTElementaryStream{
+		return &astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypeH265Video,
-		}
+		}, nil
 
 	case *codecs.H264:
-		es = &astits.PMTElementaryStream{
+		return &astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypeH264Video,
-		}
+		}, nil
 
 	case *codecs.MPEG4Video:
-		es = &astits.PMTElementaryStream{
+		return &astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypeMPEG4Video,
-		}
+		}, nil
 
 	case *codecs.MPEG1Video:
-		es = &astits.PMTElementaryStream{
+		return &astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			// we use MPEG-2 to signal that video can be either MPEG-1 or MPEG-2
 			StreamType: astits.StreamTypeMPEG2Video,
-		}
+		}, nil
 
 	// audio
 
 	case *codecs.Opus:
-		es = &astits.PMTElementaryStream{
+		return &astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypePrivateData,
 			ElementaryStreamDescriptors: []*astits.Descriptor{
@@ -381,10 +377,10 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 					},
 				},
 			},
-		}
+		}, nil
 
 	case *codecs.AC3:
-		es = &astits.PMTElementaryStream{
+		return &astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypeAC3Audio,
 			ElementaryStreamDescriptors: []*astits.Descriptor{
@@ -402,10 +398,10 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 					},
 				},
 			},
-		}
+		}, nil
 
 	case *codecs.EAC3:
-		es = &astits.PMTElementaryStream{
+		return &astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypeEAC3Audio,
 			ElementaryStreamDescriptors: []*astits.Descriptor{
@@ -423,25 +419,25 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 					},
 				},
 			},
-		}
+		}, nil
 
 	case *codecs.MPEG4Audio:
-		es = &astits.PMTElementaryStream{
+		return &astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypeAACAudio,
-		}
+		}, nil
 
 	case *codecs.MPEG4AudioLATM:
-		es = &astits.PMTElementaryStream{
+		return &astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypeAACLATMAudio,
-		}
+		}, nil
 
 	case *codecs.MPEG1Audio:
-		es = &astits.PMTElementaryStream{
+		return &astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypeMPEG1Audio,
-		}
+		}, nil
 
 		// other
 
@@ -468,7 +464,7 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 				return nil, err
 			}
 
-			es = &astits.PMTElementaryStream{
+			return &astits.PMTElementaryStream{
 				ElementaryPID: t.PID,
 				StreamType:    astits.StreamTypeMetadata,
 				ElementaryStreamDescriptors: []*astits.Descriptor{
@@ -491,27 +487,27 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 						},
 					},
 				},
-			}
-		} else {
-			es = &astits.PMTElementaryStream{
-				ElementaryPID: t.PID,
-				StreamType:    astits.StreamTypePrivateData,
-				ElementaryStreamDescriptors: []*astits.Descriptor{
-					{
-						// Length must be different than zero.
-						// https://github.com/asticode/go-astits/blob/7c2bf6b71173d24632371faa01f28a9122db6382/descriptor.go#L2146-L2148
-						Length: 1,
-						Tag:    astits.DescriptorTagRegistration,
-						Registration: &astits.DescriptorRegistration{
-							FormatIdentifier: klvaIdentifier,
-						},
-					},
-				},
-			}
+			}, nil
 		}
 
+		return &astits.PMTElementaryStream{
+			ElementaryPID: t.PID,
+			StreamType:    astits.StreamTypePrivateData,
+			ElementaryStreamDescriptors: []*astits.Descriptor{
+				{
+					// Length must be different than zero.
+					// https://github.com/asticode/go-astits/blob/7c2bf6b71173d24632371faa01f28a9122db6382/descriptor.go#L2146-L2148
+					Length: 1,
+					Tag:    astits.DescriptorTagRegistration,
+					Registration: &astits.DescriptorRegistration{
+						FormatIdentifier: klvaIdentifier,
+					},
+				},
+			},
+		}, nil
+
 	case *codecs.DVBSubtitle:
-		es = &astits.PMTElementaryStream{
+		return &astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypePrivateData,
 			ElementaryStreamDescriptors: []*astits.Descriptor{
@@ -525,22 +521,11 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 					},
 				},
 			},
-		}
+		}, nil
 
 	default:
 		panic("unsupported codec")
 	}
-
-	if t.ISO639Language != "" {
-		es.ElementaryStreamDescriptors = append(es.ElementaryStreamDescriptors, &astits.Descriptor{
-			Tag: astits.DescriptorTagISO639LanguageAndAudioType,
-			ISO639LanguageAndAudioType: &astits.DescriptorISO639LanguageAndAudioType{
-				Language: []byte(t.ISO639Language),
-			},
-		})
-	}
-
-	return es, nil
 }
 
 func (t *Track) unmarshal(dem *robustDemuxer, es *astits.PMTElementaryStream) error {
