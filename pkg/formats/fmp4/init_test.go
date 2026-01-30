@@ -1805,7 +1805,7 @@ func TestInitUnmarshal(t *testing.T) {
 	}
 }
 
-func TestInitUnmarshalExternal(t *testing.T) {
+func TestInitUnmarshalOnly(t *testing.T) {
 	for _, ca := range []struct {
 		name string
 		byts []byte

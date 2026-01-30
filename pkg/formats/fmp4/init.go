@@ -77,6 +77,11 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 
 			state = waitingMoov
 
+		case "free":
+			if state == waitingFtyp {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+			}
+
 		case "moov":
 			if state != waitingMoov {
 				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
