@@ -186,6 +186,9 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 			}
 
+		case "moof", "mdat":
+			return nil, nil
+
 		default:
 			return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 		}
