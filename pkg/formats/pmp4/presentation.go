@@ -47,7 +47,6 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 		readingCodec
 		waitingSamples
 		waitingSampleProps
-		mdat
 	)
 
 	var state readState
@@ -407,11 +406,9 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			}
 
 		case "mdat":
-			if state != waitingTrak && state != waitingSampleProps {
+			if state != waitingTrak && state != waitingSampleProps && state != waitingMoov {
 				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 			}
-
-			state = mdat
 
 		default:
 			return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
@@ -423,7 +420,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 		return err
 	}
 
-	if state != mdat {
+	if state != waitingTrak && state != waitingSampleProps {
 		return fmt.Errorf("parse error")
 	}
 
