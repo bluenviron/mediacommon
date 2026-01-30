@@ -91,7 +91,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			state = waitingMoov
 
 		case "free":
-			if state != waitingMoov && state != waitingTrak {
+			if state == waitingFtyp {
 				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 			}
 
@@ -112,7 +112,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			return h.Expand()
 
 		case "udta":
-			if state != waitingTrak {
+			if state != waitingTrak && state != waitingSampleProps {
 				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 			}
 
@@ -399,6 +399,11 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 					off += sampleSize
 					i++
 				}
+			}
+
+		case "sdtp":
+			if state != waitingSampleProps {
+				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 			}
 
 		case "mdat":
