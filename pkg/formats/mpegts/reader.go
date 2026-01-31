@@ -185,6 +185,8 @@ type Reader struct {
 	onData          map[uint16]func(int64, int64, []byte) error
 	lastPTSReceived bool
 	lastPTS         int64
+
+	pendingAsync map[uint16][][]byte // PID -> queued PES payloads waiting for first PTS
 }
 
 // Initialize initializes a Reader.
@@ -229,6 +231,8 @@ func (r *Reader) Initialize() error {
 
 	r.onDecodeError = func(_ error) {}
 	r.onData = make(map[uint16]func(int64, int64, []byte) error)
+
+	r.pendingAsync = make(map[uint16][][]byte)
 
 	return nil
 }
@@ -510,6 +514,8 @@ func (r *Reader) Read() error {
 
 	if klvCodec, ok2 := track.Codec.(*codecs.KLV); ok2 && !klvCodec.Synchronous {
 		if !r.lastPTSReceived {
+			// Buffer until we receive the first PTS from any timed stream.
+			r.pendingAsync[data.PID] = append(r.pendingAsync[data.PID], data.PES.Data)
 			return nil
 		}
 
@@ -532,6 +538,21 @@ func (r *Reader) Read() error {
 
 		r.lastPTS = pts
 		r.lastPTSReceived = true
+
+		// Flush any pending async PES now that we have a timeline.
+		if len(r.pendingAsync) != 0 {
+			for pid, bufs := range r.pendingAsync {
+				onData, ok := r.onData[pid]
+				if !ok {
+					continue
+				}
+				for _, b := range bufs {
+					// dts == pts for metadata-like streams
+					_ = onData(r.lastPTS, r.lastPTS, b)
+				}
+				delete(r.pendingAsync, pid)
+			}
+		}
 	}
 
 	onData, ok := r.onData[data.PID]
