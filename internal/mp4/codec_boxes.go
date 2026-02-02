@@ -569,10 +569,13 @@ func (r *CodecBoxesReader) Read(h *amp4.ReadHandle) (any, error) {
 		}
 		r.state = waitingAdditional
 
-	case "pasp", "colr", "fiel", "chrm", "btrt":
+	case "colr", "fiel", "chrm", "btrt":
 		if r.state != waitingAdditional {
 			return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 		}
+
+	case "pasp":
+		return nil, nil
 
 	default:
 		return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
