@@ -106,7 +106,7 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 			state = waitingTrak
 			return h.Expand()
 
-		case "stts", "stsc", "stsz", "stco":
+		case "mvex", "stts", "stsc", "stsz", "stco":
 			if state != waitingTrak {
 				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 			}
@@ -180,11 +180,6 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 			codecBoxesReader = &imp4.CodecBoxesReader{}
 			state = readingCodec
 			return h.Expand()
-
-		case "mvex":
-			if state != waitingTrak {
-				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
-			}
 
 		case "moof", "mdat":
 			return nil, nil
