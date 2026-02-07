@@ -292,11 +292,19 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			stsc := box.(*amp4.Stsc)
 
 			if len(stsc.Entries) != 0 {
-				prevFirstChunk := uint32(0)
-				i := 0
+				sampleCount := 0
 
-				for _, entry := range stsc.Entries {
-					chunkCount := entry.FirstChunk - prevFirstChunk
+				for i, entry := range stsc.Entries {
+					var chunkCount uint32
+					if i != (len(stsc.Entries) - 1) {
+						chunkCount = stsc.Entries[i+1].FirstChunk - entry.FirstChunk
+					} else {
+						remaining := len(curTrack.Samples) - sampleCount
+						if (remaining % int(entry.SamplesPerChunk)) != 0 {
+							return nil, fmt.Errorf("invalid stsc")
+						}
+						chunkCount = uint32(remaining / int(entry.SamplesPerChunk))
+					}
 
 					if (len(curChunks) + int(chunkCount)) > maxChunks {
 						return nil, fmt.Errorf("invalid stsc")
@@ -307,7 +315,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 					}
 
 					for range chunkCount {
-						if (i + int(entry.SamplesPerChunk)) > len(curTrack.Samples) {
+						if (sampleCount + int(entry.SamplesPerChunk)) > len(curTrack.Samples) {
 							return nil, fmt.Errorf("invalid stsc")
 						}
 
@@ -315,24 +323,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 							sampleCount: int(entry.SamplesPerChunk),
 						})
 
-						i += int(entry.SamplesPerChunk)
-					}
-					prevFirstChunk = entry.FirstChunk
-				}
-
-				if i != len(curTrack.Samples) {
-					remaining := len(curTrack.Samples) - i
-					lastEntry := stsc.Entries[len(stsc.Entries)-1]
-
-					if (remaining % int(lastEntry.SamplesPerChunk)) != 0 {
-						return nil, fmt.Errorf("invalid stsc")
-					}
-
-					count := remaining / int(lastEntry.SamplesPerChunk)
-					for range count {
-						curChunks = append(curChunks, &chunk{
-							sampleCount: int(lastEntry.SamplesPerChunk),
-						})
+						sampleCount += int(entry.SamplesPerChunk)
 					}
 				}
 			}
@@ -400,7 +391,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 				}
 			}
 
-		case "sdtp":
+		case "sdtp", "sgpd", "sbgp":
 			if state != waitingSampleProps {
 				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 			}
