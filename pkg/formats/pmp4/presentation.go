@@ -89,11 +89,6 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 
 			state = waitingMoov
 
-		case "free":
-			if state == waitingFtyp {
-				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
-			}
-
 		case "moov":
 			if state != waitingMoov {
 				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
@@ -109,11 +104,6 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 
 			state = waitingTrak
 			return h.Expand()
-
-		case "udta":
-			if state != waitingTrak && state != waitingSampleProps {
-				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
-			}
 
 		case "trak":
 			if state != waitingTrak && state != waitingSampleProps {
@@ -180,11 +170,6 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			curTrack.TimeScale = mdhd.Timescale
 			trackDuration = mdhd.DurationV0
 			state = waitingStsd
-
-		case "hdlr", "vmhd", "smhd", "nmhd", "dinf":
-			if state != waitingStsd {
-				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
-			}
 
 		case "minf", "stbl":
 			if state != waitingStsd {
@@ -390,19 +375,6 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 					i++
 				}
 			}
-
-		case "sdtp", "sgpd", "sbgp":
-			if state != waitingSampleProps {
-				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
-			}
-
-		case "mdat":
-			if state != waitingTrak && state != waitingSampleProps && state != waitingMoov {
-				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
-			}
-
-		default:
-			return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 		}
 
 		return nil, nil

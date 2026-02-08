@@ -170,6 +170,10 @@ type CodecBoxesReader struct {
 // ReadCodecBoxes reads codec-related boxes.
 func (r *CodecBoxesReader) Read(h *amp4.ReadHandle) (any, error) {
 	if len(h.Path) < 7 {
+		if r.state != waitingAdditional {
+			return nil, fmt.Errorf("codec information not found")
+		}
+
 		return nil, ErrReadEnded
 	}
 
@@ -568,14 +572,6 @@ func (r *CodecBoxesReader) Read(h *amp4.ReadHandle) (any, error) {
 			ChannelCount: r.channelCount,
 		}
 		r.state = waitingAdditional
-
-	case "pasp", "colr", "fiel", "chrm", "btrt":
-		if r.state != waitingAdditional {
-			return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
-		}
-
-	default:
-		return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 	}
 
 	return nil, nil
