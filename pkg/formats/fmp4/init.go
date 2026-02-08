@@ -77,11 +77,6 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 
 			state = waitingMoov
 
-		case "free":
-			if state == waitingFtyp {
-				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
-			}
-
 		case "moov":
 			if state != waitingMoov {
 				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
@@ -105,11 +100,6 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 
 			state = waitingTrak
 			return h.Expand()
-
-		case "mvex", "stts", "stsc", "stsz", "stco":
-			if state != waitingTrak {
-				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
-			}
 
 		case "trak":
 			if state != waitingTrak {
@@ -160,11 +150,6 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 			curTrack.TimeScale = mdhd.Timescale
 			state = waitingStsd
 
-		case "hdlr", "vmhd", "smhd", "nmhd", "dinf":
-			if state != waitingStsd {
-				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
-			}
-
 		case "minf", "stbl":
 			if state != waitingStsd {
 				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
@@ -180,12 +165,6 @@ func (i *Init) Unmarshal(r io.ReadSeeker) error {
 			codecBoxesReader = &imp4.CodecBoxesReader{}
 			state = readingCodec
 			return h.Expand()
-
-		case "moof", "mdat":
-			return nil, nil
-
-		default:
-			return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 		}
 
 		return nil, nil
