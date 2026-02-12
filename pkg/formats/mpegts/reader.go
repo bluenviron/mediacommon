@@ -518,7 +518,10 @@ func (r *Reader) Read() error {
 
 	if klvCodec, ok2 := track.Codec.(*codecs.KLV); ok2 && !klvCodec.Synchronous {
 		if !r.lastPTSReceived {
-			r.pushPendingAsync(data.PID, data.PES.Data)
+			if _, hasOnData := r.onData[data.PID]; hasOnData {
+				r.pushPendingAsync(data.PID, data.PES.Data)
+			}
+
 			return nil
 		}
 
@@ -555,6 +558,8 @@ func (r *Reader) Read() error {
 				}
 				delete(r.pendingAsync, pid)
 			}
+
+			r.pendingAsyncBytes = 0
 		}
 	}
 
