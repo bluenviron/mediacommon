@@ -545,8 +545,8 @@ func (r *Reader) Read() error {
 		// Flush any pending async PES now that we have a timeline.
 		if len(r.pendingAsync) != 0 {
 			for pid, bufs := range r.pendingAsync {
-				onData, ok := r.onData[pid]
-				if !ok {
+				onData, hasOnData := r.onData[pid]
+				if !hasOnData {
 					continue
 				}
 				for _, b := range bufs {
