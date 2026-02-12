@@ -548,14 +548,12 @@ func (r *Reader) Read() error {
 		// Flush any pending async PES now that we have a timeline.
 		if len(r.pendingAsync) != 0 {
 			for pid, bufs := range r.pendingAsync {
-				onData, hasOnData := r.onData[pid]
-				if !hasOnData {
-					continue
+				if onData, hasOnData := r.onData[pid]; hasOnData {
+					for _, b := range bufs {
+						_ = onData(r.lastPTS, r.lastPTS, b)
+					}
 				}
-				for _, b := range bufs {
-					// dts == pts for metadata-like streams
-					_ = onData(r.lastPTS, r.lastPTS, b)
-				}
+
 				delete(r.pendingAsync, pid)
 			}
 
