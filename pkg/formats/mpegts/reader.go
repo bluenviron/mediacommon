@@ -186,7 +186,9 @@ type Reader struct {
 	lastPTSReceived bool
 	lastPTS         int64
 
-	pendingAsync map[uint16][][]byte // PID -> queued PES payloads waiting for first PTS
+	pendingAsync         map[uint16][][]byte // PID -> queued PES payloads waiting for first PTS
+	pendingAsyncBytes    int
+	pendingAsyncMaxBytes int
 }
 
 // Initialize initializes a Reader.
@@ -233,6 +235,8 @@ func (r *Reader) Initialize() error {
 	r.onData = make(map[uint16]func(int64, int64, []byte) error)
 
 	r.pendingAsync = make(map[uint16][][]byte)
+	r.pendingAsyncMaxBytes = 4 * 1024 * 1024
+	r.pendingAsyncBytes = 0
 
 	return nil
 }
@@ -514,8 +518,7 @@ func (r *Reader) Read() error {
 
 	if klvCodec, ok2 := track.Codec.(*codecs.KLV); ok2 && !klvCodec.Synchronous {
 		if !r.lastPTSReceived {
-			// Buffer until we receive the first PTS from any timed stream.
-			r.pendingAsync[data.PID] = append(r.pendingAsync[data.PID], data.PES.Data)
+			r.pushPendingAsync(data.PID, data.PES.Data)
 			return nil
 		}
 
@@ -561,4 +564,32 @@ func (r *Reader) Read() error {
 	}
 
 	return onData(pts, dts, data.PES.Data)
+}
+
+func (r *Reader) pushPendingAsync(pid uint16, payload []byte) {
+	r.pendingAsync[pid] = append(r.pendingAsync[pid], payload)
+	r.pendingAsyncBytes += len(payload)
+
+	for r.pendingAsyncBytes > r.pendingAsyncMaxBytes {
+		for p, q := range r.pendingAsync {
+			if len(q) == 0 {
+				continue
+			}
+
+			dropped := r.pendingAsync[p][0]
+			r.pendingAsync[p] = r.pendingAsync[p][1:]
+			r.pendingAsyncBytes -= len(dropped)
+
+			if len(r.pendingAsync[p]) == 0 {
+				delete(r.pendingAsync, p)
+			}
+
+			r.onDecodeError(fmt.Errorf(
+				"pending async buffer overflow: dropped %d bytes (pid %d), limit %d bytes",
+				len(dropped), p, r.pendingAsyncMaxBytes,
+			))
+
+			break
+		}
+	}
 }
