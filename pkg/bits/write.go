@@ -1,4 +1,4 @@
-package bits
+package bits //nolint:revive
 
 // WriteBitsUnsafe writes N bits.
 func WriteBitsUnsafe(buf []byte, pos *int, v uint64, n int) {
