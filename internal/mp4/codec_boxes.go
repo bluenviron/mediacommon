@@ -257,7 +257,7 @@ func (r *CodecBoxesReader) Read(h *amp4.ReadHandle) (any, error) {
 		}
 		r.state = waitingAdditional
 
-	case "hev1", "hvc1":
+	case "hvc1", "hev1":
 		if r.state != initial {
 			return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 		}
@@ -584,7 +584,7 @@ func WriteCodecBoxes(w *Writer, codec codecs.Codec, trackID int, info *CodecInfo
 		|    |av1C|
 		|vp09| (VP9)
 		|    |vpcC|
-		|hev1| (H265)
+		|hvc1| (H265)
 		|    |hvcC|
 		|avc1| (H264)
 		|    |avcC|
@@ -682,10 +682,10 @@ func WriteCodecBoxes(w *Writer, codec codecs.Codec, trackID int, info *CodecInfo
 		}
 
 	case *codecs.H265:
-		_, err := w.WriteBoxStart(&amp4.VisualSampleEntry{ // <hev1>
+		_, err := w.WriteBoxStart(&amp4.VisualSampleEntry{ // <hvc1>
 			SampleEntry: amp4.SampleEntry{
 				AnyTypeBox: amp4.AnyTypeBox{
-					Type: amp4.BoxTypeHev1(),
+					Type: amp4.BoxTypeHvc1(),
 				},
 				DataReferenceIndex: 1,
 			},
