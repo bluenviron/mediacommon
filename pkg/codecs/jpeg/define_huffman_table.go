@@ -1,4 +1,4 @@
-package jpeg
+package jpeg //nolint:revive
 
 // DefineHuffmanTable is a DHT marker.
 type DefineHuffmanTable struct {

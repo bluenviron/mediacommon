@@ -1,4 +1,4 @@
-package jpeg
+package jpeg //nolint:revive
 
 import (
 	"testing"

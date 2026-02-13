@@ -1,4 +1,4 @@
-package jpeg
+package jpeg //nolint:revive
 
 // StartOfImage is a SOI marker.
 type StartOfImage struct{}

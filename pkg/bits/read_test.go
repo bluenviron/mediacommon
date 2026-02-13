@@ -1,4 +1,4 @@
-package bits
+package bits //nolint:revive
 
 import (
 	"testing"

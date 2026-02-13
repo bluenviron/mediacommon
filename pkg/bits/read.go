@@ -1,5 +1,5 @@
 // Package bits contains functions to read/write bits from/to buffers.
-package bits
+package bits //nolint:revive
 
 import (
 	"fmt"

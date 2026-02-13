@@ -1,5 +1,5 @@
 // Package jpeg contains utilities to work with the JPEG codec.
-package jpeg
+package jpeg //nolint:revive
 
 // standard JPEG markers.
 const (
