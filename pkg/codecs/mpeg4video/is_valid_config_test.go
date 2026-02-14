@@ -43,6 +43,16 @@ func TestIsValidConfig(t *testing.T) {
 	}
 }
 
+func BenchmarkIsValidConfig(b *testing.B) {
+	for _, ca := range casesIsValidConfig {
+		b.Run(ca.name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				IsValidConfig(ca.byts) //nolint:errcheck
+			}
+		})
+	}
+}
+
 func FuzzIsValidConfig(f *testing.F) {
 	for _, ca := range casesIsValidConfig {
 		f.Add(ca.byts)
