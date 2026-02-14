@@ -1,6 +1,7 @@
 package h264
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 )
@@ -11,114 +12,79 @@ var ErrAnnexBNoNALUs = errors.New("Annex-B unit doesn't contain any NALU")
 // ErrAnnexBNoInitialDelimiter is returned by AnnexBUnmarshal when the initial delimiter is not found.
 var ErrAnnexBNoInitialDelimiter = errors.New("initial delimiter not found")
 
-// countNalUnits counts the number of NAL units in the Annex-B stream.
-func countNalUnits(buf []byte) (int, error) {
-	n := 0
-	i := 0
-	start := 0
-	auSize := 0
-
-	for i < len(buf) {
-		lim := min(4, len(buf)-i)
-		data := buf[i : i+lim]
-
-		switch {
-		case len(data) >= 3 && data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x01:
-			if i > start {
-				auSize += i - start
-				if auSize > MaxAccessUnitSize {
-					return 0, fmt.Errorf("access unit size (%d) is too big, maximum is %d", auSize, MaxAccessUnitSize)
-				}
-				n++
-			}
-			i += 3
-			start = i
-		case len(data) >= 4 && data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x01:
-			if i > start {
-				auSize += i - start
-				if auSize > MaxAccessUnitSize {
-					return 0, fmt.Errorf("access unit size (%d) is too big, maximum is %d", auSize, MaxAccessUnitSize)
-				}
-				n++
-			}
-			i += 4
-			start = i
-		default:
-			i++
-		}
-	}
-
-	if i > start {
-		if (auSize + i - start) > MaxAccessUnitSize {
-			return 0, fmt.Errorf("access unit size (%d) is too big, maximum is %d", auSize+i-start, MaxAccessUnitSize)
-		}
-		n++
-	}
-
-	return n, nil
-}
-
-func hasInitialDelimiter(buf []byte) bool {
-	if len(buf) < 4 {
-		return false
-	}
-	return buf[0] == 0x00 && buf[1] == 0x00 && (buf[2] == 0x00 && buf[3] == 0x01) || (buf[2] == 0x01)
-}
-
 // AnnexB is an access unit that can be decoded/encoded from/to the Annex-B stream format.
 // Specification: ITU-T Rec. H.264, Annex B
 type AnnexB [][]byte
 
 // Unmarshal decodes an access unit from the Annex-B stream format.
 func (a *AnnexB) Unmarshal(buf []byte) error {
-	count, err := countNalUnits(buf)
-	if err != nil {
-		return err
-	}
-
-	if count == 0 {
-		return ErrAnnexBNoNALUs
-	}
-
-	if !hasInitialDelimiter(buf) {
+	var pos int
+	switch {
+	case len(buf) >= 4 && buf[0] == 0x00 && buf[1] == 0x00 && buf[2] == 0x00 && buf[3] == 0x01:
+		pos = 4
+	case len(buf) >= 3 && buf[0] == 0x00 && buf[1] == 0x00 && buf[2] == 0x01:
+		pos = 3
+	default:
 		return ErrAnnexBNoInitialDelimiter
 	}
 
-	if count > MaxNALUsPerAccessUnit {
-		return fmt.Errorf("NALU count (%d) exceeds maximum allowed (%d)",
-			count, MaxNALUsPerAccessUnit)
+	if len(buf) == pos {
+		return ErrAnnexBNoNALUs
 	}
 
-	*a = make([][]byte, 0, count)
-	i := 0
-	start := 0
+	type naluPos struct {
+		start int
+		end   int
+	}
 
-	for i < len(buf) {
-		lim := min(4, len(buf)-i)
-		data := buf[i : i+lim]
+	positions := make([]naluPos, 0, 8)
+	auSize := 0
 
-		switch {
-		case len(data) >= 3 && data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x01:
-			// Is this a NALU with a 3 byte start code prefix
-			if i > start {
-				*a = append(*a, buf[start:i])
+	for pos < len(buf) {
+		i := bytes.Index(buf[pos:], []byte{0x00, 0x00, 0x01})
+
+		if i == -1 {
+			remaining := len(buf) - pos
+			if remaining > 0 {
+				if (auSize + remaining) > MaxAccessUnitSize {
+					return fmt.Errorf("access unit size (%d) is too big, maximum is %d", auSize+remaining, MaxAccessUnitSize)
+				}
+				positions = append(positions, naluPos{start: pos, end: len(buf)})
 			}
-			i += 3
-			start = i
-		case len(data) >= 4 && data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x01:
-			// OR is this a NALU with a 4 byte start code prefix
-			if i > start {
-				*a = append(*a, buf[start:i])
-			}
-			i += 4
-			start = i
-		default:
-			i++
+			break
 		}
+
+		var naluEnd int
+		if i > 0 && buf[pos+i-1] == 0x00 {
+			naluEnd = pos + i - 1
+		} else {
+			naluEnd = pos + i
+		}
+
+		naluSize := naluEnd - pos
+		if naluSize > 0 {
+			auSize += naluSize
+			if auSize > MaxAccessUnitSize {
+				return fmt.Errorf("access unit size (%d) is too big, maximum is %d", auSize, MaxAccessUnitSize)
+			}
+			positions = append(positions, naluPos{start: pos, end: naluEnd})
+		}
+
+		pos += i + 3
 	}
 
-	if i > start {
-		*a = append(*a, buf[start:i])
+	if len(positions) == 0 {
+		return ErrAnnexBNoNALUs
+	}
+
+	if len(positions) > MaxNALUsPerAccessUnit {
+		return fmt.Errorf("NALU count (%d) exceeds maximum allowed (%d)",
+			len(positions), MaxNALUsPerAccessUnit)
+	}
+
+	*a = make([][]byte, len(positions))
+	for i := range positions {
+		(*a)[i] = buf[positions[i].start:positions[i].end]
 	}
 
 	return nil
