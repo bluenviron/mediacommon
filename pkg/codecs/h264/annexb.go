@@ -84,6 +84,11 @@ func (a *AnnexB) Unmarshal(buf []byte) error {
 		return ErrAnnexBNoInitialDelimiter
 	}
 
+	if count > MaxNALUsPerAccessUnit {
+		return fmt.Errorf("NALU count (%d) exceeds maximum allowed (%d)",
+			count, MaxNALUsPerAccessUnit)
+	}
+
 	*a = make([][]byte, 0, count)
 	i := 0
 	start := 0

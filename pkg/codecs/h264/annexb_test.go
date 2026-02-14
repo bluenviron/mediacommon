@@ -121,6 +121,17 @@ func TestAnnexBUnmarshalEmpty(t *testing.T) {
 	require.Equal(t, AnnexB{{1}}, dec)
 }
 
+func TestAnnexBUnmarshalExceedsMaxNALUs(t *testing.T) {
+	buf := make([]byte, 0, 5*51)
+	for range 51 {
+		buf = append(buf, 0x00, 0x00, 0x00, 0x01, 0xAA)
+	}
+
+	var dec AnnexB
+	err := dec.Unmarshal(buf)
+	require.EqualError(t, err, "NALU count (51) exceeds maximum allowed (50)")
+}
+
 func TestAnnexBMarshal(t *testing.T) {
 	for _, ca := range casesAnnexB {
 		t.Run(ca.name, func(t *testing.T) {

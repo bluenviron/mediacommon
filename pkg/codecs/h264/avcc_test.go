@@ -70,6 +70,17 @@ func TestAVCCUnmarshalEmpty(t *testing.T) {
 	}, dec)
 }
 
+func TestAVCCUnmarshalExceedsMaxNALUs(t *testing.T) {
+	buf := make([]byte, 0, 5*51)
+	for range 51 {
+		buf = append(buf, 0x00, 0x00, 0x00, 0x01, 0xAA)
+	}
+
+	var dec AVCC
+	err := dec.Unmarshal(buf)
+	require.EqualError(t, err, "NALU count (51) exceeds maximum allowed (50)")
+}
+
 func TestAVCCMarshal(t *testing.T) {
 	for _, ca := range casesAVCC {
 		t.Run(ca.name, func(t *testing.T) {
