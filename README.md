@@ -13,7 +13,7 @@ Definitions and functions shared between [gortsplib](https://github.com/bluenvir
 * [Bit reader and writer](https://pkg.go.dev/github.com/bluenviron/mediacommon/v2/pkg/bits)
 * [Rewindable reader](https://pkg.go.dev/github.com/bluenviron/mediacommon/v2/pkg/rewindablereader)
 
-Go &ge; 1.24 is required.
+Go &ge; 1.25 is required.
 
 ## Specifications
 
