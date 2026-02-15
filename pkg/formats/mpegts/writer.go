@@ -218,6 +218,8 @@ func (w *Writer) WriteOpus(
 }
 
 // WriteMPEG4Audio writes MPEG-4 Audio access units.
+//
+// Deprecated: use WriteMPEG4Audio2.
 func (w *Writer) WriteMPEG4Audio(
 	track *Track,
 	pts int64,
@@ -238,6 +240,20 @@ func (w *Writer) WriteMPEG4Audio(
 	}
 
 	enc, err := pkts.Marshal()
+	if err != nil {
+		return err
+	}
+
+	return w.writeAudio(track, pts, enc)
+}
+
+// WriteMPEG4Audio2 writes MPEG-4 Audio ADTS packets.
+func (w *Writer) WriteMPEG4Audio2(
+	track *Track,
+	pts int64,
+	packets mpeg4audio.ADTSPackets,
+) error {
+	enc, err := packets.Marshal()
 	if err != nil {
 		return err
 	}

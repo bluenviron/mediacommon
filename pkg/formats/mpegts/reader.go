@@ -32,7 +32,12 @@ type ReaderOnDataMPEGxVideoFunc func(pts int64, frame []byte) error
 type ReaderOnDataOpusFunc func(pts int64, packets [][]byte) error
 
 // ReaderOnDataMPEG4AudioFunc is the prototype of the callback passed to OnDataMPEG4Audio.
+//
+// Deprecated: replaced by ReaderOnDataMPEG4Audio2Func.
 type ReaderOnDataMPEG4AudioFunc func(pts int64, aus [][]byte) error
+
+// ReaderOnDataMPEG4Audio2Func is the prototype of the callback passed to OnDataMPEG4Audio2.
+type ReaderOnDataMPEG4Audio2Func func(pts int64, packets mpeg4audio.ADTSPackets) error
 
 // ReaderOnDataMPEG4AudioLATMFunc is the prototype of the callback passed to OnDataMPEG4AudioLATM.
 type ReaderOnDataMPEG4AudioLATMFunc func(pts int64, els [][]byte) error
@@ -205,7 +210,7 @@ func (r *Reader) Initialize() error {
 
 	for i, es := range pmt.ElementaryStreams {
 		var track Track
-		err = track.unmarshal(dem, es)
+		err = track.unmarshal(es)
 		if err != nil {
 			return err
 		}
@@ -331,6 +336,8 @@ func (r *Reader) OnDataOpus(track *Track, cb ReaderOnDataOpusFunc) {
 }
 
 // OnDataMPEG4Audio sets a callback that is called when data from an MPEG-4 Audio track is received.
+//
+// Deprecated: replaced by OnDataMPEG4Audio2.
 func (r *Reader) OnDataMPEG4Audio(track *Track, cb ReaderOnDataMPEG4AudioFunc) {
 	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
 		if pts != dts {
@@ -351,6 +358,25 @@ func (r *Reader) OnDataMPEG4Audio(track *Track, cb ReaderOnDataMPEG4AudioFunc) {
 		}
 
 		return cb(pts, aus)
+	}
+}
+
+// OnDataMPEG4Audio2 sets a callback that is called when data from an MPEG-4 Audio track is received.
+func (r *Reader) OnDataMPEG4Audio2(track *Track, cb ReaderOnDataMPEG4Audio2Func) {
+	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
+		if pts != dts {
+			r.onDecodeError(fmt.Errorf("PTS is not equal to DTS"))
+			return nil
+		}
+
+		var pkts mpeg4audio.ADTSPackets
+		err := pkts.Unmarshal(data)
+		if err != nil {
+			r.onDecodeError(fmt.Errorf("invalid ADTS: %w", err))
+			return nil
+		}
+
+		return cb(pts, pkts)
 	}
 }
 
