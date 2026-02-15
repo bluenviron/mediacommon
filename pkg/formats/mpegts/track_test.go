@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/codecs"
 )
 
@@ -623,15 +622,8 @@ func TestTrackUnmarshalExternal(t *testing.T) {
 				0x00, 0x00, 0x00, 0x38,
 			},
 			&Track{
-				PID: 256,
-				Codec: &codecs.MPEG4Audio{
-					Config: mpeg4audio.AudioSpecificConfig{
-						Type:          2,
-						SampleRate:    48000,
-						ChannelConfig: 2,
-						ChannelCount:  2,
-					},
-				},
+				PID:   256,
+				Codec: &codecs.MPEG4Audio{},
 			},
 		},
 		{
@@ -702,7 +694,7 @@ func TestTrackUnmarshalExternal(t *testing.T) {
 			require.NoError(t, err)
 
 			var track Track
-			err = track.unmarshal(dem, pmt.ElementaryStreams[0])
+			err = track.unmarshal(pmt.ElementaryStreams[0])
 			require.NoError(t, err)
 			require.Equal(t, ca.track, &track)
 		})
