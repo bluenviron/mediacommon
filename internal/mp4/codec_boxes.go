@@ -710,10 +710,15 @@ func WriteCodecBoxes(w *Writer, codec codecs.Codec, trackID int, info *CodecInfo
 				codec.SPS[10], codec.SPS[11], codec.SPS[12],
 			},
 			GeneralLevelIdc: info.H265SPS.ProfileTierLevel.GeneralLevelIdc,
+			Reserved1:       0b1111,
 			// MinSpatialSegmentationIdc
+			Reserved2: 0b111111,
 			// ParallelismType
+			Reserved3:            0b111111,
 			ChromaFormatIdc:      uint8(info.H265SPS.ChromaFormatIdc),
+			Reserved4:            0b11111,
 			BitDepthLumaMinus8:   uint8(info.H265SPS.BitDepthLumaMinus8),
+			Reserved5:            0b11111,
 			BitDepthChromaMinus8: uint8(info.H265SPS.BitDepthChromaMinus8),
 			// AvgFrameRate
 			// ConstantFrameRate
@@ -780,7 +785,9 @@ func WriteCodecBoxes(w *Writer, codec codecs.Codec, trackID int, info *CodecInfo
 			Profile:                    info.H264SPS.ProfileIdc,
 			ProfileCompatibility:       codec.SPS[2],
 			Level:                      info.H264SPS.LevelIdc,
+			Reserved:                   0b111111,
 			LengthSizeMinusOne:         3,
+			Reserved2:                  0b111,
 			NumOfSequenceParameterSets: 1,
 			SequenceParameterSets: []amp4.AVCParameterSet{
 				{
