@@ -1,10 +1,11 @@
-package mpegts
+// Package substructs contains MPEG-TS substructures.
+package substructs
 
 import "fmt"
 
-// metadataAUCell is a metadata_AU_cell.
+// MetadataAUCell is a metadata_AU_cell.
 // Specification: ISO 13818-1, table 2-97
-type metadataAUCell struct {
+type MetadataAUCell struct {
 	MetadataServiceID      uint8
 	SequenceNumber         uint8
 	CellFragmentIndication uint8
@@ -13,7 +14,8 @@ type metadataAUCell struct {
 	AUCellData             []byte
 }
 
-func (c *metadataAUCell) unmarshal(buf []byte) (int, error) {
+// Unmarshal decodes a MetadataAUCell.
+func (c *MetadataAUCell) Unmarshal(buf []byte) (int, error) {
 	if len(buf) < 5 {
 		return 0, fmt.Errorf("buffer is too small")
 	}
@@ -42,17 +44,18 @@ func (c *metadataAUCell) unmarshal(buf []byte) (int, error) {
 	return n, nil
 }
 
-func (c metadataAUCell) marshalSize() int {
+func (c MetadataAUCell) marshalSize() int {
 	return 5 + len(c.AUCellData)
 }
 
-func (c metadataAUCell) marshal() ([]byte, error) {
+func (c MetadataAUCell) marshal() ([]byte, error) {
 	buf := make([]byte, c.marshalSize())
-	_, err := c.marshalTo(buf)
+	_, err := c.MarshalTo(buf)
 	return buf, err
 }
 
-func (c metadataAUCell) marshalTo(buf []byte) (int, error) {
+// MarshalTo marshals a MetadataAUCell to a buffer.
+func (c MetadataAUCell) MarshalTo(buf []byte) (int, error) {
 	n := 0
 
 	buf[n] = c.MetadataServiceID

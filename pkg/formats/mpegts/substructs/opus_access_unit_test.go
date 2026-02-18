@@ -1,4 +1,4 @@
-package mpegts
+package substructs
 
 import (
 	"bytes"
@@ -7,15 +7,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var opusAccessUnitCases = []struct {
+var OpusAccessUnitCases = []struct {
 	name string
-	dec  opusAccessUnit
+	dec  OpusAccessUnit
 	enc  []byte
 }{
 	{
 		"a",
-		opusAccessUnit{
-			ControlHeader: opusControlHeader{
+		OpusAccessUnit{
+			ControlHeader: OpusControlHeader{
 				PayloadSize:            123,
 				StartTrimFlag:          true,
 				ControlExtensionFlag:   true,
@@ -52,11 +52,11 @@ var opusAccessUnitCases = []struct {
 }
 
 func TestOpusAccessUnitMarshal(t *testing.T) {
-	for _, ca := range opusAccessUnitCases {
+	for _, ca := range OpusAccessUnitCases {
 		t.Run(ca.name, func(t *testing.T) {
-			s := ca.dec.marshalSize()
+			s := ca.dec.MarshalSize()
 			buf := make([]byte, s)
-			n, err := ca.dec.marshalTo(buf)
+			n, err := ca.dec.MarshalTo(buf)
 			require.NoError(t, err)
 			require.Equal(t, s, n)
 			require.Equal(t, ca.enc, buf)
@@ -65,10 +65,10 @@ func TestOpusAccessUnitMarshal(t *testing.T) {
 }
 
 func TestOpusAccessUnitUnmarshal(t *testing.T) {
-	for _, ca := range opusAccessUnitCases {
+	for _, ca := range OpusAccessUnitCases {
 		t.Run(ca.name, func(t *testing.T) {
-			var h opusAccessUnit
-			_, err := h.unmarshal(ca.enc)
+			var h OpusAccessUnit
+			_, err := h.Unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, ca.dec, h)
 		})
@@ -76,19 +76,19 @@ func TestOpusAccessUnitUnmarshal(t *testing.T) {
 }
 
 func FuzzOpusAccessUnitUnmarshal(f *testing.F) {
-	for _, ca := range opusAccessUnitCases {
+	for _, ca := range OpusAccessUnitCases {
 		f.Add(ca.enc)
 	}
 
 	f.Fuzz(func(t *testing.T, b []byte) {
-		var h opusAccessUnit
-		_, err := h.unmarshal(b)
+		var h OpusAccessUnit
+		_, err := h.Unmarshal(b)
 		if err != nil {
 			return
 		}
 
-		buf := make([]byte, h.marshalSize())
-		_, err = h.marshalTo(buf)
+		buf := make([]byte, h.MarshalSize())
+		_, err = h.MarshalTo(buf)
 		require.NoError(t, err)
 	})
 }

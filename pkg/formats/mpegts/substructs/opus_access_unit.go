@@ -1,15 +1,18 @@
-package mpegts
+package substructs
 
 import (
 	"fmt"
 )
 
-type opusAccessUnit struct {
-	ControlHeader opusControlHeader
+// OpusAccessUnit is the opus_access_unit structure.
+// specification: ETSI TS Opus v0.1.3-draft, table 6-6
+type OpusAccessUnit struct {
+	ControlHeader OpusControlHeader
 	Packet        []byte
 }
 
-func (au *opusAccessUnit) unmarshal(buf []byte) (int, error) {
+// Unmarshal decodes an OpusAccessUnit.
+func (au *OpusAccessUnit) Unmarshal(buf []byte) (int, error) {
 	n, err := au.ControlHeader.unmarshal(buf)
 	if err != nil {
 		return 0, fmt.Errorf("invalid control header: %w", err)
@@ -25,11 +28,13 @@ func (au *opusAccessUnit) unmarshal(buf []byte) (int, error) {
 	return n + au.ControlHeader.PayloadSize, nil
 }
 
-func (au *opusAccessUnit) marshalSize() int {
+// MarshalSize returns the size of an OpusAccessUnit when marshaled.
+func (au *OpusAccessUnit) MarshalSize() int {
 	return au.ControlHeader.marshalSize() + au.ControlHeader.PayloadSize
 }
 
-func (au *opusAccessUnit) marshalTo(buf []byte) (int, error) {
+// MarshalTo marshals an OpusAccessUnit to a buffer.
+func (au *OpusAccessUnit) MarshalTo(buf []byte) (int, error) {
 	if au.ControlHeader.PayloadSize != len(au.Packet) {
 		return 0, fmt.Errorf("invalid packet")
 	}

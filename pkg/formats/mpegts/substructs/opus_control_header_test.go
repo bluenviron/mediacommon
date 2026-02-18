@@ -1,4 +1,4 @@
-package mpegts
+package substructs
 
 import (
 	"testing"
@@ -6,14 +6,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var opusControlHeaderCases = []struct {
+var OpusControlHeaderCases = []struct {
 	name string
-	dec  opusControlHeader
+	dec  OpusControlHeader
 	enc  []byte
 }{
 	{
 		"a",
-		opusControlHeader{
+		OpusControlHeader{
 			PayloadSize:            25348,
 			StartTrimFlag:          true,
 			ControlExtensionFlag:   true,
@@ -64,7 +64,7 @@ var opusControlHeaderCases = []struct {
 	},
 	{
 		"b",
-		opusControlHeader{
+		OpusControlHeader{
 			PayloadSize: 25348,
 		},
 		[]byte{
@@ -85,7 +85,7 @@ var opusControlHeaderCases = []struct {
 	},
 	{
 		"c",
-		opusControlHeader{
+		OpusControlHeader{
 			PayloadSize:   25348,
 			StartTrimFlag: true,
 			EndTrimFlag:   true,
@@ -112,7 +112,7 @@ var opusControlHeaderCases = []struct {
 }
 
 func TestOpusControlHeaderMarshal(t *testing.T) {
-	for _, ca := range opusControlHeaderCases {
+	for _, ca := range OpusControlHeaderCases {
 		t.Run(ca.name, func(t *testing.T) {
 			s := ca.dec.marshalSize()
 			buf := make([]byte, s)
@@ -125,9 +125,9 @@ func TestOpusControlHeaderMarshal(t *testing.T) {
 }
 
 func TestOpusControlHeaderUnmarshal(t *testing.T) {
-	for _, ca := range opusControlHeaderCases {
+	for _, ca := range OpusControlHeaderCases {
 		t.Run(ca.name, func(t *testing.T) {
-			var h opusControlHeader
+			var h OpusControlHeader
 			_, err := h.unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, ca.dec, h)
@@ -136,12 +136,12 @@ func TestOpusControlHeaderUnmarshal(t *testing.T) {
 }
 
 func FuzzOpusControlHeaderUnmarshal(f *testing.F) {
-	for _, ca := range opusControlHeaderCases {
+	for _, ca := range OpusControlHeaderCases {
 		f.Add(ca.enc)
 	}
 
 	f.Fuzz(func(t *testing.T, b []byte) {
-		var h opusControlHeader
+		var h OpusControlHeader
 		_, err := h.unmarshal(b)
 		if err != nil {
 			return

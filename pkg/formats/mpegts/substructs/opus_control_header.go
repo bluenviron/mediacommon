@@ -1,4 +1,4 @@
-package mpegts
+package substructs
 
 import (
 	"fmt"
@@ -36,9 +36,9 @@ func marshalPayloadSize(v int, ss int, buf []byte) {
 	buf[ss-1] = byte(v % 255)
 }
 
-// opusControlHeader is the opus_control_header struct.
+// OpusControlHeader is the opus_control_header struct.
 // Specification: ETSI TS Opus 0.1.3-draft
-type opusControlHeader struct {
+type OpusControlHeader struct {
 	PayloadSize            int
 	StartTrimFlag          bool
 	EndTrimFlag            bool
@@ -48,7 +48,7 @@ type opusControlHeader struct {
 	ControlExtensionLength uint8
 }
 
-func (h *opusControlHeader) unmarshal(buf []byte) (int, error) {
+func (h *OpusControlHeader) unmarshal(buf []byte) (int, error) {
 	pos := 0
 
 	err := bits.HasSpace(buf, pos, 16)
@@ -112,7 +112,7 @@ func (h *opusControlHeader) unmarshal(buf []byte) (int, error) {
 	return pos / 8, nil
 }
 
-func (h *opusControlHeader) marshalSize() int {
+func (h *OpusControlHeader) marshalSize() int {
 	n := 2 + marshalPayloadSizeSize(h.PayloadSize)
 	if h.StartTrimFlag {
 		n += 2
@@ -127,7 +127,7 @@ func (h *opusControlHeader) marshalSize() int {
 	return n
 }
 
-func (h *opusControlHeader) marshalTo(buf []byte) (int, error) {
+func (h *OpusControlHeader) marshalTo(buf []byte) (int, error) {
 	buf[0] = 0b01111111
 
 	buf[1] = 0b111 << 5

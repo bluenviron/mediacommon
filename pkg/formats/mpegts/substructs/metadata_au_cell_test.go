@@ -1,4 +1,4 @@
-package mpegts
+package substructs
 
 import (
 	"testing"
@@ -8,12 +8,12 @@ import (
 
 var casesMetadataAUCell = []struct {
 	name string
-	dec  metadataAUCell
+	dec  MetadataAUCell
 	enc  []byte
 }{
 	{
 		"a",
-		metadataAUCell{
+		MetadataAUCell{
 			MetadataServiceID:      15,
 			SequenceNumber:         18,
 			CellFragmentIndication: 3,
@@ -28,8 +28,8 @@ var casesMetadataAUCell = []struct {
 func TestMetadataAUCellUnmarshal(t *testing.T) {
 	for _, ca := range casesMetadataAUCell {
 		t.Run(ca.name, func(t *testing.T) {
-			var h metadataAUCell
-			n, err := h.unmarshal(ca.enc)
+			var h MetadataAUCell
+			n, err := h.Unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, n, len(ca.enc))
 			require.Equal(t, ca.dec, h)
@@ -49,8 +49,8 @@ func TestMetadataAUCellMarshal(t *testing.T) {
 
 func FuzzMetadataAUCell(f *testing.F) {
 	f.Fuzz(func(t *testing.T, buf []byte) {
-		var c metadataAUCell
-		_, err := c.unmarshal(buf)
+		var c MetadataAUCell
+		_, err := c.Unmarshal(buf)
 		if err != nil {
 			return
 		}

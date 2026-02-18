@@ -1,10 +1,10 @@
-package mpegts
+package substructs
 
 import "fmt"
 
 // ISO 13818-1, table 2-45
 const (
-	descriptorTagMetadata = 0x26
+	DescriptorTagMetadata = 0x26
 )
 
 func flagToByte(v bool) byte {
@@ -14,9 +14,9 @@ func flagToByte(v bool) byte {
 	return 0
 }
 
-// metadataDescriptor is a metadata_descriptor.
+// MetadataDescriptor is a metadata_descriptor.
 // Specification: ISO 13818-1, table 2-86
-type metadataDescriptor struct {
+type MetadataDescriptor struct {
 	MetadataApplicationFormat uint16
 
 	// metadata_application_format == 0xFFFF
@@ -46,7 +46,8 @@ type metadataDescriptor struct {
 	PrivateData []uint8
 }
 
-func (d *metadataDescriptor) unmarshal(buf []byte) error {
+// Unmarshal decodes a MetadataDescriptor.
+func (d *MetadataDescriptor) Unmarshal(buf []byte) error {
 	n := 0
 
 	if len(buf[n:]) < 2 {
@@ -157,7 +158,7 @@ func (d *metadataDescriptor) unmarshal(buf []byte) error {
 	return nil
 }
 
-func (d metadataDescriptor) marshalSize() int {
+func (d MetadataDescriptor) marshalSize() int {
 	v := 5
 
 	if d.MetadataApplicationFormat == 0xFFFF {
@@ -191,7 +192,8 @@ func (d metadataDescriptor) marshalSize() int {
 	return v
 }
 
-func (d metadataDescriptor) marshal() ([]byte, error) {
+// Marshal marshals a MetadataDescriptor to a byte slice.
+func (d MetadataDescriptor) Marshal() ([]byte, error) {
 	buf := make([]byte, d.marshalSize())
 	n := 0
 
