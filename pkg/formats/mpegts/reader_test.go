@@ -14,6 +14,7 @@ import (
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h265"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/codecs"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/substructs"
 )
 
 var testH265SPS = []byte{
@@ -370,6 +371,9 @@ var casesReadWriter = []struct {
 		&Track{
 			PID: 257,
 			Codec: &codecs.Opus{
+				Desc: &substructs.OpusAudioDescriptor{
+					ChannelConfigCode: 2,
+				},
 				ChannelCount: 2,
 			},
 		},

@@ -1,21 +1,22 @@
-package mpegts
+package substructs
 
 import "fmt"
 
 // ISO 13818-1, table 2-45
 const (
-	descriptorTagMetadataSTD = 0x27
+	DescriptorTagMetadataSTD = 0x27
 )
 
-// metadataSTDDescriptor is a metadata_std_descriptor.
+// MetadataSTDDescriptor is a metadata_std_descriptor.
 // Specification: ISO 13818-1, table 2-88
-type metadataSTDDescriptor struct {
+type MetadataSTDDescriptor struct {
 	MetadataInputLeakRate  uint32
 	MetadataBufferSize     uint32
 	MetadataOutputLeakRate uint32
 }
 
-func (d *metadataSTDDescriptor) unmarshal(buf []byte) error {
+// Unmarshal decodes a MetadataSTDDescriptor.
+func (d *MetadataSTDDescriptor) Unmarshal(buf []byte) error {
 	if len(buf) < 9 {
 		return fmt.Errorf("buffer is too small")
 	}
@@ -38,11 +39,12 @@ func (d *metadataSTDDescriptor) unmarshal(buf []byte) error {
 	return nil
 }
 
-func (d metadataSTDDescriptor) marshalSize() int {
+func (d MetadataSTDDescriptor) marshalSize() int {
 	return 9
 }
 
-func (d metadataSTDDescriptor) marshal() ([]byte, error) {
+// Marshal encodes a MetadataSTDDescriptor.
+func (d MetadataSTDDescriptor) Marshal() ([]byte, error) {
 	buf := make([]byte, d.marshalSize())
 	n := 0
 

@@ -9,6 +9,7 @@ import (
 
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/codecs"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/substructs"
 )
 
 func TestTrackUnmarshalExternal(t *testing.T) {
@@ -689,6 +690,9 @@ func TestTrackUnmarshalExternal(t *testing.T) {
 			&Track{
 				PID: 256,
 				Codec: &codecs.Opus{
+					Desc: &substructs.OpusAudioDescriptor{
+						ChannelConfigCode: 2,
+					},
 					ChannelCount: 2,
 				},
 			},

@@ -14,6 +14,7 @@ import (
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4video"
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/codecs"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/substructs"
 )
 
 const (
@@ -30,13 +31,13 @@ const (
 func opusMarshalSize(packets [][]byte) int {
 	n := 0
 	for _, packet := range packets {
-		au := opusAccessUnit{
-			ControlHeader: opusControlHeader{
+		au := substructs.OpusAccessUnit{
+			ControlHeader: substructs.OpusControlHeader{
 				PayloadSize: len(packet),
 			},
 			Packet: packet,
 		}
-		n += au.marshalSize()
+		n += au.MarshalSize()
 	}
 	return n
 }
@@ -201,13 +202,13 @@ func (w *Writer) WriteOpus(
 	enc := make([]byte, opusMarshalSize(packets))
 	n := 0
 	for _, packet := range packets {
-		au := opusAccessUnit{
-			ControlHeader: opusControlHeader{
+		au := substructs.OpusAccessUnit{
+			ControlHeader: substructs.OpusControlHeader{
 				PayloadSize: len(packet),
 			},
 			Packet: packet,
 		}
-		mn, err := au.marshalTo(enc[n:])
+		mn, err := au.MarshalTo(enc[n:])
 		if err != nil {
 			return err
 		}

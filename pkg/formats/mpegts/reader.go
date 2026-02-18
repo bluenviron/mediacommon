@@ -13,6 +13,7 @@ import (
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg1audio"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/codecs"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/substructs"
 	"github.com/bluenviron/mediacommon/v2/pkg/rewindablereader"
 )
 
@@ -68,8 +69,8 @@ func findPMT(dem *robustDemuxer) (*astits.PMTData, error) {
 func readMetadataAUWrapper(in []byte) ([]byte, error) {
 	expectedSeqNum := 0
 
-	var au metadataAUCell
-	n, err := au.unmarshal(in)
+	var au substructs.MetadataAUCell
+	n, err := au.Unmarshal(in)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +97,7 @@ func readMetadataAUWrapper(in []byte) ([]byte, error) {
 
 	for {
 		var n2 int
-		n2, err = au.unmarshal(in[n:])
+		n2, err = au.Unmarshal(in[n:])
 		if err != nil {
 			return nil, err
 		}
@@ -156,14 +157,14 @@ func writeMetadataAUWrapper(in []byte) ([]byte, error) {
 			fragmentIndication = 0b00
 		}
 
-		n2, err := metadataAUCell{
+		n2, err := substructs.MetadataAUCell{
 			MetadataServiceID:      0,
 			SequenceNumber:         uint8(i),
 			CellFragmentIndication: fragmentIndication,
 			DecoderConfigFlag:      false,
 			RandomAccessIndicator:  true,
 			AUCellData:             cellData,
-		}.marshalTo(out[n:])
+		}.MarshalTo(out[n:])
 		if err != nil {
 			return nil, err
 		}
@@ -311,8 +312,8 @@ func (r *Reader) OnDataOpus(track *Track, cb ReaderOnDataOpusFunc) {
 		var packets [][]byte
 
 		for {
-			var au opusAccessUnit
-			n, err := au.unmarshal(data[pos:])
+			var au substructs.OpusAccessUnit
+			n, err := au.Unmarshal(data[pos:])
 			if err != nil {
 				r.onDecodeError(err)
 				return nil

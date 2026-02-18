@@ -8,6 +8,7 @@ import (
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/eac3"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/codecs"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/substructs"
 )
 
 const (
@@ -118,13 +119,13 @@ func findRegistrationIdentifier(descriptors []*astits.Descriptor) (uint32, bool)
 	return ret, true
 }
 
-func findKLVMetadataDescriptor(descriptors []*astits.Descriptor) *metadataDescriptor {
-	var ret *metadataDescriptor
+func findKLVMetadataDescriptor(descriptors []*astits.Descriptor) *substructs.MetadataDescriptor {
+	var ret *substructs.MetadataDescriptor
 	for _, sd := range descriptors {
 		if sd.Unknown != nil {
-			if sd.Unknown.Tag == descriptorTagMetadata {
-				var dm metadataDescriptor
-				err := dm.unmarshal(sd.Unknown.Content)
+			if sd.Unknown.Tag == substructs.DescriptorTagMetadata {
+				var dm substructs.MetadataDescriptor
+				err := dm.Unmarshal(sd.Unknown.Content)
 				if err != nil {
 					continue
 				}
@@ -151,14 +152,19 @@ func findDVBSubtitlingDescriptor(descriptors []*astits.Descriptor) []*astits.Des
 	return nil
 }
 
-func findOpusChannelCount(descriptors []*astits.Descriptor) int {
+func findOpusAudioDescriptor(descriptors []*astits.Descriptor) (*substructs.OpusAudioDescriptor, error) {
 	for _, sd := range descriptors {
-		if sd.Extension != nil && sd.Extension.Tag == 0x80 &&
-			sd.Extension.Unknown != nil && len(*sd.Extension.Unknown) >= 1 {
-			return int((*sd.Extension.Unknown)[0])
+		if sd.Extension != nil && sd.Extension.Tag == 0x80 && sd.Extension.Unknown != nil {
+			var oad substructs.OpusAudioDescriptor
+			err := oad.Unmarshal(*sd.Extension.Unknown)
+			if err != nil {
+				return nil, err
+			}
+
+			return &oad, nil
 		}
 	}
-	return 0
+	return nil, fmt.Errorf("opus audio descriptor not found")
 }
 
 func findCodec(dem *robustDemuxer, es *astits.PMTElementaryStream) (codecs.Codec, error) {
@@ -223,13 +229,14 @@ func findCodec(dem *robustDemuxer, es *astits.PMTElementaryStream) (codecs.Codec
 		if id, ok := findRegistrationIdentifier(es.ElementaryStreamDescriptors); ok {
 			switch id {
 			case opusIdentifier:
-				channelCount := findOpusChannelCount(es.ElementaryStreamDescriptors)
-				if channelCount <= 0 {
-					return nil, fmt.Errorf("invalid Opus channel count")
+				desc, err := findOpusAudioDescriptor(es.ElementaryStreamDescriptors)
+				if err != nil {
+					return nil, fmt.Errorf("invalid Opus audio descriptor: %w", err)
 				}
 
 				return &codecs.Opus{
-					ChannelCount: channelCount,
+					Desc:         desc,
+					ChannelCount: desc.ChannelCount(),
 				}, nil
 
 			case klvaIdentifier:
@@ -353,6 +360,15 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 	// audio
 
 	case *codecs.Opus:
+		desc := c.Desc
+		if desc == nil {
+			desc = &substructs.OpusAudioDescriptor{
+				ChannelConfigCode: uint8(c.ChannelCount), //nolint:staticcheck
+			}
+		}
+
+		enc, _ := desc.Marshal()
+
 		return &astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypePrivateData,
@@ -372,8 +388,11 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 					Length: 1,
 					Tag:    astits.DescriptorTagExtension,
 					Extension: &astits.DescriptorExtension{
+						// opus_audio_descriptor per ETSI TS Opus v0.1.3-draft, Section 5.3.
+						// descriptor_tag_extension = 0x80; Unknown holds the bytes that
+						// follow it, starting with channel_config_code.
 						Tag:     0x80,
-						Unknown: &[]uint8{uint8(c.ChannelCount)},
+						Unknown: &enc,
 					},
 				},
 			},
@@ -443,23 +462,23 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 
 	case *codecs.KLV:
 		if c.Synchronous {
-			metadataDesc, err := metadataDescriptor{
+			metadataDesc, err := substructs.MetadataDescriptor{
 				MetadataApplicationFormat: metadataApplicationFormatGeneral,
 				MetadataFormat:            0xFF,
 				MetadataFormatIdentifier:  klvaIdentifier,
 				MetadataServiceID:         0x00,
 				DecoderConfigFlags:        0,
 				DSMCCFlag:                 false,
-			}.marshal()
+			}.Marshal()
 			if err != nil {
 				return nil, err
 			}
 
-			metadataSTDDesc, err := metadataSTDDescriptor{
+			metadataSTDDesc, err := substructs.MetadataSTDDescriptor{
 				MetadataInputLeakRate:  0,
 				MetadataBufferSize:     0,
 				MetadataOutputLeakRate: 0,
-			}.marshal()
+			}.Marshal()
 			if err != nil {
 				return nil, err
 			}
@@ -472,7 +491,7 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 						// Length must be different than zero.
 						// https://github.com/asticode/go-astits/blob/7c2bf6b71173d24632371faa01f28a9122db6382/descriptor.go#L2146-L2148
 						Length: 1,
-						Tag:    descriptorTagMetadata,
+						Tag:    substructs.DescriptorTagMetadata,
 						Unknown: &astits.DescriptorUnknown{
 							Content: metadataDesc,
 						},
@@ -481,7 +500,7 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 						// Length must be different than zero.
 						// https://github.com/asticode/go-astits/blob/7c2bf6b71173d24632371faa01f28a9122db6382/descriptor.go#L2146-L2148
 						Length: 1,
-						Tag:    descriptorTagMetadataSTD,
+						Tag:    substructs.DescriptorTagMetadataSTD,
 						Unknown: &astits.DescriptorUnknown{
 							Content: metadataSTDDesc,
 						},

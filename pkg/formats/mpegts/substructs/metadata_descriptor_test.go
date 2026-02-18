@@ -1,4 +1,4 @@
-package mpegts
+package substructs
 
 import (
 	"testing"
@@ -8,12 +8,12 @@ import (
 
 var casesMetadataDescriptor = []struct {
 	name string
-	dec  metadataDescriptor
+	dec  MetadataDescriptor
 	enc  []byte
 }{
 	{
 		"a",
-		metadataDescriptor{
+		MetadataDescriptor{
 			MetadataApplicationFormat:           0xFFFF,
 			MetadataApplicationFormatIdentifier: 893234,
 			MetadataFormat:                      23,
@@ -31,8 +31,8 @@ var casesMetadataDescriptor = []struct {
 func TestMetadataDescriptorUnmarshal(t *testing.T) {
 	for _, ca := range casesMetadataDescriptor {
 		t.Run(ca.name, func(t *testing.T) {
-			var h metadataDescriptor
-			err := h.unmarshal(ca.enc)
+			var h MetadataDescriptor
+			err := h.Unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, ca.dec, h)
 		})
@@ -42,7 +42,7 @@ func TestMetadataDescriptorUnmarshal(t *testing.T) {
 func TestMetadataDescriptorMarshal(t *testing.T) {
 	for _, ca := range casesMetadataDescriptor {
 		t.Run(ca.name, func(t *testing.T) {
-			buf, err := ca.dec.marshal()
+			buf, err := ca.dec.Marshal()
 			require.NoError(t, err)
 			require.Equal(t, ca.enc, buf)
 		})
@@ -51,13 +51,13 @@ func TestMetadataDescriptorMarshal(t *testing.T) {
 
 func FuzzMetadataDescriptor(f *testing.F) {
 	f.Fuzz(func(t *testing.T, buf []byte) {
-		var dm metadataDescriptor
-		err := dm.unmarshal(buf)
+		var dm MetadataDescriptor
+		err := dm.Unmarshal(buf)
 		if err != nil {
 			return
 		}
 
-		_, err = dm.marshal()
+		_, err = dm.Marshal()
 		require.NoError(t, err)
 	})
 }
