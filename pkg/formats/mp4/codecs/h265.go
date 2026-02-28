@@ -2,9 +2,9 @@ package codecs
 
 // H265 is the H265 codec.
 type H265 struct {
+	VPS []byte
 	SPS []byte
 	PPS []byte
-	VPS []byte
 }
 
 // IsVideo implements Codec.
