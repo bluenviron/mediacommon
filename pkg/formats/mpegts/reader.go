@@ -178,14 +178,12 @@ func writeMetadataAUWrapper(in []byte) ([]byte, error) {
 type Reader struct {
 	R io.Reader
 
-	tracks          []*Track
-	tracksByPID     map[uint16]*Track
-	preDem          *preDemuxer
-	dem             *robustDemuxer
-	onDecodeError   ReaderOnDecodeErrorFunc
-	onData          map[uint16]func(int64, int64, []byte) error
-	lastPTSReceived bool
-	lastPTS         int64
+	tracks        []*Track
+	tracksByPID   map[uint16]*Track
+	preDem        *preDemuxer
+	dem           *robustDemuxer
+	onDecodeError ReaderOnDecodeErrorFunc
+	onData        map[uint16]func(int64, int64, []byte) error
 }
 
 // Initialize initializes a Reader.
@@ -510,11 +508,11 @@ func (r *Reader) Read() error {
 	var dts int64
 
 	if klvCodec, ok2 := track.Codec.(*codecs.KLV); ok2 && !klvCodec.Synchronous {
-		if !r.lastPTSReceived {
+		if data.lastPTS == nil {
 			return nil
 		}
 
-		pts = r.lastPTS
+		pts = *data.lastPTS
 	} else {
 		if data.PES.Header.OptionalHeader == nil ||
 			data.PES.Header.OptionalHeader.PTSDTSIndicator == astits.PTSDTSIndicatorNoPTSOrDTS ||
@@ -530,9 +528,6 @@ func (r *Reader) Read() error {
 		} else {
 			dts = pts
 		}
-
-		r.lastPTS = pts
-		r.lastPTSReceived = true
 	}
 
 	onData, ok := r.onData[data.PID]

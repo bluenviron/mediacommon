@@ -1279,7 +1279,7 @@ func TestReader(t *testing.T) {
 
 func TestReaderKLVAsync(t *testing.T) {
 	input := []*astits.Packet{
-		{
+		{ // PMT
 			Header: astits.PacketHeader{
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
@@ -1293,7 +1293,7 @@ func TestReaderKLVAsync(t *testing.T) {
 				bytes.Repeat([]byte{0xff}, 167)...,
 			),
 		},
-		{
+		{ // PAT
 			Header: astits.PacketHeader{
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
@@ -1310,7 +1310,7 @@ func TestReaderKLVAsync(t *testing.T) {
 				bytes.Repeat([]byte{0xff}, 151)...,
 			),
 		},
-		{
+		{ // H264 PES
 			Header: astits.PacketHeader{
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
@@ -1332,7 +1332,7 @@ func TestReaderKLVAsync(t *testing.T) {
 				0x01, 0x02, 0x03, 0x04,
 			},
 		},
-		{
+		{ // KLV PES
 			Header: astits.PacketHeader{
 				HasAdaptationField:        true,
 				HasPayload:                true,
