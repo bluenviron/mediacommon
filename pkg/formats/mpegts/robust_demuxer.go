@@ -78,9 +78,12 @@ func (r *ptsInterceptor) Read(p []byte) (int, error) {
 
 	if p[0] == syncByte {
 		hasPayload := (p[3]&0x10 > 0)
-		if hasPayload {
+		payloadStartIndicator := (p[1]&0x40 > 0)
+
+		if payloadStartIndicator && hasPayload {
 			payloadPos := 4
 			hasAdaptationField := (p[3]&0x20 > 0)
+
 			if hasAdaptationField {
 				adaptationFieldLength := int(p[4])
 				payloadPos += 1 + adaptationFieldLength
