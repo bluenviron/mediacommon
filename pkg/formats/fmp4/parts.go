@@ -101,9 +101,9 @@ func (ps *Parts) Unmarshal(byts []byte) error {
 				if err != nil {
 					return nil, err
 				}
-			tfdt = box.(*amp4.Tfdt)
+				tfdt = box.(*amp4.Tfdt)
 
-			curTrack.BaseTime = tfdt.GetBaseMediaDecodeTime()
+				curTrack.BaseTime = tfdt.GetBaseMediaDecodeTime()
 
 			case "trun":
 				if state != waitingTfdtTfhdTrun || tfhd == nil {
