@@ -42,7 +42,7 @@ var testH264SPS = []byte{
 type sample struct {
 	pts  int64
 	dts  int64
-	data [][]byte
+	data any
 }
 
 var casesReadWriter = []struct {
@@ -256,7 +256,7 @@ var casesReadWriter = []struct {
 			{
 				30 * 90000,
 				30 * 90000,
-				[][]byte{{0, 0, 1, 0xb3}},
+				[]byte{0, 0, 1, 0xb3},
 			},
 		},
 		[]*astits.Packet{
@@ -316,7 +316,7 @@ var casesReadWriter = []struct {
 			{
 				30 * 90000,
 				30 * 90000,
-				[][]byte{{0, 0, 1, 0xb8, 1, 2, 3, 4}},
+				[]byte{0, 0, 1, 0xb8, 1, 2, 3, 4},
 			},
 		},
 		[]*astits.Packet{
@@ -486,21 +486,29 @@ var casesReadWriter = []struct {
 	{
 		"mpeg-4 audio",
 		&Track{
-			PID: 257,
-			Codec: &codecs.MPEG4Audio{
-				Config: mpeg4audio.AudioSpecificConfig{
-					Type:          2,
-					SampleRate:    48000,
-					ChannelConfig: 2,
-					ChannelCount:  2,
-				},
-			},
+			PID:   257,
+			Codec: &codecs.MPEG4Audio{},
 		},
 		[]sample{
 			{
 				30 * 90000,
 				30 * 90000,
-				[][]byte{{3}, {2}},
+				mpeg4audio.ADTSPackets{
+					{
+						Type:          2,
+						SampleRate:    48000,
+						ChannelConfig: 2,
+						ChannelCount:  2,
+						AU:            []byte{3},
+					},
+					{
+						Type:          2,
+						SampleRate:    48000,
+						ChannelConfig: 2,
+						ChannelCount:  2,
+						AU:            []byte{2},
+					},
+				},
 			},
 		},
 		[]*astits.Packet{
@@ -743,15 +751,15 @@ var casesReadWriter = []struct {
 		&Track{
 			PID: 257,
 			Codec: &codecs.AC3{
-				SampleRate:   48000,
-				ChannelCount: 1,
+				FullService:    true,
+				ChannelsCoding: 2,
 			},
 		},
 		[]sample{
 			{
 				30 * 90000,
 				30 * 90000,
-				[][]byte{{
+				[]byte{
 					0x0b, 0x77, 0x47, 0x11, 0x0c, 0x40, 0x2f, 0x84,
 					0x2b, 0xc1, 0x07, 0x7a, 0xb0, 0xfa, 0xbb, 0xea,
 					0xef, 0x9f, 0x57, 0x7c, 0xf9, 0xf3, 0xf7, 0xcf,
@@ -800,7 +808,7 @@ var casesReadWriter = []struct {
 					0x9e, 0x8e, 0x04, 0x02, 0xae, 0x65, 0x87, 0x5c,
 					0x4e, 0x72, 0xfd, 0x3c, 0x01, 0x86, 0xfe, 0x56,
 					0x59, 0x74, 0x44, 0x3a, 0x40, 0x00, 0xec, 0xfc,
-				}},
+				},
 			},
 		},
 		[]*astits.Packet{
@@ -930,8 +938,8 @@ var casesReadWriter = []struct {
 		&Track{
 			PID: 257,
 			Codec: &codecs.EAC3{
-				SampleRate:   48000,
-				ChannelCount: 2,
+				FullService:    true,
+				ChannelsCoding: 2,
 			},
 		},
 		[]sample{
@@ -942,9 +950,9 @@ var casesReadWriter = []struct {
 				// strmtyp=0, substreamid=0, frmsiz=63 (128 bytes)
 				// fscod=0 (48kHz), numblkscod=3 (6 blocks)
 				// acmod=2 (stereo), lfeon=0, bsid=16
-				[][]byte{append([]byte{
+				append([]byte{
 					0x0b, 0x77, 0x00, 0x3f, 0x34, 0x80,
-				}, bytes.Repeat([]byte{0x00}, 122)...)},
+				}, bytes.Repeat([]byte{0x00}, 122)...),
 			},
 		},
 		[]*astits.Packet{
@@ -1012,7 +1020,7 @@ var casesReadWriter = []struct {
 			{
 				30 * 90000,
 				30 * 90000,
-				[][]byte{{1, 2, 3}},
+				[]byte{1, 2, 3},
 			},
 		},
 		[]*astits.Packet{
@@ -1090,7 +1098,7 @@ var casesReadWriter = []struct {
 			{
 				30 * 90000,
 				30 * 90000,
-				[][]byte{{1, 2, 3}},
+				[]byte{1, 2, 3},
 			},
 		},
 		[]*astits.Packet{
@@ -1183,7 +1191,7 @@ func TestReader(t *testing.T) {
 			case *codecs.MPEG4Video:
 				r.OnDataMPEGxVideo(ca.track, func(pts int64, frame []byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
-					require.Equal(t, ca.samples[i].data[0], frame)
+					require.Equal(t, ca.samples[i].data.([]byte), frame)
 					i++
 					return nil
 				})
@@ -1191,7 +1199,7 @@ func TestReader(t *testing.T) {
 			case *codecs.MPEG1Video:
 				r.OnDataMPEGxVideo(ca.track, func(pts int64, frame []byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
-					require.Equal(t, ca.samples[i].data[0], frame)
+					require.Equal(t, ca.samples[i].data.([]byte), frame)
 					i++
 					return nil
 				})
@@ -1205,9 +1213,9 @@ func TestReader(t *testing.T) {
 				})
 
 			case *codecs.MPEG4Audio:
-				r.OnDataMPEG4Audio(ca.track, func(pts int64, aus [][]byte) error {
+				r.OnDataMPEG4Audio2(ca.track, func(pts int64, packets mpeg4audio.ADTSPackets) error {
 					require.Equal(t, ca.samples[i].pts, pts)
-					require.Equal(t, ca.samples[i].data, aus)
+					require.Equal(t, ca.samples[i].data.(mpeg4audio.ADTSPackets), packets)
 					i++
 					return nil
 				})
@@ -1231,7 +1239,7 @@ func TestReader(t *testing.T) {
 			case *codecs.AC3:
 				r.OnDataAC3(ca.track, func(pts int64, frame []byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
-					require.Equal(t, ca.samples[i].data[0], frame)
+					require.Equal(t, ca.samples[i].data.([]byte), frame)
 					i++
 					return nil
 				})
@@ -1239,7 +1247,7 @@ func TestReader(t *testing.T) {
 			case *codecs.EAC3:
 				r.OnDataEAC3(ca.track, func(pts int64, frame []byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
-					require.Equal(t, ca.samples[i].data[0], frame)
+					require.Equal(t, ca.samples[i].data.([]byte), frame)
 					i++
 					return nil
 				})
@@ -1247,7 +1255,7 @@ func TestReader(t *testing.T) {
 			case *codecs.KLV:
 				r.OnDataKLV(ca.track, func(pts int64, frame []byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
-					require.Equal(t, ca.samples[i].data[0], frame)
+					require.Equal(t, ca.samples[i].data.([]byte), frame)
 					i++
 					return nil
 				})
@@ -1255,7 +1263,7 @@ func TestReader(t *testing.T) {
 			case *codecs.DVBSubtitle:
 				r.OnDataDVBSubtitle(ca.track, func(pts int64, data []byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
-					require.Equal(t, ca.samples[i].data[0], data)
+					require.Equal(t, ca.samples[i].data.([]byte), data)
 					i++
 					return nil
 				})
@@ -1667,7 +1675,7 @@ func TestReaderDecodeErrors(t *testing.T) {
 				})
 
 			case "mpeg-4 audio pts != dts", "mpeg-4 audio invalid":
-				r.OnDataMPEG4Audio(r.Tracks()[0], func(_ int64, _ [][]byte) error {
+				r.OnDataMPEG4Audio2(r.Tracks()[0], func(_ int64, _ mpeg4audio.ADTSPackets) error {
 					return nil
 				})
 
