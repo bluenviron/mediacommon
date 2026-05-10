@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/asticode/go-astits"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/codecs"
 	"github.com/stretchr/testify/require"
 )
@@ -24,40 +25,40 @@ func TestWriter(t *testing.T) {
 
 				switch ca.track.Codec.(type) {
 				case *codecs.H265:
-					err = w.WriteH265(ca.track, sample.pts, sample.dts, sample.data)
+					err = w.WriteH265(ca.track, sample.pts, sample.dts, sample.data.([][]byte))
 
 				case *codecs.H264:
-					err = w.WriteH264(ca.track, sample.pts, sample.dts, sample.data)
+					err = w.WriteH264(ca.track, sample.pts, sample.dts, sample.data.([][]byte))
 
 				case *codecs.MPEG4Video:
-					err = w.WriteMPEG4Video(ca.track, sample.pts, sample.data[0])
+					err = w.WriteMPEG4Video(ca.track, sample.pts, sample.data.([]byte))
 
 				case *codecs.MPEG1Video:
-					err = w.WriteMPEG1Video(ca.track, sample.pts, sample.data[0])
+					err = w.WriteMPEG1Video(ca.track, sample.pts, sample.data.([]byte))
 
 				case *codecs.Opus:
-					err = w.WriteOpus(ca.track, sample.pts, sample.data)
+					err = w.WriteOpus(ca.track, sample.pts, sample.data.([][]byte))
 
 				case *codecs.MPEG4Audio:
-					err = w.WriteMPEG4Audio(ca.track, sample.pts, sample.data)
+					err = w.WriteMPEG4Audio2(ca.track, sample.pts, sample.data.(mpeg4audio.ADTSPackets))
 
 				case *codecs.MPEG4AudioLATM:
-					err = w.WriteMPEG4AudioLATM(ca.track, sample.pts, sample.data)
+					err = w.WriteMPEG4AudioLATM(ca.track, sample.pts, sample.data.([][]byte))
 
 				case *codecs.MPEG1Audio:
-					err = w.WriteMPEG1Audio(ca.track, sample.pts, sample.data)
+					err = w.WriteMPEG1Audio(ca.track, sample.pts, sample.data.([][]byte))
 
 				case *codecs.AC3:
-					err = w.WriteAC3(ca.track, sample.pts, sample.data[0])
+					err = w.WriteAC3(ca.track, sample.pts, sample.data.([]byte))
 
 				case *codecs.EAC3:
-					err = w.WriteEAC3(ca.track, sample.pts, sample.data[0])
+					err = w.WriteEAC3(ca.track, sample.pts, sample.data.([]byte))
 
 				case *codecs.KLV:
-					err = w.WriteKLV(ca.track, sample.pts, sample.data[0])
+					err = w.WriteKLV(ca.track, sample.pts, sample.data.([]byte))
 
 				case *codecs.DVBSubtitle:
-					err = w.WriteDVBSubtitle(ca.track, sample.pts, sample.data[0])
+					err = w.WriteDVBSubtitle(ca.track, sample.pts, sample.data.([]byte))
 
 				default:
 					panic("unexpected")

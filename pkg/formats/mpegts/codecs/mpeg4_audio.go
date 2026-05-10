@@ -7,6 +7,7 @@ import (
 // MPEG4Audio is a MPEG-4 Audio codec.
 // Specification: ISO 13818-1
 type MPEG4Audio struct {
+	// Deprecated: not filled anymore.
 	mpeg4audio.Config
 }
 
