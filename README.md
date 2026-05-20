@@ -43,7 +43,7 @@ Go &ge; 1.25 is required.
 |[AV1 Codec ISO Media File Format Binding](https://aomediacodec.github.io/av1-isobmff)|formats / MP4 + AV1|
 |[Opus in MP4/ISOBMFF](https://opus-codec.org/docs/opus_in_isobmff.html)|formats / MP4 + Opus|
 |ISO 23003-5, MPEG audio technologies, Part 5, Uncompressed audio in MPEG-4 file format|formats / MP4 + LPCM|
-|[isoflac.txt](https://github.com/xiph/flac/blob/master/doc/isoflac.txt)|formats/ MP4 + FLAC|
+|[Encapsulation of FLAC in ISO Base Media File Format](https://github.com/xiph/flac/blob/master/doc/isoflac.txt)|formats/ MP4 + FLAC|
 |ISO 13818-1, Generic coding of moving pictures and associated audio information: Systems|formats / MPEG-TS|
 |[ETSI TS Opus 0.1.3-draft, Opus Interactive Audio Codec Transport Multiplexing Standard](https://opus-codec.org/docs/ETSI_TS_opus-v0.1.3-draft.pdf)|formats / MPEG-TS + Opus|
 |[MISB ST 1402, MPEG-2 Transport Stream for Class 1/Class 2 Motion Imagery, Audio and Metadata](https://nsgreg.nga.mil/doc/view?i=4273)|formats / MPEG-TS + KLV|
