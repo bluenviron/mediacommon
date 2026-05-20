@@ -31,6 +31,7 @@ Go &ge; 1.25 is required.
 |ISO 13818-3, Generic Coding of Moving Pictures and Associated Audio information, Part 3, Audio|codecs / MPEG-1/2 Audio|
 |ISO 14496-3, Coding of audio-visual objects, Part 3, Audio|codecs / MPEG-4 Audio|
 |[RFC6716, Definition of the Opus Audio Codec](https://datatracker.ietf.org/doc/html/rfc6716)|codecs / Opus|
+|[RFC7845, Ogg Encapsulation for the Opus Audio Codec](https://datatracker.ietf.org/doc/html/rfc7845)|codecs / Opus|
 |[ATSC A/52, Digital Audio Compression (AC-3) (E-AC-3) Standard](https://www.atsc.org/wp-content/uploads/2021/04/A52-2018.pdf)|codecs / AC-3, E-AC-3|
 |[ETSI TS 102 366, Digital Audio Compression (AC-3, Enhanced AC-3) Standard](https://www.etsi.org/deliver/etsi_ts/102300_102399/102366/01.04.01_60/ts_102366v010401p.pdf)|codecs / AC-3, E-AC-3|
 |ISO 14496-1, Coding of audio-visual objects, Part 1, Systems|formats / fMP4|
