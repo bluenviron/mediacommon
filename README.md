@@ -35,14 +35,15 @@ Go &ge; 1.25 is required.
 |[ATSC A/52, Digital Audio Compression (AC-3) (E-AC-3) Standard](https://www.atsc.org/wp-content/uploads/2021/04/A52-2018.pdf)|codecs / AC-3, E-AC-3|
 |[ETSI TS 102 366, Digital Audio Compression (AC-3, Enhanced AC-3) Standard](https://www.etsi.org/deliver/etsi_ts/102300_102399/102366/01.04.01_60/ts_102366v010401p.pdf)|codecs / AC-3, E-AC-3|
 |[RFC9639, Free Lossless Audio Codec (FLAC)](https://datatracker.ietf.org/doc/html/rfc9639)|codecs / FLAC|
-|ISO 14496-1, Coding of audio-visual objects, Part 1, Systems|formats / fMP4|
-|ISO 14496-12, Coding of audio-visual objects, Part 12, ISO base media file format|formats / fMP4|
-|ISO 14496-14, Coding of audio-visual objects, Part 14, MP4 file format|formats / fMP4|
-|ISO 14496-15, Coding of audio-visual objects, Part 15, Advanced Video Coding (AVC) file format|formats / fMP4 + H264 / H265|
-|[VP9 Codec ISO Media File Format Binding](https://www.webmproject.org/vp9/mp4/)|formats / fMP4 + VP9|
-|[AV1 Codec ISO Media File Format Binding](https://aomediacodec.github.io/av1-isobmff)|formats / fMP4 + AV1|
-|[Opus in MP4/ISOBMFF](https://opus-codec.org/docs/opus_in_isobmff.html)|formats / fMP4 + Opus|
-|ISO 23003-5, MPEG audio technologies, Part 5, Uncompressed audio in MPEG-4 file format|formats / fMP4 + LPCM|
+|ISO 14496-1, Coding of audio-visual objects, Part 1, Systems|formats / MP4|
+|ISO 14496-12, Coding of audio-visual objects, Part 12, ISO base media file format|formats / MP4|
+|ISO 14496-14, Coding of audio-visual objects, Part 14, MP4 file format|formats / MP4|
+|ISO 14496-15, Coding of audio-visual objects, Part 15, Advanced Video Coding (AVC) file format|formats / MP4 + H264 / H265|
+|[VP9 Codec ISO Media File Format Binding](https://www.webmproject.org/vp9/mp4/)|formats / MP4 + VP9|
+|[AV1 Codec ISO Media File Format Binding](https://aomediacodec.github.io/av1-isobmff)|formats / MP4 + AV1|
+|[Opus in MP4/ISOBMFF](https://opus-codec.org/docs/opus_in_isobmff.html)|formats / MP4 + Opus|
+|ISO 23003-5, MPEG audio technologies, Part 5, Uncompressed audio in MPEG-4 file format|formats / MP4 + LPCM|
+|[isoflac.txt](https://github.com/xiph/flac/blob/master/doc/isoflac.txt)|formats/ MP4 + FLAC|
 |ISO 13818-1, Generic coding of moving pictures and associated audio information: Systems|formats / MPEG-TS|
 |[ETSI TS Opus 0.1.3-draft, Opus Interactive Audio Codec Transport Multiplexing Standard](https://opus-codec.org/docs/ETSI_TS_opus-v0.1.3-draft.pdf)|formats / MPEG-TS + Opus|
 |[MISB ST 1402, MPEG-2 Transport Stream for Class 1/Class 2 Motion Imagery, Audio and Metadata](https://nsgreg.nga.mil/doc/view?i=4273)|formats / MPEG-TS + KLV|

@@ -6,6 +6,7 @@ import (
 	amp4 "github.com/abema/go-mp4"
 
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/av1"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/flac"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h265"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
@@ -153,6 +154,7 @@ const (
 	waitingDac3
 	waitingDec3
 	waitingPcmC
+	waitingDfLa
 	waitingAdditional
 )
 
@@ -354,6 +356,48 @@ func (r *CodecBoxesReader) Read(h *amp4.ReadHandle) (any, error) {
 
 		r.Codec = &codecs.Opus{
 			ChannelCount: int(dops.OutputChannelCount),
+		}
+		r.state = waitingAdditional
+
+	case "fLaC":
+		if r.state != initial {
+			return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+		}
+
+		box, _, err := h.ReadPayload()
+		if err != nil {
+			return nil, err
+		}
+		flac := box.(*amp4.AudioSampleEntry)
+
+		r.sampleRate = int(flac.SampleRate / 65536)
+		r.channelCount = int(flac.ChannelCount)
+		r.state = waitingDfLa
+		return h.Expand()
+
+	case "dfLa":
+		if r.state != waitingDfLa {
+			return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
+		}
+
+		box, _, err := h.ReadPayload()
+		if err != nil {
+			return nil, err
+		}
+		dfla := box.(*DfLa)
+
+		if len(dfla.Blocks) < 4 {
+			return nil, fmt.Errorf("FLAC dfLa box is too short")
+		}
+
+		var streamInfo flac.StreamInfo
+		err = streamInfo.Unmarshal(dfla.Blocks[4:])
+		if err != nil {
+			return nil, err
+		}
+
+		r.Codec = &codecs.FLAC{
+			StreamInfo: &streamInfo,
 		}
 		r.state = waitingAdditional
 
@@ -592,6 +636,8 @@ func WriteCodecBoxes(w *Writer, codec codecs.Codec, trackID int, info *CodecInfo
 		|    |esds|
 		|Opus| (Opus)
 		|    |dOps|
+		|fLaC| (FLAC)
+		|    |dfLa|
 		|mp4a| (MPEG-4/1 audio)
 		|    |esds|
 		|ac-3| (AC-3)
@@ -990,6 +1036,43 @@ func WriteCodecBoxes(w *Writer, codec codecs.Codec, trackID int, info *CodecInfo
 			OutputChannelCount: uint8(codec.ChannelCount),
 			PreSkip:            312,
 			InputSampleRate:    48000,
+		})
+		if err != nil {
+			return err
+		}
+
+	case *codecs.FLAC:
+		_, err := w.WriteBoxStart(&amp4.AudioSampleEntry{ // <fLaC>
+			SampleEntry: amp4.SampleEntry{
+				AnyTypeBox: amp4.AnyTypeBox{
+					Type: amp4.StrToBoxType("fLaC"),
+				},
+				DataReferenceIndex: 1,
+			},
+			ChannelCount: uint16(codec.StreamInfo.ChannelCount),
+			SampleSize:   uint16(codec.StreamInfo.BitDepth),
+			SampleRate:   codec.StreamInfo.SampleRate * 65536,
+		})
+		if err != nil {
+			return err
+		}
+
+		enc, err := codec.StreamInfo.Marshal()
+		if err != nil {
+			return err
+		}
+
+		// build METADATA_BLOCK_HEADER: is_last=1, block_type=0 (STREAMINFO), length=len(StreamInfo)
+		blockLen := len(enc)
+		header := []byte{
+			0x80, // is_last=1, block_type=0
+			byte(blockLen >> 16),
+			byte(blockLen >> 8),
+			byte(blockLen),
+		}
+
+		_, err = w.WriteBox(&DfLa{ // <dfLa/>
+			Blocks: append(header, enc...),
 		})
 		if err != nil {
 			return err
