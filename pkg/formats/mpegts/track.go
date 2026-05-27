@@ -323,6 +323,9 @@ func eac3ComponentType(channels int, fullService bool) uint8 {
 type Track struct {
 	PID   uint16
 	Codec codecs.Codec
+	// Language is the ISO 639 language code, populated from the
+	// ISO 639 language descriptor (tag 0x0A) when present in the PMT.
+	Language string
 
 	isLeading  bool // Writer-only
 	mp3Checked bool // Writer-only
@@ -549,6 +552,15 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 
 func (t *Track) unmarshal(dem *robustDemuxer, es *astits.PMTElementaryStream) error {
 	t.PID = es.ElementaryPID
+
+	for _, d := range es.ElementaryStreamDescriptors {
+		if d.Tag == astits.DescriptorTagISO639LanguageAndAudioType &&
+			d.ISO639LanguageAndAudioType != nil &&
+			len(d.ISO639LanguageAndAudioType.Language) >= 3 {
+			t.Language = string(d.ISO639LanguageAndAudioType.Language[:3])
+			break
+		}
+	}
 
 	codec, err := findCodec(dem, es)
 	if err != nil {

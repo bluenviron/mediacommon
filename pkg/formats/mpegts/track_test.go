@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/asticode/go-astits"
 	"github.com/stretchr/testify/require"
 
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
@@ -633,6 +634,7 @@ func TestTrackUnmarshalExternal(t *testing.T) {
 						ChannelCount:  2,
 					},
 				},
+				Language: "eng",
 			},
 		},
 		{
@@ -695,6 +697,7 @@ func TestTrackUnmarshalExternal(t *testing.T) {
 					},
 					ChannelCount: 2,
 				},
+				Language: "deu",
 			},
 		},
 	} {
@@ -709,6 +712,59 @@ func TestTrackUnmarshalExternal(t *testing.T) {
 			err = track.unmarshal(dem, pmt.ElementaryStreams[0])
 			require.NoError(t, err)
 			require.Equal(t, ca.track, &track)
+		})
+	}
+}
+
+func TestTrackUnmarshalLanguage(t *testing.T) {
+	for _, ca := range []struct {
+		name     string
+		desc     []*astits.Descriptor
+		language string
+	}{
+		{
+			"iso 639 present",
+			[]*astits.Descriptor{
+				{
+					Tag: astits.DescriptorTagISO639LanguageAndAudioType,
+					ISO639LanguageAndAudioType: &astits.DescriptorISO639LanguageAndAudioType{
+						Language: []byte{'f', 'r', 'a'},
+						Type:     0,
+					},
+				},
+			},
+			"fra",
+		},
+		{
+			"iso 639 absent",
+			nil,
+			"",
+		},
+		{
+			"iso 639 too short",
+			[]*astits.Descriptor{
+				{
+					Tag: astits.DescriptorTagISO639LanguageAndAudioType,
+					ISO639LanguageAndAudioType: &astits.DescriptorISO639LanguageAndAudioType{
+						Language: []byte{'f', 'r'},
+						Type:     0,
+					},
+				},
+			},
+			"",
+		},
+	} {
+		t.Run(ca.name, func(t *testing.T) {
+			es := &astits.PMTElementaryStream{
+				ElementaryPID:               257,
+				StreamType:                  astits.StreamTypeMPEG1Audio,
+				ElementaryStreamDescriptors: ca.desc,
+			}
+
+			var track Track
+			err := track.unmarshal(&robustDemuxer{R: bytes.NewReader(nil)}, es)
+			require.NoError(t, err)
+			require.Equal(t, ca.language, track.Language)
 		})
 	}
 }
