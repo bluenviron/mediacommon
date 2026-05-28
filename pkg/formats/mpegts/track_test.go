@@ -768,3 +768,30 @@ func TestTrackUnmarshalLanguage(t *testing.T) {
 		})
 	}
 }
+
+func TestTrackMarshalLanguage(t *testing.T) {
+	for _, ca := range []struct {
+		name     string
+		language string
+		want     string
+	}{
+		{"3-letter", "fra", "fra"},
+		{"empty", "", ""},
+	} {
+		t.Run(ca.name, func(t *testing.T) {
+			track := Track{
+				PID:      256,
+				Codec:    &codecs.MPEG1Audio{},
+				Language: ca.language,
+			}
+
+			es, err := track.marshal()
+			require.NoError(t, err)
+
+			var got Track
+			err = got.unmarshal(&robustDemuxer{R: bytes.NewReader(nil)}, es)
+			require.NoError(t, err)
+			require.Equal(t, ca.want, got.Language)
+		})
+	}
+}

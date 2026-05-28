@@ -319,6 +319,24 @@ func eac3ComponentType(channels int, fullService bool) uint8 {
 	return ct
 }
 
+// addLanguageDescriptor appends an ISO 639 language descriptor to es
+// if language is non-empty. astits pads/truncates to 3 bytes.
+func addLanguageDescriptor(es *astits.PMTElementaryStream, language string) *astits.PMTElementaryStream {
+	if language == "" {
+		return es
+	}
+	es.ElementaryStreamDescriptors = append(es.ElementaryStreamDescriptors, &astits.Descriptor{
+		// 3 bytes language + 1 byte audio_type = 4 bytes
+		Length: 4,
+		Tag:    astits.DescriptorTagISO639LanguageAndAudioType,
+		ISO639LanguageAndAudioType: &astits.DescriptorISO639LanguageAndAudioType{
+			Language: []byte(language),
+			Type:     0,
+		},
+	})
+	return es
+}
+
 // Track is a MPEG-TS track.
 type Track struct {
 	PID   uint16
@@ -336,29 +354,29 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 	// video
 
 	case *codecs.H265:
-		return &astits.PMTElementaryStream{
+		return addLanguageDescriptor(&astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypeH265Video,
-		}, nil
+		}, t.Language), nil
 
 	case *codecs.H264:
-		return &astits.PMTElementaryStream{
+		return addLanguageDescriptor(&astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypeH264Video,
-		}, nil
+		}, t.Language), nil
 
 	case *codecs.MPEG4Video:
-		return &astits.PMTElementaryStream{
+		return addLanguageDescriptor(&astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypeMPEG4Video,
-		}, nil
+		}, t.Language), nil
 
 	case *codecs.MPEG1Video:
-		return &astits.PMTElementaryStream{
+		return addLanguageDescriptor(&astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			// we use MPEG-2 to signal that video can be either MPEG-1 or MPEG-2
 			StreamType: astits.StreamTypeMPEG2Video,
-		}, nil
+		}, t.Language), nil
 
 	// audio
 
@@ -372,7 +390,7 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 
 		enc, _ := desc.Marshal()
 
-		return &astits.PMTElementaryStream{
+		return addLanguageDescriptor(&astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypePrivateData,
 			ElementaryStreamDescriptors: []*astits.Descriptor{
@@ -399,10 +417,10 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 					},
 				},
 			},
-		}, nil
+		}, t.Language), nil
 
 	case *codecs.AC3:
-		return &astits.PMTElementaryStream{
+		return addLanguageDescriptor(&astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypeAC3Audio,
 			ElementaryStreamDescriptors: []*astits.Descriptor{
@@ -420,10 +438,10 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 					},
 				},
 			},
-		}, nil
+		}, t.Language), nil
 
 	case *codecs.EAC3:
-		return &astits.PMTElementaryStream{
+		return addLanguageDescriptor(&astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypeEAC3Audio,
 			ElementaryStreamDescriptors: []*astits.Descriptor{
@@ -441,25 +459,25 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 					},
 				},
 			},
-		}, nil
+		}, t.Language), nil
 
 	case *codecs.MPEG4Audio:
-		return &astits.PMTElementaryStream{
+		return addLanguageDescriptor(&astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypeAACAudio,
-		}, nil
+		}, t.Language), nil
 
 	case *codecs.MPEG4AudioLATM:
-		return &astits.PMTElementaryStream{
+		return addLanguageDescriptor(&astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypeAACLATMAudio,
-		}, nil
+		}, t.Language), nil
 
 	case *codecs.MPEG1Audio:
-		return &astits.PMTElementaryStream{
+		return addLanguageDescriptor(&astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypeMPEG1Audio,
-		}, nil
+		}, t.Language), nil
 
 		// other
 
@@ -486,7 +504,7 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 				return nil, err
 			}
 
-			return &astits.PMTElementaryStream{
+			return addLanguageDescriptor(&astits.PMTElementaryStream{
 				ElementaryPID: t.PID,
 				StreamType:    astits.StreamTypeMetadata,
 				ElementaryStreamDescriptors: []*astits.Descriptor{
@@ -509,10 +527,10 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 						},
 					},
 				},
-			}, nil
+			}, t.Language), nil
 		}
 
-		return &astits.PMTElementaryStream{
+		return addLanguageDescriptor(&astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypePrivateData,
 			ElementaryStreamDescriptors: []*astits.Descriptor{
@@ -526,10 +544,10 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 					},
 				},
 			},
-		}, nil
+		}, t.Language), nil
 
 	case *codecs.DVBSubtitle:
-		return &astits.PMTElementaryStream{
+		return addLanguageDescriptor(&astits.PMTElementaryStream{
 			ElementaryPID: t.PID,
 			StreamType:    astits.StreamTypePrivateData,
 			ElementaryStreamDescriptors: []*astits.Descriptor{
@@ -543,7 +561,7 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 					},
 				},
 			},
-		}, nil
+		}, t.Language), nil
 
 	default:
 		panic("unsupported codec")
