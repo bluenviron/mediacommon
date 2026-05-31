@@ -48,8 +48,7 @@ func (bs *Bitstream) Unmarshal(buf []byte) error {
 	return nil
 }
 
-// Marshal encodes a Bitstream.
-func (bs Bitstream) Marshal() ([]byte, error) {
+func (bs Bitstream) marshalSize() (int, error) {
 	n := 0
 
 	for _, obu := range bs {
@@ -58,13 +57,23 @@ func (bs Bitstream) Marshal() ([]byte, error) {
 		var h OBUHeader
 		err := h.Unmarshal(obu)
 		if err != nil {
-			return nil, err
+			return 0, err
 		}
 
 		if !h.HasSize {
 			size := len(obu) - 1
 			n += LEB128(uint32(size)).MarshalSize()
 		}
+	}
+
+	return n, nil
+}
+
+// Marshal encodes a Bitstream.
+func (bs Bitstream) Marshal() ([]byte, error) {
+	n, err := bs.marshalSize()
+	if err != nil {
+		return nil, err
 	}
 
 	buf := make([]byte, n)
