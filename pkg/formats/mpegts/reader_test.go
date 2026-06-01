@@ -1066,6 +1066,103 @@ var casesReadWriter = []struct {
 		},
 	},
 	{
+		"language",
+		&Track{
+			PID:      256,
+			Codec:    &codecs.H264{},
+			Language: "eng",
+		},
+		[]sample{
+			{
+				30 * 90000,
+				30 * 90000,
+				[][]byte{
+					testH264SPS, // SPS
+					{8},         // PPS
+					{5},         // IDR
+				},
+			},
+			{
+				30*90000 + 2*90000,
+				30*90000 + 1*90000,
+				[][]byte{
+					{1}, // non-IDR
+				},
+			},
+		},
+		[]*astits.Packet{
+			{ // PMT
+				Header: astits.PacketHeader{
+					HasPayload:                true,
+					PayloadUnitStartIndicator: true,
+					PID:                       0,
+				},
+				Payload: append([]byte{
+					0x00, 0x00, 0xb0, 0x0d, 0x00, 0x00, 0xc1, 0x00,
+					0x00, 0x00, 0x01, 0xf0, 0x00, 0x71, 0x10, 0xd8,
+					0x78,
+				}, bytes.Repeat([]byte{0xff}, 167)...),
+			},
+			{ // PAT
+				Header: astits.PacketHeader{
+					HasPayload:                true,
+					PayloadUnitStartIndicator: true,
+					PID:                       4096,
+				},
+				Payload: append([]byte{
+					0x00, 0x02, 0xb0, 0x18, 0x00, 0x01, 0xc1, 0x00,
+					0x00, 0xe1, 0x00, 0xf0, 0x00, 0x1b, 0xe1, 0x00,
+					0xf0, 0x06, 0x0a, 0x04, 0x65, 0x6e, 0x67, 0x00,
+					0xd9, 0xa5, 0xe1, 0x64,
+				}, bytes.Repeat([]byte{0xff}, 156)...),
+			},
+			{ // PES
+				AdaptationField: &astits.PacketAdaptationField{
+					Length:                124,
+					StuffingLength:        117,
+					RandomAccessIndicator: true,
+					HasPCR:                true,
+					PCR:                   &astits.ClockReference{Base: 2691000},
+				},
+				Header: astits.PacketHeader{
+					HasAdaptationField:        true,
+					HasPayload:                true,
+					PayloadUnitStartIndicator: true,
+					PID:                       256,
+				},
+				Payload: []byte{
+					0x00, 0x00, 0x01, 0xe0, 0x00, 0x00, 0x80, 0x80,
+					0x05, 0x21, 0x00, 0xa5, 0x65, 0xc1, 0x00, 0x00,
+					0x00, 0x01, 0x09, 0xf0, 0x00, 0x00, 0x00, 0x01,
+					0x67, 0x42, 0xc0, 0x28, 0xd9, 0x00, 0x78, 0x02,
+					0x27, 0xe5, 0x84, 0x00, 0x00, 0x03, 0x00, 0x04,
+					0x00, 0x00, 0x03, 0x00, 0xf0, 0x3c, 0x60, 0xc9,
+					0x20, 0x00, 0x00, 0x00, 0x01, 0x08, 0x00, 0x00,
+					0x00, 0x01, 0x05,
+				},
+			},
+			{ // PES
+				AdaptationField: &astits.PacketAdaptationField{
+					Length:         153,
+					StuffingLength: 152,
+				},
+				Header: astits.PacketHeader{
+					ContinuityCounter:         1,
+					HasAdaptationField:        true,
+					HasPayload:                true,
+					PayloadUnitStartIndicator: true,
+					PID:                       256,
+				},
+				Payload: []byte{
+					0x00, 0x00, 0x01, 0xe0, 0x00, 0x00, 0x80, 0xc0,
+					0x0a, 0x31, 0x00, 0xaf, 0xe4, 0x01, 0x11, 0x00,
+					0xab, 0x24, 0xe1, 0x00, 0x00, 0x00, 0x01, 0x09,
+					0xf0, 0x00, 0x00, 0x00, 0x01, 0x01,
+				},
+			},
+		},
+	},
+	{
 		"dvb subtitles",
 		&Track{
 			PID: 257,

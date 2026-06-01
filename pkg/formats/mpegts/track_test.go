@@ -633,6 +633,7 @@ func TestTrackUnmarshalExternal(t *testing.T) {
 						ChannelCount:  2,
 					},
 				},
+				Language: "eng",
 			},
 		},
 		{
@@ -695,6 +696,7 @@ func TestTrackUnmarshalExternal(t *testing.T) {
 					},
 					ChannelCount: 2,
 				},
+				Language: "deu",
 			},
 		},
 	} {
