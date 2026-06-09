@@ -728,24 +728,29 @@ func WriteCodecBoxes(w *Writer, codec codecs.Codec, trackID int, info *CodecInfo
 			NumOfNaluArrays:    3,
 			NaluArrays: []amp4.HEVCNaluArray{
 				{
-					NaluType: byte(h265.NALUType_VPS_NUT),
-					NumNalus: 1,
+					// ISO/IEC 14496-15 §8.4.1.1.1: when sample-entry is hvc1,
+					// array_completeness MUST equal 1 for VPS/SPS/PPS arrays.
+					Completeness: true,
+					NaluType:     byte(h265.NALUType_VPS_NUT),
+					NumNalus:     1,
 					Nalus: []amp4.HEVCNalu{{
 						Length:  uint16(len(codec.VPS)),
 						NALUnit: codec.VPS,
 					}},
 				},
 				{
-					NaluType: byte(h265.NALUType_SPS_NUT),
-					NumNalus: 1,
+					Completeness: true,
+					NaluType:     byte(h265.NALUType_SPS_NUT),
+					NumNalus:     1,
 					Nalus: []amp4.HEVCNalu{{
 						Length:  uint16(len(codec.SPS)),
 						NALUnit: codec.SPS,
 					}},
 				},
 				{
-					NaluType: byte(h265.NALUType_PPS_NUT),
-					NumNalus: 1,
+					Completeness: true,
+					NaluType:     byte(h265.NALUType_PPS_NUT),
+					NumNalus:     1,
 					Nalus: []amp4.HEVCNalu{{
 						Length:  uint16(len(codec.PPS)),
 						NALUnit: codec.PPS,
