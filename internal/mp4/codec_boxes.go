@@ -384,7 +384,7 @@ func (r *CodecBoxesReader) Read(h *amp4.ReadHandle) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		dfla := box.(*DfLa)
+		dfla := box.(*amp4.DfLa)
 
 		if len(dfla.Blocks) < 4 {
 			return nil, fmt.Errorf("FLAC dfLa box is too short")
@@ -567,18 +567,22 @@ func (r *CodecBoxesReader) Read(h *amp4.ReadHandle) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		dec3 := box.(*Dec3)
+		dec3 := box.(*amp4.Dec3)
+
+		if dec3.NumIndSub != 0 {
+			return nil, fmt.Errorf("multi-substream E-AC-3 content is not supported")
+		}
 
 		r.Codec = &codecs.EAC3{
 			SampleRate:   r.sampleRate,
 			ChannelCount: r.channelCount,
 			DataRate:     dec3.DataRate,
-			Asvc:         dec3.Asvc != 0,
-			Bsmod:        dec3.Bsmod,
-			Acmod:        dec3.Acmod,
-			LfeOn:        dec3.LfeOn != 0,
-			NumDepSub:    dec3.NumDepSub,
-			ChanLoc:      dec3.ChanLoc,
+			Asvc:         dec3.IndSubs[0].Asvc != 0,
+			Bsmod:        dec3.IndSubs[0].Bsmod,
+			Acmod:        dec3.IndSubs[0].Acmod,
+			LfeOn:        dec3.IndSubs[0].LfeOn != 0,
+			NumDepSub:    dec3.IndSubs[0].NumDepSub,
+			ChanLoc:      dec3.IndSubs[0].ChanLoc,
 		}
 		r.state = waitingAdditional
 
@@ -1071,7 +1075,7 @@ func WriteCodecBoxes(w *Writer, codec codecs.Codec, trackID int, info *CodecInfo
 			byte(blockLen),
 		}
 
-		_, err = w.WriteBox(&DfLa{ // <dfLa/>
+		_, err = w.WriteBox(&amp4.DfLa{ // <dfLa/>
 			Blocks: append(header, enc...),
 		})
 		if err != nil {
@@ -1269,17 +1273,19 @@ func WriteCodecBoxes(w *Writer, codec codecs.Codec, trackID int, info *CodecInfo
 			return fmt.Errorf("unsupported sample rate: %v", codec.SampleRate)
 		}
 
-		_, err = w.WriteBox(&Dec3{
+		_, err = w.WriteBox(&amp4.Dec3{
 			DataRate:  codec.DataRate,
 			NumIndSub: 0,
-			Fscod:     fscod,
-			Bsid:      16,
-			Asvc:      boolToUint8(codec.Asvc),
-			Bsmod:     codec.Bsmod,
-			Acmod:     codec.Acmod,
-			LfeOn:     boolToUint8(codec.LfeOn),
-			NumDepSub: codec.NumDepSub,
-			ChanLoc:   codec.ChanLoc,
+			IndSubs: []amp4.Dec3IndSub{{
+				Fscod:     fscod,
+				Bsid:      16,
+				Asvc:      boolToUint8(codec.Asvc),
+				Bsmod:     codec.Bsmod,
+				Acmod:     codec.Acmod,
+				LfeOn:     boolToUint8(codec.LfeOn),
+				NumDepSub: codec.NumDepSub,
+				ChanLoc:   codec.ChanLoc,
+			}},
 		})
 		if err != nil {
 			return err
