@@ -109,6 +109,7 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, bool, error)
 	// 00 indicate that the decoding of the NAL unit is required to
 	// maintain the integrity of the reference pictures.
 	nonZeroNalRefIDFound := false
+	var seiRecoveryPoint bool
 
 outer:
 	for _, nalu := range au {
@@ -144,6 +145,11 @@ outer:
 		case NALUTypeNonIDR:
 			nonIDR = nalu
 			break outer
+
+		case NALUTypeSEI:
+			if isSEIRecoveryPoint(nalu) {
+				seiRecoveryPoint = true
+			}
 		}
 	}
 
@@ -160,7 +166,7 @@ outer:
 	}
 
 	if !d.randomReceived {
-		if idr == nil {
+		if idr == nil && (!seiRecoveryPoint || nonIDR == nil) {
 			return 0, false, fmt.Errorf("random access frame not received yet")
 		}
 		d.randomReceived = true
@@ -189,39 +195,60 @@ outer:
 		ptsDTSDiff = 0
 
 	case nonIDR != nil:
-		poc, err := getPictureOrderCount(nonIDR, d.spsp, false)
-		if err != nil {
-			return 0, false, err
-		}
-
-		if d.auCount < 5 && d.pocIncrement == 2 {
-			if (poc % 2) != 0 {
-				d.pocIncrement = 1
-				d.expectedPOC /= 2
-
-				if d.reorderedFrames != 0 {
-					increase := d.reorderedFrames
-					if (d.reorderedFrames + increase) > maxReorderedFrames {
-						return 0, false, fmt.Errorf("too many reordered frames (%d)", d.reorderedFrames+increase)
-					}
-
-					d.reorderedFrames += increase
-					d.pause += increase
-				}
-			} else if d.auCount >= 2 && (poc%4) == 0 && poc == (d.prevPOC+4) && d.prevPOC == (d.prevPrevPOC+4) {
-				d.pocIncrement = 4
-				d.expectedPOC *= 2
+		if seiRecoveryPoint && idr == nil {
+			// Like CRA in H265: initialize state from first frame after recovery point
+			var err error
+			d.expectedPOC, err = getPictureOrderCount(nonIDR, d.spsp, false)
+			if err != nil {
+				return 0, false, err
 			}
 
-			d.auCount++
-			d.prevPrevPOC = d.prevPOC
-			d.prevPOC = poc
+			if d.pocIncrement == 2 {
+				if (d.expectedPOC % 2) != 0 {
+					d.pocIncrement = 1
+				}
+
+				d.auCount = 1
+				d.prevPrevPOC = 0
+				d.prevPOC = d.expectedPOC
+			}
+
+			ptsDTSDiff = 0
+		} else {
+			poc, err := getPictureOrderCount(nonIDR, d.spsp, false)
+			if err != nil {
+				return 0, false, err
+			}
+
+			if d.auCount < 5 && d.pocIncrement == 2 {
+				if (poc % 2) != 0 {
+					d.pocIncrement = 1
+					d.expectedPOC /= 2
+
+					if d.reorderedFrames != 0 {
+						increase := d.reorderedFrames
+						if (d.reorderedFrames + increase) > maxReorderedFrames {
+							return 0, false, fmt.Errorf("too many reordered frames (%d)", d.reorderedFrames+increase)
+						}
+
+						d.reorderedFrames += increase
+						d.pause += increase
+					}
+				} else if d.auCount >= 2 && (poc%4) == 0 && poc == (d.prevPOC+4) && d.prevPOC == (d.prevPrevPOC+4) {
+					d.pocIncrement = 4
+					d.expectedPOC *= 2
+				}
+
+				d.auCount++
+				d.prevPrevPOC = d.prevPOC
+				d.prevPOC = poc
+			}
+
+			d.expectedPOC += uint32(d.pocIncrement)
+			d.expectedPOC &= ((1 << (d.spsp.Log2MaxPicOrderCntLsbMinus4 + 4)) - 1)
+
+			ptsDTSDiff = int(pictureOrderCountDiff(poc, d.expectedPOC, d.spsp)) / d.pocIncrement
 		}
-
-		d.expectedPOC += uint32(d.pocIncrement)
-		d.expectedPOC &= ((1 << (d.spsp.Log2MaxPicOrderCntLsbMinus4 + 4)) - 1)
-
-		ptsDTSDiff = int(pictureOrderCountDiff(poc, d.expectedPOC, d.spsp)) / d.pocIncrement
 
 	case !nonZeroNalRefIDFound:
 		if !d.prevDTSFilled {

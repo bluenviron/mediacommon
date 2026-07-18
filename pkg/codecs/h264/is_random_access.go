@@ -4,8 +4,13 @@ package h264
 func IsRandomAccess(au [][]byte) bool {
 	for _, nalu := range au {
 		typ := NALUType(nalu[0] & 0x1F)
-		if typ == NALUTypeIDR {
+		switch typ {
+		case NALUTypeIDR:
 			return true
+		case NALUTypeSEI:
+			if isSEIRecoveryPoint(nalu) {
+				return true
+			}
 		}
 	}
 	return false
