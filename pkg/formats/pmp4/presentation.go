@@ -252,16 +252,16 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			}
 			ctts := box.(*amp4.Ctts)
 
-			i := 0
+			n := 0
 
-			for _, entry := range ctts.Entries {
-				if (i + int(entry.SampleCount)) > len(curTrack.Samples) {
+			for i, entry := range ctts.Entries {
+				if (n + int(entry.SampleCount)) > len(curTrack.Samples) {
 					return nil, fmt.Errorf("invalid ctts")
 				}
 
 				for range entry.SampleCount {
-					curTrack.Samples[i].PTSOffset = entry.SampleOffsetV1
-					i++
+					curTrack.Samples[n].PTSOffset = int32(ctts.GetSampleOffset(i))
+					n++
 				}
 			}
 
