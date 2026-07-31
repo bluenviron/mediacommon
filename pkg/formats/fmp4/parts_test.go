@@ -1,4 +1,4 @@
-package fmp4
+package fmp4_test
 
 import (
 	"bytes"
@@ -6,6 +6,14 @@ import (
 
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/fmp4/seekablebuffer"
 	"github.com/stretchr/testify/require"
+
+	fmp4 "github.com/bluenviron/mediacommon/v2/pkg/formats/fmp4"
+)
+
+type (
+	Parts     = fmp4.Parts
+	PartTrack = fmp4.PartTrack
+	Sample    = fmp4.Sample
 )
 
 var casesParts = []struct {

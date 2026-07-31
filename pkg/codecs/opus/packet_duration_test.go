@@ -1,10 +1,12 @@
-package opus
+package opus_test
 
 import (
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/opus"
 )
 
 var casesPacketDuration = []struct {
@@ -22,7 +24,7 @@ var casesPacketDuration = []struct {
 func TestPacketDuration(t *testing.T) {
 	for _, ca := range casesPacketDuration {
 		t.Run(ca.name, func(t *testing.T) {
-			require.Equal(t, ca.duration, PacketDuration(ca.byts))
+			require.Equal(t, ca.duration, opus.PacketDuration(ca.byts))
 		})
 	}
 }
@@ -33,6 +35,6 @@ func FuzzPacketDuration(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		PacketDuration(b)
+		opus.PacketDuration(b)
 	})
 }

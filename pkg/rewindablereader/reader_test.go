@@ -1,9 +1,11 @@
-package rewindablereader
+package rewindablereader_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	rewindablereader "github.com/bluenviron/mediacommon/v2/pkg/rewindablereader"
 )
 
 type dummyReader2 struct {
@@ -29,7 +31,7 @@ func (r *dummyReader2) Read(buf []byte) (int, error) {
 }
 
 func TestReader(t *testing.T) {
-	r := &Reader{R: &dummyReader2{}}
+	r := &rewindablereader.Reader{R: &dummyReader2{}}
 
 	for i := range 2 {
 		buf := make([]byte, 1024)
@@ -52,7 +54,7 @@ func TestReader(t *testing.T) {
 }
 
 func TestReaderDifferentBufSize(t *testing.T) {
-	r := &Reader{R: &dummyReader2{}}
+	r := &rewindablereader.Reader{R: &dummyReader2{}}
 
 	buf := make([]byte, 1024)
 	n, err := r.Read(buf)
