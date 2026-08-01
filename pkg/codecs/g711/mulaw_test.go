@@ -1,18 +1,20 @@
-package g711
+package g711_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/g711"
 )
 
 func TestMulawUnmarshal(t *testing.T) {
-	var dec Mulaw
+	var dec g711.Mulaw
 	dec.Unmarshal([]byte{1, 2, 3, 255, 254, 253})
 
 	require.Equal(t,
 		dec,
-		Mulaw{
+		g711.Mulaw{
 			0x86, 0x84, 0x8a, 0x84, 0x8e, 0x84, 0x00, 0x00,
 			0x00, 0x08, 0x00, 0x10,
 		},
@@ -21,7 +23,7 @@ func TestMulawUnmarshal(t *testing.T) {
 
 func TestMulawMarshal(t *testing.T) {
 	in := []byte{1, 2, 3, 4, 5, 6}
-	enc, err := Mulaw(in).Marshal()
+	enc, err := g711.Mulaw(in).Marshal()
 	require.NoError(t, err)
 	require.Equal(t, []byte{0xe7, 0xd3, 0xc9}, enc)
 }
