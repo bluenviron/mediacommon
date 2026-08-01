@@ -7,29 +7,23 @@ import (
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/fmp4/seekablebuffer"
 	"github.com/stretchr/testify/require"
 
-	fmp4 "github.com/bluenviron/mediacommon/v2/pkg/formats/fmp4"
-)
-
-type (
-	Parts     = fmp4.Parts
-	PartTrack = fmp4.PartTrack
-	Sample    = fmp4.Sample
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/fmp4"
 )
 
 var casesParts = []struct {
 	name  string
-	parts Parts
+	parts fmp4.Parts
 	enc   []byte
 }{
 	{
 		"single part",
-		Parts{{
+		fmp4.Parts{{
 			SequenceNumber: 4,
-			Tracks: []*PartTrack{
+			Tracks: []*fmp4.PartTrack{
 				{
 					ID:       256,
 					BaseTime: 90000,
-					Samples: []*Sample{
+					Samples: []*fmp4.Sample{
 						{
 							Duration:        30,
 							PTSOffset:       0,
@@ -47,7 +41,7 @@ var casesParts = []struct {
 				{
 					ID:       257,
 					BaseTime: 44100,
-					Samples: []*Sample{
+					Samples: []*fmp4.Sample{
 						{
 							Duration: 30,
 							Payload:  []byte{5, 6},
@@ -92,14 +86,14 @@ var casesParts = []struct {
 	},
 	{
 		"concatenated parts",
-		Parts{
+		fmp4.Parts{
 			{
 				SequenceNumber: 4,
-				Tracks: []*PartTrack{
+				Tracks: []*fmp4.PartTrack{
 					{
 						ID:       100,
 						BaseTime: 90000,
-						Samples: []*Sample{
+						Samples: []*fmp4.Sample{
 							{
 								Duration:        30,
 								PTSOffset:       0,
@@ -112,11 +106,11 @@ var casesParts = []struct {
 			},
 			{
 				SequenceNumber: 4,
-				Tracks: []*PartTrack{
+				Tracks: []*fmp4.PartTrack{
 					{
 						ID:       100,
 						BaseTime: 180000,
-						Samples: []*Sample{
+						Samples: []*fmp4.Sample{
 							{
 								Duration:        30,
 								PTSOffset:       0,
@@ -160,9 +154,9 @@ var casesParts = []struct {
 	},
 	{
 		"no samples",
-		Parts{{
+		fmp4.Parts{{
 			SequenceNumber: 1,
-			Tracks: []*PartTrack{
+			Tracks: []*fmp4.PartTrack{
 				{
 					ID:       1,
 					BaseTime: 0,
@@ -200,7 +194,7 @@ func TestPartsMarshal(t *testing.T) {
 func TestPartsUnmarshal(t *testing.T) {
 	for _, ca := range casesParts {
 		t.Run(ca.name, func(t *testing.T) {
-			var parts Parts
+			var parts fmp4.Parts
 			err := parts.Unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, ca.parts, parts)
@@ -211,18 +205,18 @@ func TestPartsUnmarshal(t *testing.T) {
 func TestPartsUnmarshalTimeOffsetV0(t *testing.T) {
 	cases := []struct {
 		name  string
-		parts Parts
+		parts fmp4.Parts
 		enc   []byte
 	}{
 		{
 			"trun version 0 with SampleCompositionTimeOffsetV0",
-			Parts{{
+			fmp4.Parts{{
 				SequenceNumber: 5,
-				Tracks: []*PartTrack{
+				Tracks: []*fmp4.PartTrack{
 					{
 						ID:       200,
 						BaseTime: 180000,
-						Samples: []*Sample{
+						Samples: []*fmp4.Sample{
 							{
 								Duration:        45,
 								PTSOffset:       10,
@@ -261,13 +255,13 @@ func TestPartsUnmarshalTimeOffsetV0(t *testing.T) {
 		},
 		{
 			"trun version 0 with zero PTSOffset",
-			Parts{{
+			fmp4.Parts{{
 				SequenceNumber: 1,
-				Tracks: []*PartTrack{
+				Tracks: []*fmp4.PartTrack{
 					{
 						ID:       100,
 						BaseTime: 0,
-						Samples: []*Sample{
+						Samples: []*fmp4.Sample{
 							{
 								Duration:        30,
 								PTSOffset:       0,
@@ -299,7 +293,7 @@ func TestPartsUnmarshalTimeOffsetV0(t *testing.T) {
 
 	for _, ca := range cases {
 		t.Run(ca.name, func(t *testing.T) {
-			var parts Parts
+			var parts fmp4.Parts
 			err := parts.Unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, ca.parts, parts)
@@ -324,13 +318,13 @@ func TestPartsUnmarshalTfdtV0(t *testing.T) {
 		0x6d, 0x64, 0x61, 0x74, 0x01, 0x02,
 	}
 
-	expected := Parts{{
+	expected := fmp4.Parts{{
 		SequenceNumber: 4,
-		Tracks: []*PartTrack{
+		Tracks: []*fmp4.PartTrack{
 			{
 				ID:       1,
 				BaseTime: 90000,
-				Samples: []*Sample{
+				Samples: []*fmp4.Sample{
 					{
 						Duration:        30,
 						PTSOffset:       0,
@@ -342,7 +336,7 @@ func TestPartsUnmarshalTfdtV0(t *testing.T) {
 		},
 	}}
 
-	var parts Parts
+	var parts fmp4.Parts
 	err := parts.Unmarshal(enc)
 	require.NoError(t, err)
 	require.Equal(t, expected, parts)
@@ -354,7 +348,7 @@ func FuzzPartsUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		var parts Parts
+		var parts fmp4.Parts
 		err := parts.Unmarshal(b)
 		if err == nil {
 			var buf seekablebuffer.Buffer
@@ -366,22 +360,22 @@ func FuzzPartsUnmarshal(f *testing.F) {
 func BenchmarkPartsUnmarshal(b *testing.B) {
 	for b.Loop() {
 		for _, ca := range casesParts {
-			var parts Parts
+			var parts fmp4.Parts
 			parts.Unmarshal(ca.enc) //nolint:errcheck
 		}
 	}
 }
 
 func BenchmarkPartsMarshal(b *testing.B) {
-	parts := Parts{{
-		Tracks: []*PartTrack{{
+	parts := fmp4.Parts{{
+		Tracks: []*fmp4.PartTrack{{
 			ID:      1,
-			Samples: make([]*Sample, 10000),
+			Samples: make([]*fmp4.Sample, 10000),
 		}},
 	}}
 
-	for i := range 10000 {
-		parts[0].Tracks[0].Samples[i] = &Sample{
+	for i := range parts[0].Tracks[0].Samples {
+		parts[0].Tracks[0].Samples[i] = &fmp4.Sample{
 			Duration: 90000,
 			Payload:  bytes.Repeat([]byte{1}, 16),
 		}

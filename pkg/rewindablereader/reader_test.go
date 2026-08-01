@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	rewindablereader "github.com/bluenviron/mediacommon/v2/pkg/rewindablereader"
+	"github.com/bluenviron/mediacommon/v2/pkg/rewindablereader"
 )
 
 type dummyReader2 struct {
