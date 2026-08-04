@@ -9,8 +9,9 @@ import (
 	"testing"
 
 	"github.com/asticode/go-astits"
-	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/codecs"
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/codecs"
 )
 
 func TestWriter(t *testing.T) {

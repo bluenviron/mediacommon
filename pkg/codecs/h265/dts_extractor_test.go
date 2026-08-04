@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
 )
 
 type sequenceSample struct {

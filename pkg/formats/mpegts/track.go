@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/asticode/go-astits"
+
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/ac3"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/eac3"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
