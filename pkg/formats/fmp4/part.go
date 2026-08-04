@@ -4,6 +4,7 @@ import (
 	"io"
 
 	amp4 "github.com/abema/go-mp4"
+
 	imp4 "github.com/bluenviron/mediacommon/v2/internal/mp4"
 )
 
