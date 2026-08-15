@@ -21,7 +21,7 @@ type Sample struct {
 
 // NewSampleAV12 creates a sample with AV1 data.
 //
-// Deprecated: replaced by FillAV1.
+// Deprecated: will be removed in next version.
 func NewSampleAV12(tu [][]byte) (*Sample, error) {
 	ps := &Sample{}
 	err := ps.FillAV1(tu)
@@ -29,6 +29,8 @@ func NewSampleAV12(tu [][]byte) (*Sample, error) {
 }
 
 // FillAV1 fills a Sample with AV1 data.
+//
+// Deprecated: will be removed in next version.
 func (ps *Sample) FillAV1(tu [][]byte) error {
 	bs, err := av1.Bitstream(tu).Marshal()
 	if err != nil {
@@ -43,7 +45,7 @@ func (ps *Sample) FillAV1(tu [][]byte) error {
 
 // NewSampleH265 creates a sample with H265 data.
 //
-// Deprecated: replaced by FillH265.
+// Deprecated: will be removed in next version.
 func NewSampleH265(ptsOffset int32, au [][]byte) (*Sample, error) {
 	ps := &Sample{}
 	err := ps.FillH265(ptsOffset, au)
@@ -51,6 +53,8 @@ func NewSampleH265(ptsOffset int32, au [][]byte) (*Sample, error) {
 }
 
 // FillH265 fills a Sample with H265 data.
+//
+// Deprecated: will be removed in next version.
 func (ps *Sample) FillH265(ptsOffset int32, au [][]byte) error {
 	avcc, err := h264.AVCC(au).Marshal()
 	if err != nil {
@@ -66,7 +70,7 @@ func (ps *Sample) FillH265(ptsOffset int32, au [][]byte) error {
 
 // NewSampleH264 creates a sample with H264 data.
 //
-// Deprecated: replaced by FillH264.
+// Deprecated: will be removed in next version.
 func NewSampleH264(ptsOffset int32, au [][]byte) (*Sample, error) {
 	ps := &Sample{}
 	err := ps.FillH264(ptsOffset, au)
@@ -74,6 +78,8 @@ func NewSampleH264(ptsOffset int32, au [][]byte) (*Sample, error) {
 }
 
 // FillH264 fills a Sample with H264 data.
+//
+// Deprecated: will be removed in next version.
 func (ps *Sample) FillH264(ptsOffset int32, au [][]byte) error {
 	avcc, err := h264.AVCC(au).Marshal()
 	if err != nil {
@@ -88,6 +94,8 @@ func (ps *Sample) FillH264(ptsOffset int32, au [][]byte) error {
 }
 
 // GetAV1 gets AV1 data from the sample.
+//
+// Deprecated: will be removed in next version.
 func (ps Sample) GetAV1() ([][]byte, error) {
 	var tu av1.Bitstream
 	err := tu.Unmarshal(ps.Payload)
@@ -99,11 +107,15 @@ func (ps Sample) GetAV1() ([][]byte, error) {
 }
 
 // GetH265 gets H265 data from the sample.
+//
+// Deprecated: will be removed in next version.
 func (ps Sample) GetH265() ([][]byte, error) {
 	return ps.GetH264()
 }
 
 // GetH264 gets H264 data from the sample.
+//
+// Deprecated: will be removed in next version.
 func (ps Sample) GetH264() ([][]byte, error) {
 	var au h264.AVCC
 	err := au.Unmarshal(ps.Payload)
