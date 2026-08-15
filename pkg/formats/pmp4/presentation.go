@@ -49,16 +49,17 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 		waitingSampleProps
 	)
 
-	var state readState
-	var trackDuration uint32
-	var curTrack *Track
-	var codecBoxesReader *imp4.CodecBoxesReader
-
 	type chunk struct {
 		sampleCount int
 		offset      uint32
 	}
 
+	var state readState
+	var stszReceived bool
+	var stcoReceived bool
+	var trackDuration uint32
+	var curTrack *Track
+	var codecBoxesReader *imp4.CodecBoxesReader
 	var curChunks []*chunk
 	var curSampleSizes []uint32
 
@@ -106,7 +107,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			return h.Expand()
 
 		case "trak":
-			if state != waitingTrak && state != waitingSampleProps {
+			if state != waitingTrak && (state != waitingSampleProps || !stcoReceived) {
 				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 			}
 
@@ -115,6 +116,8 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			curSampleSizes = nil
 			p.Tracks = append(p.Tracks, curTrack)
 			state = waitingTkhd
+			stszReceived = false
+			stcoReceived = false
 			return h.Expand()
 
 		case "tkhd":
@@ -314,7 +317,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			}
 
 		case "stsz":
-			if state != waitingSampleProps {
+			if state != waitingSampleProps || stszReceived {
 				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 			}
 
@@ -325,9 +328,10 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			stsz := box.(*amp4.Stsz)
 
 			curSampleSizes = stsz.EntrySize
+			stszReceived = true
 
 		case "stco":
-			if state != waitingSampleProps {
+			if state != waitingSampleProps || stcoReceived {
 				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 			}
 
@@ -375,6 +379,8 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 					i++
 				}
 			}
+
+			stcoReceived = true
 		}
 
 		return nil, nil
@@ -383,7 +389,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 		return err
 	}
 
-	if state != waitingTrak && state != waitingSampleProps {
+	if state != waitingTrak && (state != waitingSampleProps || !stcoReceived) {
 		return fmt.Errorf("parse error")
 	}
 
