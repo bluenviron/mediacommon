@@ -280,6 +280,10 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 				sampleCount := 0
 
 				for i, entry := range stsc.Entries {
+					if entry.SamplesPerChunk == 0 {
+						return nil, fmt.Errorf("invalid stsc")
+					}
+
 					var chunkCount uint32
 					if i != (len(stsc.Entries) - 1) {
 						chunkCount = stsc.Entries[i+1].FirstChunk - entry.FirstChunk
@@ -292,10 +296,6 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 					}
 
 					if (len(curChunks) + int(chunkCount)) > maxChunks {
-						return nil, fmt.Errorf("invalid stsc")
-					}
-
-					if entry.SamplesPerChunk == 0 {
 						return nil, fmt.Errorf("invalid stsc")
 					}
 
