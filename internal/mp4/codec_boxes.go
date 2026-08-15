@@ -88,12 +88,17 @@ func h265FindParams(params []amp4.HEVCNaluArray) ([]byte, []byte, []byte, error)
 				return nil, nil, nil, fmt.Errorf("multiple H265 VPS/SPS/PPS are not supported")
 			}
 
+			nalu := arr.Nalus[0].NALUnit
+			if len(nalu) < 2 {
+				return nil, nil, nil, fmt.Errorf("invalid H265 NALU size (%d)", len(nalu))
+			}
+
 			switch h265.NALUType(arr.NaluType) {
 			case h265.NALUType_VPS_NUT:
-				vps = arr.Nalus[0].NALUnit
+				vps = nalu
 
 			case h265.NALUType_SPS_NUT:
-				sps = arr.Nalus[0].NALUnit
+				sps = nalu
 
 				var spsp h265.SPS
 				err := spsp.Unmarshal(sps)
@@ -102,7 +107,7 @@ func h265FindParams(params []amp4.HEVCNaluArray) ([]byte, []byte, []byte, error)
 				}
 
 			case h265.NALUType_PPS_NUT:
-				pps = arr.Nalus[0].NALUnit
+				pps = nalu
 			}
 		}
 	}
