@@ -27,7 +27,15 @@ type ReaderOnDataH264Func func(pts int64, dts int64, au [][]byte) error
 type ReaderOnDataH265Func func(pts int64, dts int64, au [][]byte) error
 
 // ReaderOnDataMPEGxVideoFunc is the prototype of the callback passed to OnDataMPEGxVideo.
+//
+// Deprecated: use ReaderOnDataMPEG4VideoFunc or ReaderOnDataMPEG1VideoFunc instead.
 type ReaderOnDataMPEGxVideoFunc func(pts int64, frame []byte) error
+
+// ReaderOnDataMPEG4VideoFunc is the prototype of the callback passed to OnDataMPEG4Video.
+type ReaderOnDataMPEG4VideoFunc func(pts int64, frame []byte) error
+
+// ReaderOnDataMPEG1VideoFunc is the prototype of the callback passed to OnDataMPEG1Video.
+type ReaderOnDataMPEG1VideoFunc func(pts int64, frame []byte) error
 
 // ReaderOnDataOpusFunc is the prototype of the callback passed to OnDataOpus.
 type ReaderOnDataOpusFunc func(pts int64, packets [][]byte) error
@@ -302,7 +310,33 @@ func (r *Reader) OnDataH264(track *Track, cb ReaderOnDataH264Func) {
 }
 
 // OnDataMPEGxVideo sets a callback that is called when data from an MPEG-1/2/4 Video track is received.
+//
+// Deprecated: use OnDataMPEG4Video or OnDataMPEG1Video instead.
 func (r *Reader) OnDataMPEGxVideo(track *Track, cb ReaderOnDataMPEGxVideoFunc) {
+	r.onData[track.PID] = func(pts int64, _ int64, data []byte) error {
+		if len(data) == 0 {
+			r.onDecodeError(fmt.Errorf("empty frame"))
+			return nil
+		}
+
+		return cb(pts, data)
+	}
+}
+
+// OnDataMPEG4Video sets a callback that is called when data from an MPEG-4 Video track is received.
+func (r *Reader) OnDataMPEG4Video(track *Track, cb ReaderOnDataMPEG4VideoFunc) {
+	r.onData[track.PID] = func(pts int64, _ int64, data []byte) error {
+		if len(data) == 0 {
+			r.onDecodeError(fmt.Errorf("empty frame"))
+			return nil
+		}
+
+		return cb(pts, data)
+	}
+}
+
+// OnDataMPEG1Video sets a callback that is called when data from an MPEG-1/2 Video track is received.
+func (r *Reader) OnDataMPEG1Video(track *Track, cb ReaderOnDataMPEG1VideoFunc) {
 	r.onData[track.PID] = func(pts int64, _ int64, data []byte) error {
 		if len(data) == 0 {
 			r.onDecodeError(fmt.Errorf("empty frame"))
