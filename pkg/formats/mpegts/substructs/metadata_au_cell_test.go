@@ -55,6 +55,8 @@ func FuzzMetadataAUCell(f *testing.F) {
 			return
 		}
 
+		require.NotEmpty(t, c.AUCellData)
+
 		_, err = c.marshal()
 		require.NoError(t, err)
 	})

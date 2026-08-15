@@ -87,6 +87,8 @@ func FuzzOpusAccessUnitUnmarshal(f *testing.F) {
 			return
 		}
 
+		require.NotEmpty(t, h.Packet)
+
 		buf := make([]byte, h.MarshalSize())
 		_, err = h.MarshalTo(buf)
 		require.NoError(t, err)
