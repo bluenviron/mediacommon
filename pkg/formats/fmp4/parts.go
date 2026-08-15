@@ -173,7 +173,7 @@ func (ps *Parts) Unmarshal(byts []byte) error {
 							size = tfhd.DefaultSampleSize
 						}
 
-						if len(ptr) < int(size) {
+						if size == 0 || len(ptr) < int(size) {
 							return nil, fmt.Errorf("invalid sample size")
 						}
 

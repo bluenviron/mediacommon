@@ -171,7 +171,7 @@ func FuzzADTSUnmarshal(f *testing.F) {
 			return
 		}
 
-		require.NotZero(t, len(pkts))
+		require.NotEmpty(t, pkts)
 
 		_, err = pkts.Marshal()
 		require.NoError(t, err)

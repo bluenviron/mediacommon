@@ -2481,16 +2481,21 @@ func FuzzPresentationUnmarshal(f *testing.F) {
 			return
 		}
 
-		require.NotZero(t, len(p.Tracks))
+		require.NotEmpty(t, p.Tracks)
 
 		for _, track := range p.Tracks {
 			require.NotZero(t, track.TimeScale)
 
 			for _, sample := range track.Samples {
-				_, err = sample.GetPayload()
+				require.NotZero(t, sample.PayloadSize)
+
+				var pl []byte
+				pl, err = sample.GetPayload()
 				if err != nil {
 					return
 				}
+
+				require.Equal(t, sample.PayloadSize, uint32(len(pl)))
 			}
 		}
 

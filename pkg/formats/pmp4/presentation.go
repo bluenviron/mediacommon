@@ -362,6 +362,10 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 					sampleSize := curSampleSizes[i]
 					sampleOffset := off
 
+					if sampleSize == 0 {
+						return nil, fmt.Errorf("invalid sample size")
+					}
+
 					curTrack.Samples[i].PayloadSize = sampleSize
 
 					curTrack.Samples[i].GetPayload = func() ([]byte, error) {

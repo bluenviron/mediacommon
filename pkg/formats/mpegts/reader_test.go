@@ -2226,7 +2226,7 @@ func FuzzReader(f *testing.F) {
 			return
 		}
 
-		require.NotZero(t, len(r.Tracks()))
+		require.NotEmpty(t, r.Tracks())
 
 		for _, track := range r.Tracks() {
 			switch track.Codec.(type) {

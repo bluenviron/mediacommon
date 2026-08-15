@@ -86,10 +86,10 @@ func FuzzBitstreamUnmarshal(f *testing.F) {
 			return
 		}
 
-		require.NotZero(t, len(tu))
+		require.NotEmpty(t, tu)
 
 		for _, obu := range tu {
-			require.NotZero(t, len(obu))
+			require.NotEmpty(t, obu)
 		}
 
 		_, err = tu.Marshal()
