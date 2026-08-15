@@ -265,6 +265,13 @@ func (r *Reader) OnDataH265(track *Track, cb ReaderOnDataH265Func) {
 			return nil
 		}
 
+		for _, nalu := range au {
+			if len(nalu) < 2 {
+				r.onDecodeError(fmt.Errorf("invalid H265 NALU size (%d)", len(nalu)))
+				return nil
+			}
+		}
+
 		if au[0][0] == byte(h265.NALUType_AUD_NUT<<1) {
 			au = au[1:]
 		}

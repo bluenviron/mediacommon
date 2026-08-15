@@ -64,14 +64,14 @@ var casesReadWriter = []struct {
 				[][]byte{
 					testH265SPS, // SPS
 					testH265PPS, // PPS
-					{byte(h265.NALUType_CRA_NUT) << 1},
+					{byte(h265.NALUType_CRA_NUT) << 1, 0x01},
 				},
 			},
 			{
 				30*90000 + 2*90000,
 				30*90000 + 1*90000,
 				[][]byte{
-					{byte(h265.NALUType_TRAIL_N) << 1},
+					{byte(h265.NALUType_TRAIL_N) << 1, 0x01},
 				},
 			},
 		},
@@ -102,8 +102,8 @@ var casesReadWriter = []struct {
 			},
 			{ // PES
 				AdaptationField: &astits.PacketAdaptationField{
-					Length:                81,
-					StuffingLength:        74,
+					Length:                80,
+					StuffingLength:        73,
 					RandomAccessIndicator: true,
 					HasPCR:                true,
 					PCR:                   &astits.ClockReference{Base: 2691000},
@@ -127,13 +127,13 @@ var casesReadWriter = []struct {
 					0xfc, 0xa2, 0x23, 0xff, 0x00, 0x01, 0x00, 0x01,
 					0x6a, 0x02, 0x02, 0x02, 0x01, 0x00, 0x00, 0x00,
 					0x01, 0x44, 0x01, 0xc0, 0x25, 0x2f, 0x05, 0x32,
-					0x40, 0x00, 0x00, 0x00, 0x01, 0x2a,
+					0x40, 0x00, 0x00, 0x00, 0x01, 0x2a, 0x01,
 				},
 			},
 			{ // PES
 				AdaptationField: &astits.PacketAdaptationField{
-					Length:         152,
-					StuffingLength: 151,
+					Length:         151,
+					StuffingLength: 150,
 				},
 				Header: astits.PacketHeader{
 					ContinuityCounter:         1,
@@ -146,7 +146,7 @@ var casesReadWriter = []struct {
 					0x00, 0x00, 0x01, 0xe0, 0x00, 0x00, 0x80, 0xc0,
 					0x0a, 0x31, 0x00, 0xaf, 0xe4, 0x01, 0x11, 0x00,
 					0xab, 0x24, 0xe1, 0x00, 0x00, 0x00, 0x01, 0x46,
-					0x01, 0x50, 0x00, 0x00, 0x00, 0x01, 0x00,
+					0x01, 0x50, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01,
 				},
 			},
 		},
