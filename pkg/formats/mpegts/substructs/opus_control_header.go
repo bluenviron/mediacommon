@@ -72,6 +72,10 @@ func (h *OpusControlHeader) unmarshal(buf []byte) (int, error) {
 		return 0, err
 	}
 
+	if h.PayloadSize == 0 {
+		return 0, fmt.Errorf("invalid payload size")
+	}
+
 	if h.StartTrimFlag {
 		err = bits.HasSpace(buf, pos, 16)
 		if err != nil {

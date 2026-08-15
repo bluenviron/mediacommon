@@ -34,6 +34,10 @@ func (c *MetadataAUCell) Unmarshal(buf []byte) (int, error) {
 	auCellDataLength := int(uint16(buf[n])<<8 | uint16(buf[n+1]))
 	n += 2
 
+	if auCellDataLength == 0 {
+		return 0, fmt.Errorf("AUCellData length is zero")
+	}
+
 	if len(buf[n:]) < auCellDataLength {
 		return 0, fmt.Errorf("buffer is too small")
 	}

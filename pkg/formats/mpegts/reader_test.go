@@ -1983,14 +1983,141 @@ func TestReaderSkipGarbage(t *testing.T) {
 }
 
 func FuzzReader(f *testing.F) {
-	for _, ca := range casesReadWriter {
+	addPackets := func(packets []*astits.Packet) {
 		var buf bytes.Buffer
 		mux := astits.NewMuxer(context.Background(), &buf)
-		for _, pkt := range ca.packets {
+		for _, pkt := range packets {
 			mux.WritePacket(pkt) //nolint:errcheck
 		}
 		f.Add(buf.Bytes())
 	}
+
+	for _, ca := range casesReadWriter {
+		addPackets(ca.packets)
+	}
+
+	addPackets([]*astits.Packet{
+		{ // PAT
+			Header: astits.PacketHeader{
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+				PID:                       0,
+			},
+			Payload: append([]byte{
+				0x00, 0x00, 0xb0, 0x0d, 0x00, 0x00, 0xc1, 0x00,
+				0x00, 0x00, 0x01, 0xf0, 0x00, 0x71, 0x10, 0xd8,
+				0x78,
+			}, bytes.Repeat([]byte{0xff}, 167)...),
+		},
+		{ // PMT
+			Header: astits.PacketHeader{
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+				PID:                       4096,
+			},
+			Payload: append([]byte{
+				0x00, 0x02, 0xb0, 0x28, 0x00, 0x01, 0xc1, 0x00,
+				0x00, 0xe1, 0x01, 0xf0, 0x00, 0x15, 0xe1, 0x01,
+				0xf0, 0x16, 0x26, 0x09, 0x01, 0x00, 0xff, 0x4b,
+				0x4c, 0x56, 0x41, 0x00, 0x0f, 0x27, 0x09, 0xc0,
+				0x00, 0x00, 0xc0, 0x00, 0x00, 0xc0, 0x00, 0x00,
+				0x4c, 0x5c, 0xe5, 0x50,
+			}, bytes.Repeat([]byte{0xff}, 140)...),
+		},
+		{ // KLV PES with empty synchronous payload
+			AdaptationField: &astits.PacketAdaptationField{
+				Length:                164,
+				StuffingLength:        157,
+				RandomAccessIndicator: true,
+				HasPCR:                true,
+				PCR:                   &astits.ClockReference{Base: 2691000},
+			},
+			Header: astits.PacketHeader{
+				HasAdaptationField:        true,
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+				PID:                       257,
+			},
+			Payload: []byte{
+				0x00, 0x00, 0x01, 0xfc, 0x00, 0x0d, 0x80, 0x80,
+				0x05, 0x21, 0x00, 0xa5, 0x65, 0xc1, 0x00, 0x00,
+				0xdf, 0x00, 0x00,
+			},
+		},
+	})
+
+	addPackets([]*astits.Packet{
+		{ // PAT
+			Header: astits.PacketHeader{
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+			},
+			Payload: append(
+				[]byte{
+					0x00, 0x00, 0xb0, 0x0d, 0x00, 0x00, 0xc1, 0x00,
+					0x00, 0x00, 0x01, 0xf0, 0x00, 0x71, 0x10, 0xd8,
+					0x78,
+				},
+				bytes.Repeat([]byte{0xff}, 167)...,
+			),
+		},
+		{ // PMT
+			Header: astits.PacketHeader{
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+				PID:                       4096,
+			},
+			Payload: append(
+				[]byte{
+					0x00, 0x02, 0xb0, 0x1d, 0x00, 0x01, 0xc1, 0x00,
+					0x00, 0xe1, 0x00, 0xf0, 0x00, 0x1b, 0xe1, 0x00,
+					0xf0, 0x00, 0x06, 0xe1, 0x01, 0xf0, 0x06, 0x05,
+					0x04, 0x4b, 0x4c, 0x56, 0x41, 0x06, 0x71, 0x49,
+					0xd4,
+				},
+				bytes.Repeat([]byte{0xff}, 151)...,
+			),
+		},
+		{ // H264 PES
+			Header: astits.PacketHeader{
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+				PID:                       256,
+				HasAdaptationField:        true,
+			},
+			AdaptationField: &astits.PacketAdaptationField{
+				PCR: &astits.ClockReference{
+					Base: 81000,
+				},
+				Length:         155,
+				StuffingLength: 148,
+				HasPCR:         true,
+			},
+			Payload: []byte{
+				0x00, 0x00, 0x01, 0xe0, 0x00, 0x00, 0x80, 0x80,
+				0x05, 0x21, 0x00, 0x05, 0xbf, 0x21, 0x00, 0x00,
+				0x00, 0x01, 0x09, 0xf0, 0x00, 0x00, 0x00, 0x01,
+				0x01, 0x02, 0x03, 0x04,
+			},
+		},
+		{ // KLV PES with empty asynchronous payload
+			Header: astits.PacketHeader{
+				HasAdaptationField:        true,
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+				PID:                       257,
+			},
+			AdaptationField: &astits.PacketAdaptationField{
+				Length:                174,
+				StuffingLength:        173,
+				RandomAccessIndicator: true,
+			},
+			Payload: []byte{
+				0x00, 0x00, 0x01, 0xbd, 0x00, 0x03, 0x80, 0x00,
+				0x00,
+			},
+		},
+	})
 
 	f.Add([]byte{
 		0x47, 0x40, 0x00, 0x10, 0x00, 0x00, 0xb0, 0x0d,
@@ -2100,5 +2227,106 @@ func FuzzReader(f *testing.F) {
 		}
 
 		require.NotZero(t, len(r.Tracks()))
+
+		for _, track := range r.Tracks() {
+			switch track.Codec.(type) {
+			case *codecs.H265:
+				r.OnDataH265(track, func(_, _ int64, au [][]byte) error {
+					require.NotEmpty(t, au)
+
+					for _, nalu := range au {
+						require.NotEmpty(t, nalu)
+					}
+
+					return nil
+				})
+
+			case *codecs.H264:
+				r.OnDataH264(track, func(_, _ int64, au [][]byte) error {
+					require.NotEmpty(t, au)
+
+					for _, nalu := range au {
+						require.NotEmpty(t, nalu)
+					}
+
+					return nil
+				})
+
+			case *codecs.Opus:
+				r.OnDataOpus(track, func(_ int64, frames [][]byte) error {
+					require.NotEmpty(t, frames)
+
+					for _, frame := range frames {
+						require.NotEmpty(t, frame)
+					}
+
+					return nil
+				})
+
+			case *codecs.MPEG4Video:
+				r.OnDataMPEGxVideo(track, func(_ int64, frame []byte) error {
+					require.NotEmpty(t, frame)
+
+					return nil
+				})
+
+			case *codecs.MPEG1Video:
+				r.OnDataMPEGxVideo(track, func(_ int64, frame []byte) error {
+					require.NotEmpty(t, frame)
+
+					return nil
+				})
+
+			case *codecs.MPEG4Audio:
+				r.OnDataMPEG4Audio(track, func(_ int64, frames [][]byte) error {
+					require.NotEmpty(t, frames)
+
+					for _, frame := range frames {
+						require.NotEmpty(t, frame)
+					}
+
+					return nil
+				})
+
+			case *codecs.MPEG1Audio:
+				r.OnDataMPEG1Audio(track, func(_ int64, frames [][]byte) error {
+					require.NotEmpty(t, frames)
+
+					for _, frame := range frames {
+						require.NotEmpty(t, frame)
+					}
+
+					return nil
+				})
+
+			case *codecs.EAC3:
+				r.OnDataEAC3(track, func(_ int64, data []byte) error {
+					require.NotEmpty(t, data)
+
+					return nil
+				})
+
+			case *codecs.AC3:
+				r.OnDataAC3(track, func(_ int64, data []byte) error {
+					require.NotEmpty(t, data)
+
+					return nil
+				})
+
+			case *codecs.KLV:
+				r.OnDataKLV(track, func(_ int64, data []byte) error {
+					require.NotEmpty(t, data)
+
+					return nil
+				})
+			}
+		}
+
+		for {
+			err = r.Read()
+			if err != nil {
+				break
+			}
+		}
 	})
 }

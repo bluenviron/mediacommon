@@ -267,6 +267,11 @@ func (r *Reader) OnDataH265(track *Track, cb ReaderOnDataH265Func) {
 
 		if au[0][0] == byte(h265.NALUType_AUD_NUT<<1) {
 			au = au[1:]
+
+			if len(au) == 0 {
+				r.onDecodeError(fmt.Errorf("empty access unit"))
+				return nil
+			}
 		}
 
 		return cb(pts, dts, au)
@@ -285,6 +290,11 @@ func (r *Reader) OnDataH264(track *Track, cb ReaderOnDataH264Func) {
 
 		if au[0][0] == byte(h264.NALUTypeAccessUnitDelimiter) {
 			au = au[1:]
+
+			if len(au) == 0 {
+				r.onDecodeError(fmt.Errorf("empty access unit"))
+				return nil
+			}
 		}
 
 		return cb(pts, dts, au)
@@ -294,6 +304,11 @@ func (r *Reader) OnDataH264(track *Track, cb ReaderOnDataH264Func) {
 // OnDataMPEGxVideo sets a callback that is called when data from an MPEG-1/2/4 Video track is received.
 func (r *Reader) OnDataMPEGxVideo(track *Track, cb ReaderOnDataMPEGxVideoFunc) {
 	r.onData[track.PID] = func(pts int64, _ int64, data []byte) error {
+		if len(data) == 0 {
+			r.onDecodeError(fmt.Errorf("empty frame"))
+			return nil
+		}
+
 		return cb(pts, data)
 	}
 }
@@ -375,6 +390,11 @@ func (r *Reader) OnDataMPEG4AudioLATM(track *Track, cb ReaderOnDataMPEG4AudioLAT
 // OnDataMPEG1Audio sets a callback that is called when data from an MPEG-1 Audio track is received.
 func (r *Reader) OnDataMPEG1Audio(track *Track, cb ReaderOnDataMPEG1AudioFunc) {
 	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
+		if len(data) == 0 {
+			r.onDecodeError(fmt.Errorf("empty frame"))
+			return nil
+		}
+
 		if pts != dts {
 			r.onDecodeError(fmt.Errorf("PTS is not equal to DTS"))
 			return nil
@@ -475,6 +495,11 @@ func (r *Reader) OnDataKLV(track *Track, cb ReaderOnDataKLVFunc) {
 		}
 	} else {
 		r.onData[track.PID] = func(pts int64, _ int64, data []byte) error {
+			if len(data) == 0 {
+				r.onDecodeError(fmt.Errorf("empty KLV payload"))
+				return nil
+			}
+
 			return cb(pts, data)
 		}
 	}
