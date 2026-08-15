@@ -1278,7 +1278,7 @@ func TestReader(t *testing.T) {
 				})
 
 			case *codecs.MPEG4Video:
-				r.OnDataMPEGxVideo(ca.track, func(pts int64, frame []byte) error {
+				r.OnDataMPEG4Video(ca.track, func(pts int64, frame []byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
 					require.Equal(t, ca.samples[i].data[0], frame)
 					i++
@@ -1286,7 +1286,7 @@ func TestReader(t *testing.T) {
 				})
 
 			case *codecs.MPEG1Video:
-				r.OnDataMPEGxVideo(ca.track, func(pts int64, frame []byte) error {
+				r.OnDataMPEG1Video(ca.track, func(pts int64, frame []byte) error {
 					require.Equal(t, ca.samples[i].pts, pts)
 					require.Equal(t, ca.samples[i].data[0], frame)
 					i++
@@ -2264,14 +2264,14 @@ func FuzzReader(f *testing.F) {
 				})
 
 			case *codecs.MPEG4Video:
-				r.OnDataMPEGxVideo(track, func(_ int64, frame []byte) error {
+				r.OnDataMPEG4Video(track, func(_ int64, frame []byte) error {
 					require.NotEmpty(t, frame)
 
 					return nil
 				})
 
 			case *codecs.MPEG1Video:
-				r.OnDataMPEGxVideo(track, func(_ int64, frame []byte) error {
+				r.OnDataMPEG1Video(track, func(_ int64, frame []byte) error {
 					require.NotEmpty(t, frame)
 
 					return nil
