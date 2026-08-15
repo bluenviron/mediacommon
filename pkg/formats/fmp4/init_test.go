@@ -2564,10 +2564,10 @@ func FuzzInitUnmarshal(f *testing.F) {
 			return
 		}
 
-		require.NotZero(t, len(init.Tracks))
+		require.NotEmpty(t, init.Tracks)
 
 		for _, track := range init.Tracks {
-			require.NotZero(t, track.TimeScale)
+			require.NotEmpty(t, track.TimeScale)
 		}
 
 		var buf seekablebuffer.Buffer

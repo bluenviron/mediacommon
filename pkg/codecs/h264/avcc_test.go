@@ -103,10 +103,10 @@ func FuzzAVCCUnmarshal(f *testing.F) {
 			return
 		}
 
-		require.NotZero(t, len(au))
+		require.NotEmpty(t, au)
 
 		for _, nalu := range au {
-			require.NotZero(t, len(nalu))
+			require.NotEmpty(t, nalu)
 		}
 
 		_, err = au.Marshal()

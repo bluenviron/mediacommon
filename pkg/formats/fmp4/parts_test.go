@@ -347,13 +347,23 @@ func FuzzPartsUnmarshal(f *testing.F) {
 		f.Add(ca.enc)
 	}
 
-	f.Fuzz(func(_ *testing.T, b []byte) {
+	f.Fuzz(func(t *testing.T, b []byte) {
 		var parts fmp4.Parts
 		err := parts.Unmarshal(b)
-		if err == nil {
-			var buf seekablebuffer.Buffer
-			parts.Marshal(&buf) //nolint:errcheck
+		if err != nil {
+			return
 		}
+
+		for _, pa := range parts {
+			for _, track := range pa.Tracks {
+				for _, sample := range track.Samples {
+					require.NotEmpty(t, sample.Payload)
+				}
+			}
+		}
+
+		var buf seekablebuffer.Buffer
+		parts.Marshal(&buf) //nolint:errcheck
 	})
 }
 
