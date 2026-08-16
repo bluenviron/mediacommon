@@ -424,11 +424,6 @@ func (r *Reader) OnDataMPEG4AudioLATM(track *Track, cb ReaderOnDataMPEG4AudioLAT
 // OnDataMPEG1Audio sets a callback that is called when data from an MPEG-1 Audio track is received.
 func (r *Reader) OnDataMPEG1Audio(track *Track, cb ReaderOnDataMPEG1AudioFunc) {
 	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
-		if len(data) == 0 {
-			r.onDecodeError(fmt.Errorf("empty frame"))
-			return nil
-		}
-
 		if pts != dts {
 			r.onDecodeError(fmt.Errorf("PTS is not equal to DTS"))
 			return nil
@@ -436,7 +431,7 @@ func (r *Reader) OnDataMPEG1Audio(track *Track, cb ReaderOnDataMPEG1AudioFunc) {
 
 		var frames [][]byte
 
-		for len(data) > 0 {
+		for {
 			var h mpeg1audio.FrameHeader
 			err := h.Unmarshal(data)
 			if err != nil {
@@ -454,6 +449,10 @@ func (r *Reader) OnDataMPEG1Audio(track *Track, cb ReaderOnDataMPEG1AudioFunc) {
 			frame, data = data[:fl], data[fl:]
 
 			frames = append(frames, frame)
+
+			if len(data) == 0 {
+				break
+			}
 		}
 
 		return cb(pts, frames)
@@ -542,6 +541,11 @@ func (r *Reader) OnDataKLV(track *Track, cb ReaderOnDataKLVFunc) {
 // OnDataDVBSubtitle sets a callback that is called when data from a DVB subtitle track is received.
 func (r *Reader) OnDataDVBSubtitle(track *Track, cb ReaderOnDataDVBSubtitleFunc) {
 	r.onData[track.PID] = func(pts int64, _ int64, data []byte) error {
+		if len(data) == 0 {
+			r.onDecodeError(fmt.Errorf("empty payload"))
+			return nil
+		}
+
 		return cb(pts, data)
 	}
 }

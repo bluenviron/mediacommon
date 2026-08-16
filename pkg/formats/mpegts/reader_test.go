@@ -2051,6 +2051,54 @@ func FuzzReader(f *testing.F) {
 			Header: astits.PacketHeader{
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
+				PID:                       0,
+			},
+			Payload: append([]byte{
+				0x00, 0x00, 0xb0, 0x0d, 0x00, 0x00, 0xc1, 0x00,
+				0x00, 0x00, 0x01, 0xf0, 0x00, 0x71, 0x10, 0xd8,
+				0x78,
+			}, bytes.Repeat([]byte{0xff}, 167)...),
+		},
+		{ // PMT
+			Header: astits.PacketHeader{
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+				PID:                       4096,
+			},
+			Payload: append([]byte{
+				0x00, 0x02, 0xb0, 0x24, 0x00, 0x01, 0xc1, 0x00,
+				0x00, 0xe1, 0x01, 0xf0, 0x00, 0x06, 0xe1, 0x01,
+				0xf0, 0x12, 0x59, 0x10, 0x01, 0x02, 0x03, 0x16,
+				0x01, 0xc8, 0x00, 0x7b, 0x61, 0x62, 0x63, 0x0f,
+				0x00, 0x0c, 0x00, 0x21, 0xc2, 0xdc, 0x16, 0x2a,
+			}, bytes.Repeat([]byte{0xff}, 144)...),
+		},
+		{ // DVB subtitle PES with empty payload
+			AdaptationField: &astits.PacketAdaptationField{
+				Length:                169,
+				StuffingLength:        162,
+				RandomAccessIndicator: true,
+				HasPCR:                true,
+				PCR:                   &astits.ClockReference{Base: 2691000},
+			},
+			Header: astits.PacketHeader{
+				HasAdaptationField:        true,
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+				PID:                       257,
+			},
+			Payload: []byte{
+				0x00, 0x00, 0x01, 0xbd, 0x00, 0x08, 0x80, 0x80,
+				0x05, 0x21, 0x00, 0xa5, 0x65, 0xc1,
+			},
+		},
+	})
+
+	addPackets([]*astits.Packet{
+		{ // PAT
+			Header: astits.PacketHeader{
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
 			},
 			Payload: append(
 				[]byte{
@@ -2315,6 +2363,13 @@ func FuzzReader(f *testing.F) {
 
 			case *codecs.KLV:
 				r.OnDataKLV(track, func(_ int64, data []byte) error {
+					require.NotEmpty(t, data)
+
+					return nil
+				})
+
+			case *codecs.DVBSubtitle:
+				r.OnDataDVBSubtitle(track, func(_ int64, data []byte) error {
 					require.NotEmpty(t, data)
 
 					return nil
