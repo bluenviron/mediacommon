@@ -30,7 +30,7 @@ var testAudioTrack = &codecs.MPEG4Audio{
 		Type:          2,
 		SampleRate:    44100,
 		ChannelConfig: 2,
-		ChannelCount:  2,
+		ChannelCount:  2, //nolint:staticcheck
 	},
 }
 
@@ -1281,7 +1281,6 @@ var casesInit = []struct {
 					Codec: &codecs.AC3{
 						SampleRate:   48000,
 						ChannelCount: 6,
-						Fscod:        0x0,
 						Bsid:         0x8,
 						Bsmod:        0x0,
 						Acmod:        0x7,
@@ -2312,7 +2311,7 @@ func TestInitUnmarshalOnly(t *testing.T) {
 								Type:          mpeg4audio.ObjectTypeAACLC,
 								SampleRate:    48000,
 								ChannelConfig: 2,
-								ChannelCount:  2,
+								ChannelCount:  2, //nolint:staticcheck
 							},
 						},
 					},

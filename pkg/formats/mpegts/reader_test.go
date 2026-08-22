@@ -374,7 +374,7 @@ var casesReadWriter = []struct {
 				Desc: &substructs.OpusAudioDescriptor{
 					ChannelConfigCode: 2,
 				},
-				ChannelCount: 2,
+				ChannelCount: 2, //nolint:staticcheck
 			},
 		},
 		[]sample{
@@ -492,7 +492,7 @@ var casesReadWriter = []struct {
 					Type:          2,
 					SampleRate:    48000,
 					ChannelConfig: 2,
-					ChannelCount:  2,
+					ChannelCount:  2, //nolint:staticcheck
 				},
 			},
 		},

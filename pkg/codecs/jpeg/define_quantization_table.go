@@ -53,7 +53,7 @@ func (m DefineQuantizationTable) Marshal(buf []byte) []byte {
 	buf = append(buf, []byte{byte(s >> 8), byte(s)}...)
 
 	for _, t := range m.Tables {
-		buf = append(buf, []byte{(t.ID)}...)
+		buf = append(buf, []byte{t.ID}...)
 		buf = append(buf, t.Data...)
 	}
 

@@ -237,7 +237,7 @@ func findCodec(dem *robustDemuxer, es *astits.PMTElementaryStream) (codecs.Codec
 
 				return &codecs.Opus{
 					Desc:         desc,
-					ChannelCount: desc.ChannelCount(),
+					ChannelCount: desc.ChannelCount(), //nolint:staticcheck
 				}, nil
 
 			case klvaIdentifier:
