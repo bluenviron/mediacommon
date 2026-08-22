@@ -152,8 +152,7 @@ func (d *robustDemuxer) nextData() (*robustDemuxerData, error) {
 			}
 
 			// error from underlying reader: this is fatal.
-			var w *wrappedError
-			if errors.As(err, &w) {
+			if w, ok := errors.AsType[*wrappedError](err); ok {
 				return nil, w.w
 			}
 
