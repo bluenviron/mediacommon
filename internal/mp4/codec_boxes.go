@@ -533,7 +533,7 @@ func (r *CodecBoxesReader) Read(h *amp4.ReadHandle) (any, error) {
 		r.Codec = &codecs.AC3{
 			SampleRate:   r.sampleRate,
 			ChannelCount: r.channelCount,
-			Fscod:        dac3.Fscod,
+			Fscod:        dac3.Fscod, //nolint:staticcheck
 			Bsid:         dac3.Bsid,
 			Bsmod:        dac3.Bsmod,
 			Acmod:        dac3.Acmod,

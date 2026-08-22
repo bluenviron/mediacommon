@@ -630,7 +630,7 @@ func TestTrackUnmarshalExternal(t *testing.T) {
 						Type:          2,
 						SampleRate:    48000,
 						ChannelConfig: 2,
-						ChannelCount:  2,
+						ChannelCount:  2, //nolint:staticcheck
 					},
 				},
 				Language: "eng",
@@ -694,7 +694,7 @@ func TestTrackUnmarshalExternal(t *testing.T) {
 					Desc: &substructs.OpusAudioDescriptor{
 						ChannelConfigCode: 2,
 					},
-					ChannelCount: 2,
+					ChannelCount: 2, //nolint:staticcheck
 				},
 				Language: "deu",
 			},
