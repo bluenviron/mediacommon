@@ -1,15 +1,17 @@
-package h264
+package h264_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
 )
 
 var casesSPS = []struct {
 	name   string
 	byts   []byte
-	sps    SPS
+	sps    h264.SPS
 	width  int
 	height int
 	fps    float64
@@ -21,7 +23,7 @@ var casesSPS = []struct {
 			0x4b, 0x42, 0x00, 0x00, 0x03, 0x00, 0x02, 0x00,
 			0x00, 0x03, 0x00, 0x3d, 0x08,
 		},
-		SPS{
+		h264.SPS{
 			ProfileIdc:                     100,
 			LevelIdc:                       12,
 			ChromaFormatIdc:                1,
@@ -33,8 +35,8 @@ var casesSPS = []struct {
 			PicHeightInMapUnitsMinus1:      17,
 			FrameMbsOnlyFlag:               true,
 			Direct8x8InferenceFlag:         true,
-			VUI: &SPS_VUI{
-				TimingInfo: &SPS_TimingInfo{
+			VUI: &h264.SPS_VUI{
+				TimingInfo: &h264.SPS_TimingInfo{
 					NumUnitsInTick:     1,
 					TimeScale:          30,
 					FixedFrameRateFlag: true,
@@ -53,7 +55,7 @@ var casesSPS = []struct {
 			0x00, 0x80, 0x00, 0x00, 0x1e, 0x07, 0x8c, 0x18,
 			0xcb,
 		},
-		SPS{
+		h264.SPS{
 			ProfileIdc:                  100,
 			LevelIdc:                    31,
 			ChromaFormatIdc:             1,
@@ -63,17 +65,17 @@ var casesSPS = []struct {
 			PicHeightInMapUnitsMinus1:   44,
 			FrameMbsOnlyFlag:            true,
 			Direct8x8InferenceFlag:      true,
-			VUI: &SPS_VUI{
+			VUI: &h264.SPS_VUI{
 				AspectRatioInfoPresentFlag: true,
 				AspectRatioIdc:             1,
 				VideoSignalTypePresentFlag: true,
 				VideoFormat:                5,
 				VideoFullRangeFlag:         true,
-				TimingInfo: &SPS_TimingInfo{
+				TimingInfo: &h264.SPS_TimingInfo{
 					NumUnitsInTick: 1,
 					TimeScale:      60,
 				},
-				BitstreamRestriction: &SPS_BitstreamRestriction{
+				BitstreamRestriction: &h264.SPS_BitstreamRestriction{
 					MotionVectorsOverPicBoundariesFlag: true,
 					Log2MaxMvLengthHorizontal:          11,
 					Log2MaxMvLengthVertical:            11,
@@ -93,7 +95,7 @@ var casesSPS = []struct {
 			0x27, 0xe5, 0x84, 0x00, 0x00, 0x03, 0x00, 0x04,
 			0x00, 0x00, 0x03, 0x00, 0xf0, 0x3c, 0x60, 0xc9, 0x20,
 		},
-		SPS{
+		h264.SPS{
 			ProfileIdc:                66,
 			ChromaFormatIdc:           1,
 			ConstraintSet0Flag:        true,
@@ -105,15 +107,15 @@ var casesSPS = []struct {
 			PicHeightInMapUnitsMinus1: 67,
 			FrameMbsOnlyFlag:          true,
 			Direct8x8InferenceFlag:    true,
-			FrameCropping: &SPS_FrameCropping{
+			FrameCropping: &h264.SPS_FrameCropping{
 				BottomOffset: 4,
 			},
-			VUI: &SPS_VUI{
-				TimingInfo: &SPS_TimingInfo{
+			VUI: &h264.SPS_VUI{
+				TimingInfo: &h264.SPS_TimingInfo{
 					NumUnitsInTick: 1,
 					TimeScale:      60,
 				},
-				BitstreamRestriction: &SPS_BitstreamRestriction{
+				BitstreamRestriction: &h264.SPS_BitstreamRestriction{
 					MotionVectorsOverPicBoundariesFlag: true,
 					Log2MaxMvLengthHorizontal:          11,
 					Log2MaxMvLengthVertical:            11,
@@ -133,7 +135,7 @@ var casesSPS = []struct {
 			0x04, 0x00, 0x00, 0x03, 0x00, 0xf0, 0x3c, 0x60,
 			0xc6, 0x58,
 		},
-		SPS{
+		h264.SPS{
 			ProfileIdc:                  100,
 			LevelIdc:                    40,
 			ChromaFormatIdc:             1,
@@ -143,15 +145,15 @@ var casesSPS = []struct {
 			PicHeightInMapUnitsMinus1:   67,
 			FrameMbsOnlyFlag:            true,
 			Direct8x8InferenceFlag:      true,
-			FrameCropping: &SPS_FrameCropping{
+			FrameCropping: &h264.SPS_FrameCropping{
 				BottomOffset: 4,
 			},
-			VUI: &SPS_VUI{
-				TimingInfo: &SPS_TimingInfo{
+			VUI: &h264.SPS_VUI{
+				TimingInfo: &h264.SPS_TimingInfo{
 					NumUnitsInTick: 1,
 					TimeScale:      60,
 				},
-				BitstreamRestriction: &SPS_BitstreamRestriction{
+				BitstreamRestriction: &h264.SPS_BitstreamRestriction{
 					MotionVectorsOverPicBoundariesFlag: true,
 					Log2MaxMvLengthHorizontal:          11,
 					Log2MaxMvLengthVertical:            11,
@@ -172,7 +174,7 @@ var casesSPS = []struct {
 			0x03, 0xe0, 0x00, 0x00, 0x03, 0x00, 0x20, 0x00,
 			0x00, 0x06, 0x52, // 0x80,
 		},
-		SPS{
+		h264.SPS{
 			ProfileIdc:                  100,
 			LevelIdc:                    41,
 			ChromaFormatIdc:             1,
@@ -182,10 +184,10 @@ var casesSPS = []struct {
 			PicWidthInMbsMinus1:         119,
 			PicHeightInMapUnitsMinus1:   33,
 			Direct8x8InferenceFlag:      true,
-			FrameCropping: &SPS_FrameCropping{
+			FrameCropping: &h264.SPS_FrameCropping{
 				BottomOffset: 2,
 			},
-			VUI: &SPS_VUI{
+			VUI: &h264.SPS_VUI{
 				AspectRatioInfoPresentFlag:   true,
 				AspectRatioIdc:               1,
 				OverscanInfoPresentFlag:      true,
@@ -197,7 +199,7 @@ var casesSPS = []struct {
 				TransferCharacteristics:      1,
 				MatrixCoefficients:           1,
 				ChromaLocInfoPresentFlag:     true,
-				TimingInfo: &SPS_TimingInfo{
+				TimingInfo: &h264.SPS_TimingInfo{
 					NumUnitsInTick:     1,
 					TimeScale:          50,
 					FixedFrameRateFlag: true,
@@ -212,7 +214,7 @@ var casesSPS = []struct {
 	{
 		"hikvision",
 		[]byte{103, 100, 0, 32, 172, 23, 42, 1, 64, 30, 104, 64, 0, 1, 194, 0, 0, 87, 228, 33},
-		SPS{
+		h264.SPS{
 			ProfileIdc:                  100,
 			LevelIdc:                    32,
 			ChromaFormatIdc:             1,
@@ -223,8 +225,8 @@ var casesSPS = []struct {
 			FrameMbsOnlyFlag:            true,
 			Direct8x8InferenceFlag:      true,
 			Log2MaxFrameNumMinus4:       10,
-			VUI: &SPS_VUI{
-				TimingInfo: &SPS_TimingInfo{
+			VUI: &h264.SPS_VUI{
+				TimingInfo: &h264.SPS_TimingInfo{
 					NumUnitsInTick:     1800,
 					TimeScale:          90000,
 					FixedFrameRateFlag: true,
@@ -242,7 +244,7 @@ var casesSPS = []struct {
 			24, 64, 16, 194, 0, 132, 59, 80, 20, 0, 90, 211,
 			112, 16, 16, 20, 0, 0, 3, 0, 4, 0, 0, 3, 0, 162, 16,
 		},
-		SPS{
+		h264.SPS{
 			ProfileIdc:      100,
 			LevelIdc:        50,
 			ChromaFormatIdc: 1,
@@ -283,7 +285,7 @@ var casesSPS = []struct {
 			PicHeightInMapUnitsMinus1:      89,
 			FrameMbsOnlyFlag:               true,
 			Direct8x8InferenceFlag:         true,
-			VUI: &SPS_VUI{
+			VUI: &h264.SPS_VUI{
 				VideoSignalTypePresentFlag:   true,
 				VideoFormat:                  5,
 				VideoFullRangeFlag:           true,
@@ -291,7 +293,7 @@ var casesSPS = []struct {
 				ColourPrimaries:              1,
 				TransferCharacteristics:      1,
 				MatrixCoefficients:           1,
-				TimingInfo: &SPS_TimingInfo{
+				TimingInfo: &h264.SPS_TimingInfo{
 					NumUnitsInTick:     1,
 					TimeScale:          40,
 					FixedFrameRateFlag: true,
@@ -311,7 +313,7 @@ var casesSPS = []struct {
 			129, 192, 0, 0, 76, 75, 0, 0,
 			38, 37, 173, 222, 92, 20,
 		},
-		SPS{
+		h264.SPS{
 			ProfileIdc:                  100,
 			LevelIdc:                    42,
 			ChromaFormatIdc:             1,
@@ -322,10 +324,10 @@ var casesSPS = []struct {
 			PicHeightInMapUnitsMinus1:   67,
 			FrameMbsOnlyFlag:            true,
 			Direct8x8InferenceFlag:      true,
-			FrameCropping: &SPS_FrameCropping{
+			FrameCropping: &h264.SPS_FrameCropping{
 				BottomOffset: 4,
 			},
-			VUI: &SPS_VUI{
+			VUI: &h264.SPS_VUI{
 				AspectRatioInfoPresentFlag:   true,
 				AspectRatioIdc:               1,
 				VideoSignalTypePresentFlag:   true,
@@ -334,12 +336,12 @@ var casesSPS = []struct {
 				ColourPrimaries:              1,
 				TransferCharacteristics:      1,
 				MatrixCoefficients:           1,
-				TimingInfo: &SPS_TimingInfo{
+				TimingInfo: &h264.SPS_TimingInfo{
 					NumUnitsInTick:     1000,
 					TimeScale:          120000,
 					FixedFrameRateFlag: true,
 				},
-				NalHRD: &SPS_HRD{
+				NalHRD: &h264.SPS_HRD{
 					BitRateValueMinus1:                 []uint32{39061},
 					CpbSizeValueMinus1:                 []uint32{156249},
 					CbrFlag:                            []bool{true},
@@ -366,7 +368,7 @@ var casesSPS = []struct {
 			86, 128, 0, 93, 88, 151, 121, 112,
 			160,
 		},
-		SPS{
+		h264.SPS{
 			ProfileIdc:                  77,
 			ChromaFormatIdc:             1,
 			LevelIdc:                    41,
@@ -377,10 +379,10 @@ var casesSPS = []struct {
 			PicHeightInMapUnitsMinus1:   67,
 			FrameMbsOnlyFlag:            true,
 			Direct8x8InferenceFlag:      true,
-			FrameCropping: &SPS_FrameCropping{
+			FrameCropping: &h264.SPS_FrameCropping{
 				BottomOffset: 4,
 			},
-			VUI: &SPS_VUI{
+			VUI: &h264.SPS_VUI{
 				AspectRatioInfoPresentFlag:   true,
 				AspectRatioIdc:               1,
 				VideoSignalTypePresentFlag:   true,
@@ -390,12 +392,12 @@ var casesSPS = []struct {
 				ColourPrimaries:              1,
 				TransferCharacteristics:      1,
 				MatrixCoefficients:           1,
-				TimingInfo: &SPS_TimingInfo{
+				TimingInfo: &h264.SPS_TimingInfo{
 					NumUnitsInTick:     1000,
 					TimeScale:          50000,
 					FixedFrameRateFlag: true,
 				},
-				NalHRD: &SPS_HRD{
+				NalHRD: &h264.SPS_HRD{
 					BitRateScale:                       4,
 					CpbSizeScale:                       3,
 					BitRateValueMinus1:                 []uint32{11948},
@@ -406,7 +408,7 @@ var casesSPS = []struct {
 					DpbOutputDelayLengthMinus1:         5,
 					TimeOffsetLength:                   24,
 				},
-				VclHRD: &SPS_HRD{
+				VclHRD: &h264.SPS_HRD{
 					BitRateScale:                       4,
 					CpbSizeScale:                       3,
 					BitRateValueMinus1:                 []uint32{11948},
@@ -433,7 +435,7 @@ var casesSPS = []struct {
 			0x35, 0x64, 0x06, 0xb2, 0x85, 0x08, 0x0e, 0xe2,
 			0xc5, 0x22, 0xc0,
 		},
-		SPS{
+		h264.SPS{
 			ProfileIdc:                  77,
 			ChromaFormatIdc:             1,
 			ConstraintSet1Flag:          true,
@@ -444,18 +446,18 @@ var casesSPS = []struct {
 			PicWidthInMbsMinus1:         119,
 			PicHeightInMapUnitsMinus1:   33,
 			Direct8x8InferenceFlag:      true,
-			FrameCropping: &SPS_FrameCropping{
+			FrameCropping: &h264.SPS_FrameCropping{
 				BottomOffset: 2,
 			},
-			VUI: &SPS_VUI{
+			VUI: &h264.SPS_VUI{
 				AspectRatioInfoPresentFlag: true,
 				AspectRatioIdc:             1,
-				TimingInfo: &SPS_TimingInfo{
+				TimingInfo: &h264.SPS_TimingInfo{
 					NumUnitsInTick:     1,
 					TimeScale:          50,
 					FixedFrameRateFlag: true,
 				},
-				NalHRD: &SPS_HRD{
+				NalHRD: &h264.SPS_HRD{
 					BitRateScale:                       4,
 					CpbSizeScale:                       10,
 					BitRateValueMinus1:                 []uint32{3416},
@@ -466,7 +468,7 @@ var casesSPS = []struct {
 					DpbOutputDelayLengthMinus1:         1,
 				},
 				PicStructPresentFlag: true,
-				BitstreamRestriction: &SPS_BitstreamRestriction{
+				BitstreamRestriction: &h264.SPS_BitstreamRestriction{
 					MotionVectorsOverPicBoundariesFlag: true,
 					MaxBytesPerPicDenom:                2,
 					Log2MaxMvLengthHorizontal:          10,
@@ -485,7 +487,7 @@ var casesSPS = []struct {
 func TestSPSUnmarshal(t *testing.T) {
 	for _, ca := range casesSPS {
 		t.Run(ca.name, func(t *testing.T) {
-			var sps SPS
+			var sps h264.SPS
 			err := sps.Unmarshal(ca.byts)
 			require.NoError(t, err)
 			require.Equal(t, ca.sps, sps)
@@ -498,7 +500,7 @@ func TestSPSUnmarshal(t *testing.T) {
 
 func BenchmarkSPSUnmarshal(b *testing.B) {
 	for b.Loop() {
-		var sps SPS
+		var sps h264.SPS
 		sps.Unmarshal([]byte{ //nolint:errcheck
 			103, 77, 0, 41, 154, 100, 3, 192,
 			17, 63, 46, 2, 220, 4, 4, 5,
@@ -517,7 +519,7 @@ func FuzzSPSUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		var sps SPS
+		var sps h264.SPS
 		err := sps.Unmarshal(b)
 		if err != nil {
 			return

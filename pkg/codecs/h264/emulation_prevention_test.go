@@ -1,9 +1,11 @@
-package h264
+package h264_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
 )
 
 var casesEmulationPreventionRemove = []struct {
@@ -51,7 +53,7 @@ var casesEmulationPreventionRemove = []struct {
 func TestEmulationPreventionRemove(t *testing.T) {
 	for _, ca := range casesEmulationPreventionRemove {
 		t.Run(ca.name, func(t *testing.T) {
-			unproc := EmulationPreventionRemove(ca.proc)
+			unproc := h264.EmulationPreventionRemove(ca.proc)
 			require.Equal(t, ca.unproc, unproc)
 		})
 	}
@@ -63,6 +65,6 @@ func FuzzEmulationPreventionRemove(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		EmulationPreventionRemove(b)
+		h264.EmulationPreventionRemove(b)
 	})
 }
