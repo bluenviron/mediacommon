@@ -1,15 +1,17 @@
-package h264
+package h264_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
 )
 
 var casesAVCC = []struct {
 	name string
 	enc  []byte
-	dec  AVCC
+	dec  h264.AVCC
 }{
 	{
 		"single",
@@ -42,7 +44,7 @@ var casesAVCC = []struct {
 func TestAVCCUnmarshal(t *testing.T) {
 	for _, ca := range casesAVCC {
 		t.Run(ca.name, func(t *testing.T) {
-			var dec AVCC
+			var dec h264.AVCC
 			err := dec.Unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, ca.dec, dec)
@@ -52,20 +54,20 @@ func TestAVCCUnmarshal(t *testing.T) {
 
 // issue mediamtx/2375
 func TestAVCCUnmarshalEmpty(t *testing.T) {
-	var dec AVCC
+	var dec h264.AVCC
 	err := dec.Unmarshal([]byte{
 		0x0, 0x0, 0x0, 0x0,
 	})
 
-	require.Equal(t, ErrAVCCNoNALUs, err)
-	require.Equal(t, AVCC(nil), dec)
+	require.Equal(t, h264.ErrAVCCNoNALUs, err)
+	require.Equal(t, h264.AVCC(nil), dec)
 
 	err = dec.Unmarshal([]byte{
 		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x3, 0x1, 0x2, 0x3,
 	})
 
 	require.NoError(t, err)
-	require.Equal(t, AVCC{
+	require.Equal(t, h264.AVCC{
 		{1, 2, 3},
 	}, dec)
 }
@@ -76,7 +78,7 @@ func TestAVCCUnmarshalExceedsMaxNALUs(t *testing.T) {
 		buf = append(buf, 0x00, 0x00, 0x00, 0x01, 0xAA)
 	}
 
-	var dec AVCC
+	var dec h264.AVCC
 	err := dec.Unmarshal(buf)
 	require.EqualError(t, err, "NALU count (51) exceeds maximum allowed (50)")
 }
@@ -97,7 +99,7 @@ func FuzzAVCCUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, b []byte) {
-		var au AVCC
+		var au h264.AVCC
 		err := au.Unmarshal(b)
 		if err != nil {
 			return

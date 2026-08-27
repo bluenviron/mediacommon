@@ -1,16 +1,18 @@
-package h264
+package h264_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
 )
 
 var casesAnnexB = []struct {
 	name   string
 	encin  []byte
 	encout []byte
-	dec    AnnexB
+	dec    h264.AnnexB
 }{
 	{
 		"2 zeros",
@@ -23,7 +25,7 @@ var casesAnnexB = []struct {
 			0x00, 0x00, 0x00, 0x01, 0xcc, 0xdd,
 			0x00, 0x00, 0x00, 0x01, 0xee, 0xff,
 		},
-		[][]byte{
+		h264.AnnexB{
 			{0xaa, 0xbb},
 			{0xcc, 0xdd},
 			{0xee, 0xff},
@@ -41,7 +43,7 @@ var casesAnnexB = []struct {
 			0x00, 0x00, 0x00, 0x01, 0xcc, 0xdd,
 			0x00, 0x00, 0x00, 0x01, 0xee, 0xff,
 		},
-		[][]byte{
+		h264.AnnexB{
 			{0xaa, 0xbb},
 			{0xcc, 0xdd},
 			{0xee, 0xff},
@@ -66,7 +68,7 @@ var casesAnnexB = []struct {
 			0, 0, 0, 1, 3, 0, 64, 128,
 			0, 0, 0, 1, 6, 5, 17, 3, 135, 244, 78, 205, 10, 75, 220, 161, 148, 58, 195, 212, 155, 23, 31, 0, 128,
 		},
-		[][]byte{
+		h264.AnnexB{
 			{9, 240},
 			{39, 66, 224, 21, 169, 24, 60, 23, 252, 184, 3, 80, 96, 16, 107, 108, 43, 94, 247, 192, 64},
 			{40, 222, 9, 200},
@@ -89,7 +91,7 @@ var casesAnnexB = []struct {
 			0x00, 0x00, 0x00, 0x01, 0xee, 0xff, 0x00,
 			0x00, 0x00, 0x00, 0x01, 0x1a, 0x1b, 0x1c,
 		},
-		[][]byte{
+		h264.AnnexB{
 			{0xaa, 0xbb, 0},
 			{0xcc, 0xdd, 0, 0, 0},
 			{0xee, 0xff, 0},
@@ -101,7 +103,7 @@ var casesAnnexB = []struct {
 func TestAnnexBUnmarshal(t *testing.T) {
 	for _, ca := range casesAnnexB {
 		t.Run(ca.name, func(t *testing.T) {
-			var dec AnnexB
+			var dec h264.AnnexB
 			err := dec.Unmarshal(ca.encin)
 			require.NoError(t, err)
 			require.Equal(t, ca.dec, dec)
@@ -111,14 +113,14 @@ func TestAnnexBUnmarshal(t *testing.T) {
 
 func TestAnnexBUnmarshalEmpty(t *testing.T) {
 	buf := []byte{0, 0, 0, 1, 0, 0, 0, 1}
-	var dec AnnexB
+	var dec h264.AnnexB
 	err := dec.Unmarshal(buf)
-	require.Equal(t, ErrAnnexBNoNALUs, err)
+	require.Equal(t, h264.ErrAnnexBNoNALUs, err)
 
 	buf = []byte{0, 0, 0, 1, 0, 0, 0, 1, 1}
 	err = dec.Unmarshal(buf)
 	require.NoError(t, err)
-	require.Equal(t, AnnexB{{1}}, dec)
+	require.Equal(t, h264.AnnexB{{1}}, dec)
 }
 
 func TestAnnexBUnmarshalExceedsMaxNALUs(t *testing.T) {
@@ -127,7 +129,7 @@ func TestAnnexBUnmarshalExceedsMaxNALUs(t *testing.T) {
 		buf = append(buf, 0x00, 0x00, 0x00, 0x01, 0xAA)
 	}
 
-	var dec AnnexB
+	var dec h264.AnnexB
 	err := dec.Unmarshal(buf)
 	require.EqualError(t, err, "NALU count (51) exceeds maximum allowed (50)")
 }
@@ -144,7 +146,7 @@ func TestAnnexBMarshal(t *testing.T) {
 
 func BenchmarkAnnexBUnmarshal(b *testing.B) {
 	for b.Loop() {
-		var dec AnnexB
+		var dec h264.AnnexB
 		dec.Unmarshal([]byte{ //nolint:errcheck
 			0x00, 0x00, 0x00, 0x01,
 			0x01, 0x02, 0x03, 0x04,
@@ -172,7 +174,7 @@ func FuzzAnnexBUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, b []byte) {
-		var au AnnexB
+		var au h264.AnnexB
 		err := au.Unmarshal(b)
 		if err != nil {
 			return
