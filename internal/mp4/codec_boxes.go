@@ -7,7 +7,6 @@ import (
 
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/av1"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/flac"
-	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h265"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4/codecs"
@@ -61,19 +60,7 @@ func h264FindParams(avcc *amp4.AVCDecoderConfiguration) ([]byte, []byte, error) 
 		return nil, nil, fmt.Errorf("multiple H264 PPS are not supported")
 	}
 
-	sps := avcc.SequenceParameterSets[0].NALUnit
-	var spsp h264.SPS
-	err := spsp.Unmarshal(sps)
-	if err != nil {
-		return nil, nil, fmt.Errorf("unable to parse H264 SPS: %w", err)
-	}
-
-	pps := avcc.PictureParameterSets[0].NALUnit
-	if len(pps) == 0 {
-		return nil, nil, fmt.Errorf("invalid H264 PPS")
-	}
-
-	return sps, pps, nil
+	return avcc.SequenceParameterSets[0].NALUnit, avcc.PictureParameterSets[0].NALUnit, nil
 }
 
 func h265FindParams(params []amp4.HEVCNaluArray) ([]byte, []byte, []byte, error) {
@@ -94,12 +81,6 @@ func h265FindParams(params []amp4.HEVCNaluArray) ([]byte, []byte, []byte, error)
 
 			case h265.NALUType_SPS_NUT:
 				sps = arr.Nalus[0].NALUnit
-
-				var spsp h265.SPS
-				err := spsp.Unmarshal(sps)
-				if err != nil {
-					return nil, nil, nil, fmt.Errorf("unable to parse H265 SPS: %w", err)
-				}
 
 			case h265.NALUType_PPS_NUT:
 				pps = arr.Nalus[0].NALUnit
