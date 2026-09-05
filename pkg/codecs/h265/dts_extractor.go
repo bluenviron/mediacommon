@@ -107,10 +107,10 @@ func getPTSDTSDiff(buf []byte, sps *SPS, pps *PPS) (int, error) {
 
 	if sliceType == 0 { // B-frame
 		switch typ {
-		case NALUType_TRAIL_N, NALUType_RASL_N:
+		case NALUType_TRAIL_N, NALUType_TSA_N, NALUType_STSA_N, NALUType_RASL_N:
 			return -len(rps.DeltaPocS1), nil
 
-		case NALUType_TRAIL_R, NALUType_RASL_R:
+		case NALUType_TRAIL_R, NALUType_TSA_R, NALUType_STSA_R, NALUType_RASL_R:
 			if len(rps.DeltaPocS0) == 0 {
 				return 0, fmt.Errorf("invalid DeltaPocS0")
 			}
@@ -202,7 +202,8 @@ outer:
 			cra = nalu
 			break outer
 
-		case NALUType_TRAIL_N, NALUType_TRAIL_R, NALUType_RASL_N, NALUType_RASL_R:
+		case NALUType_TRAIL_N, NALUType_TRAIL_R, NALUType_TSA_N, NALUType_TSA_R,
+			NALUType_STSA_N, NALUType_STSA_R, NALUType_RASL_N, NALUType_RASL_R:
 			nonIDR = nalu
 			break outer
 		}
