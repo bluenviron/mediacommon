@@ -3,7 +3,7 @@ module github.com/bluenviron/mediacommon/v2
 go 1.26.0
 
 require (
-	github.com/abema/go-mp4 v1.7.1
+	github.com/abema/go-mp4 v1.7.2
 	github.com/asticode/go-astits v1.16.0
 	github.com/stretchr/testify v1.12.1
 )
