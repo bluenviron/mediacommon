@@ -187,7 +187,7 @@ outer:
 		ptsDTSDiff = 0
 
 	case nonIDR != nil:
-		if seiRecoveryPoint && idr == nil {
+		if seiRecoveryPoint {
 			// Like CRA in H265: initialize state from first frame after recovery point
 			var err error
 			d.expectedPOC, err = getPictureOrderCount(nonIDR, d.spsp, false)

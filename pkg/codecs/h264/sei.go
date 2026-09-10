@@ -1,10 +1,5 @@
 package h264
 
-// IsSEIRecoveryPoint checks whether a NALU is a recovery point SEI message.
-func IsSEIRecoveryPoint(nalu []byte) bool {
-	return isSEIRecoveryPoint(nalu)
-}
-
 // isSEIRecoveryPoint checks if a SEI NALU contains a recovery point message (payload type 6).
 func isSEIRecoveryPoint(nalu []byte) bool {
 	typ := NALUType(nalu[0] & 0x1F)
