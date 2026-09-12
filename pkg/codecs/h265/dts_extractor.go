@@ -112,7 +112,7 @@ func getPTSDTSDiff(buf []byte, sps *SPS, pps *PPS) (int, error) {
 
 		case NALUType_TRAIL_R, NALUType_TSA_R, NALUType_STSA_R, NALUType_RASL_R:
 			if len(rps.DeltaPocS0) == 0 {
-				return 0, fmt.Errorf("invalid DeltaPocS0")
+				return -len(rps.DeltaPocS1), nil
 			}
 			return int(-rps.DeltaPocS0[0]-1) - len(rps.DeltaPocS1), nil
 
@@ -121,7 +121,7 @@ func getPTSDTSDiff(buf []byte, sps *SPS, pps *PPS) (int, error) {
 		}
 	} else { // I or P-frame
 		if len(rps.DeltaPocS0) == 0 {
-			return 0, fmt.Errorf("invalid DeltaPocS0")
+			return 0, nil
 		}
 		return int(-rps.DeltaPocS0[0] - 1), nil
 	}
