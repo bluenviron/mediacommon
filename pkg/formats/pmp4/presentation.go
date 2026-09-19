@@ -343,7 +343,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			stszReceived = true
 
 		case "stco":
-			if state != waitingSampleProps || stcoReceived {
+			if state != waitingSampleProps || !stszReceived || stcoReceived {
 				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 			}
 
