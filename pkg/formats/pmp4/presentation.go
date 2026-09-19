@@ -378,7 +378,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 
 					curTrack.Samples[i].GetPayload = func() ([]byte, error) {
 						_, err2 := r.Seek(int64(sampleOffset), io.SeekStart)
-						if err != nil {
+						if err2 != nil {
 							return nil, err2
 						}
 
