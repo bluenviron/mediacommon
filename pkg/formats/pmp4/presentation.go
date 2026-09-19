@@ -327,7 +327,19 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			}
 			stsz := box.(*amp4.Stsz)
 
-			curSampleSizes = stsz.EntrySize
+			if stsz.SampleSize != 0 {
+				if int(stsz.SampleCount) != len(curTrack.Samples) {
+					return nil, fmt.Errorf("invalid stsz")
+				}
+
+				curSampleSizes = make([]uint32, stsz.SampleCount)
+				for i := range curSampleSizes {
+					curSampleSizes[i] = stsz.SampleSize
+				}
+			} else {
+				curSampleSizes = stsz.EntrySize
+			}
+
 			stszReceived = true
 
 		case "stco":
