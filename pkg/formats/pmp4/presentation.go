@@ -327,11 +327,11 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			}
 			stsz := box.(*amp4.Stsz)
 
-			if stsz.SampleSize != 0 {
-				if int(stsz.SampleCount) != len(curTrack.Samples) {
-					return nil, fmt.Errorf("invalid stsz")
-				}
+			if int(stsz.SampleCount) != len(curTrack.Samples) {
+				return nil, fmt.Errorf("invalid stsz")
+			}
 
+			if stsz.SampleSize != 0 {
 				curSampleSizes = make([]uint32, stsz.SampleCount)
 				for i := range curSampleSizes {
 					curSampleSizes[i] = stsz.SampleSize
@@ -359,10 +359,6 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 
 			for i, chunk := range curChunks {
 				chunk.offset = stco.ChunkOffset[i]
-			}
-
-			if len(curSampleSizes) != len(curTrack.Samples) {
-				return nil, fmt.Errorf("invalid stsz")
 			}
 
 			i := 0
