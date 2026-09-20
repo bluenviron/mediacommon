@@ -8,4 +8,5 @@ type OBUType uint8
 const (
 	OBUTypeSequenceHeader    OBUType = 1
 	OBUTypeTemporalDelimiter OBUType = 2
+	OBUTypePadding           OBUType = 15
 )
