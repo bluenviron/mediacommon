@@ -40,6 +40,7 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 		waitingMoov
 		waitingMvhd
 		waitingTrak
+		waitingEdts
 		waitingElst
 		waitingTkhd
 		waitingMdhd
@@ -132,13 +133,14 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			tkhd := box.(*amp4.Tkhd)
 
 			curTrack.ID = int(tkhd.TrackID)
-			state = waitingElst
+			state = waitingEdts
 
 		case "edts":
-			if state != waitingElst {
+			if state != waitingEdts {
 				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 			}
 
+			state = waitingElst
 			return h.Expand()
 
 		case "elst":
@@ -149,10 +151,12 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			state = waitingMdhd
 
 		case "mdia":
-			if state != waitingMdhd {
+			// edts is optional (ISO/IEC 14496-12, 8.6.5)
+			if state != waitingEdts && state != waitingMdhd {
 				return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 			}
 
+			state = waitingMdhd
 			return h.Expand()
 
 		case "mdhd":
@@ -393,6 +397,9 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			}
 
 			stcoReceived = true
+
+		case "mvex":
+			return nil, fmt.Errorf("fragmented MP4 files are not supported")
 		}
 
 		return nil, nil
