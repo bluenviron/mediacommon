@@ -1,6 +1,8 @@
 package pmp4
 
 import (
+	"math"
+
 	amp4 "github.com/abema/go-mp4"
 
 	imp4 "github.com/bluenviron/mediacommon/v2/internal/mp4"
@@ -74,9 +76,9 @@ func (t Track) marshal(w *imp4.Writer) (*headerTrackMarshalResult, error) {
 		return nil, err
 	}
 
-	sampleDuration := uint32(0)
+	sampleDuration := uint64(0)
 	for _, sa := range t.Samples {
-		sampleDuration += sa.Duration
+		sampleDuration += uint64(sa.Duration)
 	}
 
 	presentationDuration := uint32(((int64(sampleDuration) + int64(t.TimeOffset)) * globalTimescale) / int64(t.TimeScale))
@@ -131,11 +133,20 @@ func (t Track) marshal(w *imp4.Writer) (*headerTrackMarshalResult, error) {
 		return nil, err
 	}
 
-	_, err = w.WriteBox(&amp4.Mdhd{ // <mdhd/>
-		Timescale:  t.TimeScale,
-		DurationV0: uint32(int64(sampleDuration) + int64(t.TimeOffset)),
-		Language:   [3]byte{'u', 'n', 'd'},
-	})
+	mdhd := &amp4.Mdhd{ // <mdhd/>
+		Timescale: t.TimeScale,
+		Language:  [3]byte{'u', 'n', 'd'},
+	}
+
+	mediaDuration := uint64(int64(sampleDuration) + int64(t.TimeOffset))
+	if mediaDuration > math.MaxUint32 {
+		mdhd.SetVersion(1)
+		mdhd.DurationV1 = mediaDuration
+	} else {
+		mdhd.DurationV0 = uint32(mediaDuration)
+	}
+
+	_, err = w.WriteBox(mdhd)
 	if err != nil {
 		return nil, err
 	}
@@ -308,7 +319,7 @@ func (t Track) marshal(w *imp4.Writer) (*headerTrackMarshalResult, error) {
 	}, nil
 }
 
-func (t *Track) marshalELST(w *imp4.Writer, sampleDuration uint32) error {
+func (t *Track) marshalELST(w *imp4.Writer, sampleDuration uint64) error {
 	if t.TimeOffset > 0 {
 		_, err := w.WriteBox(&amp4.Elst{
 			EntryCount: 2,
@@ -320,7 +331,7 @@ func (t *Track) marshalELST(w *imp4.Writer, sampleDuration uint32) error {
 					MediaRateFraction: 0,
 				},
 				{ // presentation
-					SegmentDurationV0: uint32((uint64(sampleDuration) * globalTimescale) / uint64(t.TimeScale)),
+					SegmentDurationV0: uint32((sampleDuration * globalTimescale) / uint64(t.TimeScale)),
 					MediaTimeV0:       0,
 					MediaRateInteger:  1,
 					MediaRateFraction: 0,
@@ -333,7 +344,7 @@ func (t *Track) marshalELST(w *imp4.Writer, sampleDuration uint32) error {
 	_, err := w.WriteBox(&amp4.Elst{
 		EntryCount: 1,
 		Entries: []amp4.ElstEntry{{
-			SegmentDurationV0: uint32(((uint64(sampleDuration) +
+			SegmentDurationV0: uint32(((sampleDuration +
 				uint64(-t.TimeOffset)) * globalTimescale) / uint64(t.TimeScale)),
 			MediaTimeV0:       -t.TimeOffset,
 			MediaRateInteger:  1,

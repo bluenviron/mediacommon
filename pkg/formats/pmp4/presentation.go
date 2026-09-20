@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"time"
 
 	amp4 "github.com/abema/go-mp4"
@@ -58,7 +59,8 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 	var state readState
 	var stszReceived bool
 	var stcoReceived bool
-	var trackDuration uint32
+	var trackDuration uint64
+	var trackDurationV1 bool
 	var curTrack *Track
 	var codecBoxesReader *imp4.CodecBoxesReader
 	var curChunks []*chunk
@@ -175,7 +177,8 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 			}
 
 			curTrack.TimeScale = mdhd.Timescale
-			trackDuration = mdhd.DurationV0
+			trackDuration = mdhd.GetDuration()
+			trackDurationV1 = mdhd.GetVersion() == 1
 			state = waitingStsd
 
 		case "minf", "stbl":
@@ -217,12 +220,21 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 				}
 			}
 
-			sampleDuration := uint32(0)
+			sampleDuration := uint64(0)
 			for _, sa := range curTrack.Samples {
-				sampleDuration += sa.Duration
+				sampleDuration += uint64(sa.Duration)
 			}
 
 			curTrack.TimeOffset = int32(trackDuration) - int32(sampleDuration)
+
+			// check only version 1 durations, since version 0 durations
+			// written by previous versions of Marshal may have wrapped around.
+			if trackDurationV1 {
+				timeOffset := int64(trackDuration) - int64(sampleDuration)
+				if trackDuration > math.MaxInt64 || timeOffset < math.MinInt32 || timeOffset > math.MaxInt32 {
+					return nil, fmt.Errorf("invalid duration")
+				}
+			}
 
 			state = waitingSampleProps
 
