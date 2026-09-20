@@ -769,8 +769,8 @@ func WriteCodecBoxes(w *Writer, codec codecs.Codec, trackID int, info *CodecInfo
 			BitDepthChromaMinus8: uint8(info.H265SPS.BitDepthChromaMinus8),
 			// AvgFrameRate
 			// ConstantFrameRate
-			NumTemporalLayers: 1,
-			// TemporalIdNested
+			NumTemporalLayers:  (info.H265SPS.MaxSubLayersMinus1 + 1),
+			TemporalIdNested:   boolToUint8(info.H265SPS.TemporalIDNestingFlag),
 			LengthSizeMinusOne: 3,
 			NumOfNaluArrays:    3,
 			NaluArrays: []amp4.HEVCNaluArray{
