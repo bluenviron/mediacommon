@@ -2,6 +2,8 @@ package pmp4
 
 import (
 	"bytes"
+	"fmt"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -2694,6 +2696,30 @@ func TestPresentationUnmarshalOnly(t *testing.T) {
 			restoreGetPayloads(&ca.dec, getPayloads)
 		})
 	}
+}
+
+type seekFailer struct {
+	io.ReadSeeker
+	fail bool
+}
+
+func (r *seekFailer) Seek(offset int64, whence int) (int64, error) {
+	if r.fail {
+		return 0, fmt.Errorf("seek error")
+	}
+	return r.ReadSeeker.Seek(offset, whence)
+}
+
+func TestPresentationGetPayloadSeekError(t *testing.T) {
+	r := &seekFailer{ReadSeeker: bytes.NewReader(casesPresentation[0].enc)}
+
+	var p Presentation
+	err := p.Unmarshal(r)
+	require.NoError(t, err)
+
+	r.fail = true
+	_, err = p.Tracks[0].Samples[0].GetPayload()
+	require.EqualError(t, err, "seek error")
 }
 
 func TestPresentationMarshal(t *testing.T) {
