@@ -5,6 +5,11 @@ import (
 	"io"
 )
 
+// in case of packet-based connections (UDP), a read with a buffer smaller
+// than the incoming datagram discards the remaining part of the datagram.
+// Therefore the buffer must be able to contain the largest possible datagram.
+const maxDatagramSize = 65535
+
 // this is needed to make sure that astits.Demuxer receives valid, 188 byte-long, MPEG-TS packets,
 // since it uses io.ReadFull which can only read full packets and cannot detect or skip garbage.
 // https://github.com/asticode/go-astits/blob/b0b19247aa31633650c32638fb55f597fa6e2468/packet_buffer.go#L133C1-L133C5
@@ -23,7 +28,7 @@ func (r *preDemuxer) initialize() {
 		r.OnDecodeError = func(_ error) {}
 	}
 
-	r.buf1 = make([]byte, 0, 1316)
+	r.buf1 = make([]byte, 0, maxDatagramSize)
 	r.buf1Pos = 0
 	r.buf2 = make([]byte, packetSize)
 	r.buf2Pos = len(r.buf2)
