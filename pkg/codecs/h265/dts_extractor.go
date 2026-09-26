@@ -155,10 +155,12 @@ func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, error) {
 	var idr []byte
 	var cra []byte
 	var nonIDR []byte
+	vclFound := false
 
 outer:
 	for _, nalu := range au {
 		typ := NALUType((nalu[0] >> 1) & 0b111111)
+		vclFound = vclFound || typ < NALUType_VPS_NUT
 
 		switch typ {
 		case NALUType_SPS_NUT:
@@ -243,6 +245,10 @@ outer:
 		if err != nil {
 			return 0, err
 		}
+
+	// access unit contains only non-VCL NALUs (i.e. SEI): use previous DTS
+	case !vclFound && d.prevDTSFilled:
+		return d.prevDTS, nil
 
 	default:
 		return 0, fmt.Errorf("access unit doesn't contain an IDR or non-IDR NALU")
