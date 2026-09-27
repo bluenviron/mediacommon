@@ -28,10 +28,12 @@ func (r *Reader) Read(p []byte) (int, error) {
 			return 0, errors.New("max recorded size exceeded")
 		}
 
-		entry := make([]byte, n)
-		copy(entry, p[:n])
-		r.entries = append(r.entries, entry)
-		r.size += n
+		if n > 0 {
+			entry := make([]byte, n)
+			copy(entry, p[:n])
+			r.entries = append(r.entries, entry)
+			r.size += n
+		}
 		return n, err
 	}
 
