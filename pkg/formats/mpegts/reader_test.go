@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"strconv"
 	"testing"
 
 	"github.com/asticode/go-astits"
@@ -1980,6 +1981,90 @@ func TestReaderSkipGarbage(t *testing.T) {
 		{{17, 18, 19, 20}},
 		{{21, 22, 23, 24}},
 	}, aus)
+}
+
+// datagramReader simulates a packet-based connection (UDP):
+// each Read returns a single datagram and discards what does not fit into the buffer.
+type datagramReader struct {
+	buf  []byte
+	size int
+}
+
+func (r *datagramReader) Read(p []byte) (int, error) {
+	if len(r.buf) == 0 {
+		return 0, io.EOF
+	}
+
+	n := min(r.size, len(r.buf))
+	dgram := r.buf[:n]
+	r.buf = r.buf[n:]
+
+	return copy(p, dgram), nil
+}
+
+func TestReaderLargeDatagrams(t *testing.T) {
+	for _, size := range []int{1354, 1504, 65424} {
+		t.Run(strconv.Itoa(size), func(t *testing.T) {
+			var buf bytes.Buffer
+			mux := astits.NewMuxer(context.Background(), &buf)
+
+			err := mux.AddElementaryStream(astits.PMTElementaryStream{
+				ElementaryPID: 123,
+				StreamType:    astits.StreamTypeH264Video,
+			})
+			require.NoError(t, err)
+
+			mux.SetPCRPID(123)
+
+			expected := make([][][]byte, 0, 30)
+
+			for i := range 30 {
+				au := [][]byte{append([]byte{1}, bytes.Repeat([]byte{byte(i)}, 1000)...)}
+				expected = append(expected, au)
+
+				_, err = mux.WriteData(&astits.MuxerData{
+					PID: 123,
+					PES: &astits.PESData{
+						Header: &astits.PESHeader{
+							OptionalHeader: &astits.PESOptionalHeader{
+								MarkerBits:      2,
+								PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+								PTS:             &astits.ClockReference{Base: 90000 + int64(i)*3000},
+							},
+							StreamID: streamIDVideo,
+						},
+						Data: append([]byte{0, 0, 0, 1}, au[0]...),
+					},
+				})
+				require.NoError(t, err)
+			}
+
+			r := &Reader{R: &datagramReader{buf: buf.Bytes(), size: size}}
+			err = r.Initialize()
+			require.NoError(t, err)
+
+			r.OnDecodeError(func(err error) {
+				t.Errorf("unexpected decode error: %v", err)
+			})
+
+			var aus [][][]byte
+
+			r.OnDataH264(r.Tracks()[0], func(_, _ int64, au [][]byte) error {
+				aus = append(aus, au)
+				return nil
+			})
+
+			for {
+				err = r.Read()
+				if err != nil {
+					require.ErrorIs(t, err, io.EOF)
+					break
+				}
+			}
+
+			require.Equal(t, expected, aus)
+		})
+	}
 }
 
 func FuzzReader(f *testing.F) {
