@@ -102,18 +102,10 @@ func NewDTSExtractor() *DTSExtractor {
 func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, bool, error) {
 	var idr []byte
 	var nonIDR []byte
-	// a value of 00 indicates that the content of the NAL unit is not
-	// used to reconstruct reference pictures for inter picture
-	// prediction.  Such NAL units can be discarded without risking
-	// the integrity of the reference pictures.  Values greater than
-	// 00 indicate that the decoding of the NAL unit is required to
-	// maintain the integrity of the reference pictures.
-	nonZeroNalRefIDFound := false
 
 outer:
 	for _, nalu := range au {
 		typ := NALUType(nalu[0] & 0x1F)
-		nonZeroNalRefIDFound = nonZeroNalRefIDFound || ((nalu[0] & 0x60) > 0)
 
 		switch typ {
 		case NALUTypeSPS:
@@ -222,12 +214,6 @@ outer:
 		d.expectedPOC &= ((1 << (d.spsp.Log2MaxPicOrderCntLsbMinus4 + 4)) - 1)
 
 		ptsDTSDiff = int(pictureOrderCountDiff(poc, d.expectedPOC, d.spsp)) / d.pocIncrement
-
-	case !nonZeroNalRefIDFound:
-		if !d.prevDTSFilled {
-			return pts, true, nil
-		}
-		return d.prevDTS, false, nil
 
 	default:
 		return 0, false, fmt.Errorf("access unit doesn't contain an IDR or non-IDR NALU")
