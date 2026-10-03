@@ -1,10 +1,10 @@
 package h264
 
 // IsRandomAccess checks whether the access unit can be randomly accessed.
-// au is assumed to contain byte slices each with at least 1 byte.
+// AU is assumed to contain byte slices each with at least 1 byte.
 func IsRandomAccess(au [][]byte) bool {
 	var recoveryPoint bool
-	var pictureFound bool
+	var pictureBeforeSEIFound bool
 
 	for _, nalu := range au {
 		typ := NALUType(nalu[0] & 0x1F)
@@ -13,15 +13,15 @@ func IsRandomAccess(au [][]byte) bool {
 			return true
 
 		case NALUTypeSEI:
-			if !pictureFound && isSEIRecoveryPoint(nalu) {
+			if !pictureBeforeSEIFound && isSEIRecoveryPoint(nalu) {
 				recoveryPoint = true
 			}
 
 		case NALUTypeNonIDR:
-			if !pictureFound && recoveryPoint {
+			if !pictureBeforeSEIFound && recoveryPoint {
 				return true
 			}
-			pictureFound = true
+			pictureBeforeSEIFound = true
 		}
 	}
 

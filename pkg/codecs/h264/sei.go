@@ -70,12 +70,15 @@ func isSEIRecoveryPointPayload(payload []byte) bool {
 	}
 
 	if pos%8 != 0 {
-		one, err := bits.ReadFlag(payload, &pos) // payload_bit_equal_to_one
+		var one bool
+		one, err = bits.ReadFlag(payload, &pos) // payload_bit_equal_to_one
 		if err != nil || !one {
 			return false
 		}
+
 		for pos%8 != 0 {
-			zero, err := bits.ReadFlag(payload, &pos) // payload_bit_equal_to_zero
+			var zero bool
+			zero, err = bits.ReadFlag(payload, &pos) // payload_bit_equal_to_zero
 			if err != nil || zero {
 				return false
 			}

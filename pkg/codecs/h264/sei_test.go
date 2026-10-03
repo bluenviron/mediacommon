@@ -120,7 +120,7 @@ func FuzzIsSEIRecoveryPoint(f *testing.F) {
 		f.Add(ca.nalu)
 	}
 
-	f.Fuzz(func(t *testing.T, payload []byte) {
+	f.Fuzz(func(_ *testing.T, payload []byte) {
 		isSEIRecoveryPoint(payload)
 	})
 }
