@@ -2,185 +2,102 @@ package h264
 
 import "github.com/bluenviron/mediacommon/v2/pkg/bits"
 
-// isSEIRecoveryPoint checks if a SEI NALU contains a recovery point message
-// (payload type 6) that can be used as a random access point.
+const seiPayloadTypeRecoveryPoint = 6
+
+// isSEIRecoveryPoint checks whether a SEI NALU contains a recovery point
+// message whose recovery_frame_cnt is 0. It assumes the NALU type is NALUTypeSEI.
 func isSEIRecoveryPoint(nalu []byte) bool {
-	typ := NALUType(nalu[0] & 0x1F)
-	if typ != NALUTypeSEI {
+	if len(nalu) < 2 {
 		return false
 	}
 
-	pos := 1 // skip NALU header byte
+	rbsp := EmulationPreventionRemove(nalu[1:])
+	pos := 0
+	found := false
 
-	for pos < len(nalu) {
-		payloadType, p := readSEIByteValue(nalu, pos)
-		pos = p
-
-		payloadSize, p := readSEIByteValue(nalu, pos)
-		pos = p
-
-		end := pos + payloadSize
-		if end > len(nalu) {
-			end = len(nalu)
+	for pos < len(rbsp) {
+		if rbsp[pos] == 0x80 && pos == len(rbsp)-1 {
+			return found
 		}
 
-		if payloadType == 6 && isSEIRecoveryPointPayload(nalu[pos:end]) {
-			return true
+		payloadType, next, ok := readSEIByteValue(rbsp, pos)
+		if !ok {
+			return false
+		}
+		pos = next
+
+		payloadSize, next, ok := readSEIByteValue(rbsp, pos)
+		if !ok {
+			return false
+		}
+		pos = next
+
+		if payloadSize > len(rbsp)-pos {
+			return false
 		}
 
-		pos = end
+		if payloadType == seiPayloadTypeRecoveryPoint && isSEIRecoveryPointPayload(rbsp[pos:pos+payloadSize]) {
+			found = true
+		}
+		pos += payloadSize
 	}
 
 	return false
 }
 
-// isSEIRecoveryPointPayload checks if a recovery point message payload
-// identifies a random access point, i.e. its recovery_frame_cnt field is 0.
-// Truncated or unparseable payloads are assumed to identify one as well.
+// isSEIRecoveryPointPayload checks whether a recovery point message identifies
+// an immediate random access point.
 func isSEIRecoveryPointPayload(payload []byte) bool {
-	payload = EmulationPreventionRemove(payload)
-
-	// recovery_point_sei_message() is at least 8 bytes long
-	if len(payload) < 8 {
-		return true
-	}
-
-	pos := 48 // skip bits_per_second and picture_bits_per_second
-
-	cpbCntFlag, err := bits.ReadFlag(payload, &pos)
+	pos := 0
+	recoveryFrameCnt, err := bits.ReadGolombUnsigned(payload, &pos)
 	if err != nil {
-		return true
+		return false
 	}
 
-	if cpbCntFlag {
-		// initial_cpb_removal_delay
-		_, err = bits.ReadGolombUnsigned(payload, &pos)
-		if err != nil {
-			return true
-		}
-
-		// cpb_removal_delay_increment
-		_, err = bits.ReadGolombUnsigned(payload, &pos)
-		if err != nil {
-			return true
-		}
-	}
-
-	timeCodeCnt, err := bits.ReadFlag(payload, &pos)
+	_, err = bits.ReadFlag(payload, &pos) // exact_match_flag
 	if err != nil {
-		return true
+		return false
 	}
 
-	if timeCodeCnt {
-		err = skipSEITimeCode(payload, &pos)
-		if err != nil {
-			return true
-		}
-	}
-
-	// frames_until_next_recovery_point
-	_, err = bits.ReadBits(payload, &pos, 8)
+	_, err = bits.ReadFlag(payload, &pos) // broken_link_flag
 	if err != nil {
-		return true
+		return false
 	}
 
-	recoveryFrameCnt, err := bits.ReadBits(payload, &pos, 5) // recovery_frame_cnt
+	_, err = bits.ReadBits(payload, &pos, 2) // changing_slice_group_idc
 	if err != nil {
-		return true
+		return false
 	}
 
-	recoveryFrameCntFlag, err := bits.ReadFlag(payload, &pos) // recovery_frame_cnt_flag
-	if err != nil {
-		return true
-	}
-
-	if recoveryFrameCntFlag {
-		recoveryFrameCntMSB, err := bits.ReadBits(payload, &pos, 3) // recovery_frame_cnt_msb
-		if err != nil {
-			return true
+	if pos%8 != 0 {
+		one, err := bits.ReadFlag(payload, &pos) // payload_bit_equal_to_one
+		if err != nil || !one {
+			return false
 		}
-		recoveryFrameCnt |= recoveryFrameCntMSB << 5
-	}
-
-	return recoveryFrameCnt == 0
-}
-
-// skipSEITimeCode skips the time_code() structure (H.264 spec, 7.32.8).
-func skipSEITimeCode(payload []byte, pos *int) error {
-	// clock_timestamp_flag + 8 flag fields, 1 bit each
-	v, err := bits.ReadBits(payload, pos, 9)
-	if err != nil {
-		return err
-	}
-
-	clockTimestampFlag := v&0x100 != 0
-	localHoursFlag := v&0x08 != 0
-	secondsFlag := v&0x04 != 0
-	minutesFlag := v&0x02 != 0
-	hoursFlag := v&0x01 != 0
-
-	if !clockTimestampFlag {
-		// pic_struct + count
-		_, err = bits.ReadBits(payload, pos, 4)
-		return err
-	}
-
-	// second_value
-	if _, err = bits.ReadBits(payload, pos, 6); err != nil {
-		return err
-	}
-	if secondsFlag {
-		// second_value
-		if _, err = bits.ReadBits(payload, pos, 6); err != nil {
-			return err
-		}
-	}
-	if minutesFlag {
-		// minute_value
-		if _, err = bits.ReadBits(payload, pos, 6); err != nil {
-			return err
-		}
-	}
-	if hoursFlag {
-		// hour_value
-		if _, err = bits.ReadBits(payload, pos, 5); err != nil {
-			return err
-		}
-	}
-	if localHoursFlag {
-		// local_hour_value + local_hour_minute_offset + local_hour_second_offset
-		if _, err = bits.ReadBits(payload, pos, 17); err != nil {
-			return err
-		}
-		localHourSecondFlag, err := bits.ReadFlag(payload, pos)
-		if err != nil {
-			return err
-		}
-		if localHourSecondFlag {
-			// local_hour_second_value
-			if _, err = bits.ReadBits(payload, pos, 6); err != nil {
-				return err
+		for pos%8 != 0 {
+			zero, err := bits.ReadFlag(payload, &pos) // payload_bit_equal_to_zero
+			if err != nil || zero {
+				return false
 			}
 		}
 	}
 
-	// time_offset_value
-	_, err = bits.ReadBits(payload, pos, 32)
-	return err
+	return pos == len(payload)*8 && recoveryFrameCnt == 0
 }
 
-// readSEIByteValue reads a SEI payloadType/payloadSize value, where each byte
-// equal to 0xFF contributes 255 and the first byte different from 0xFF
-// terminates the value (adding its own value).
-func readSEIByteValue(nalu []byte, pos int) (int, int) {
-	var v int
-	for pos < len(nalu) {
-		b := nalu[pos]
+// readSEIByteValue reads a SEI payloadType or payloadSize value.
+func readSEIByteValue(rbsp []byte, pos int) (int, int, bool) {
+	var value int
+	for pos < len(rbsp) {
+		b := rbsp[pos]
 		pos++
-		v += int(b)
+		if value > int(^uint(0)>>1)-int(b) {
+			return 0, pos, false
+		}
+		value += int(b)
 		if b != 0xFF {
-			break
+			return value, pos, true
 		}
 	}
-	return v, pos
+	return 0, pos, false
 }
