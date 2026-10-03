@@ -537,6 +537,73 @@ var casesDTSExtractor = []struct {
 			},
 		},
 	},
+	{
+		"issue mediacommon/341 (SEI recovery point)",
+		[]sample{
+			{
+				[][]byte{
+					{ // SPS
+						0x67, 0x64, 0x00, 0x28, 0xac, 0xd9, 0x40, 0x78,
+						0x02, 0x27, 0xe5, 0x84, 0x00, 0x00, 0x03, 0x00,
+						0x04, 0x00, 0x00, 0x03, 0x00, 0xf0, 0x3c, 0x60,
+						0xc6, 0x58,
+					},
+					{ // SEI recovery point
+						0x06, 0x06, 0x01, 0xC4, 0x80,
+					},
+					{ // non-IDR (poc 0)
+						0x41, 0xe0, 0x04,
+					},
+				},
+				56890 + 0,
+				56890 + 0,
+			},
+			{
+				[][]byte{{0x41, 0x9a, 0x21, 0x6c, 0x45, 0xff}},
+				56890 + 3000,
+				56890 + 3000,
+			},
+			{
+				[][]byte{{0x41, 0x9a, 0x42, 0x3c, 0x21, 0x93}},
+				56890 + 6000,
+				56890 + 6000,
+			},
+			{
+				[][]byte{{0x41, 0x9a, 0x63, 0x49, 0xe1, 0x0f}},
+				56890 + 9000,
+				56890 + 9000,
+			},
+			{
+				[][]byte{{0x41, 0x9a, 0x86, 0x49, 0xe1, 0x0f}},
+				56890 + 9090,
+				56890 + 18000,
+			},
+			{
+				[][]byte{{0x41, 0x9e, 0xa5, 0x42, 0x7f, 0xf9}},
+				56890 + 12045,
+				56890 + 15000,
+			},
+			{
+				[][]byte{{0x01, 0x9e, 0xc4, 0x69, 0x13, 0xff}},
+				56890 + 12135,
+				56890 + 12000,
+			},
+			{
+				[][]byte{{0x41, 0x9a, 0xc8, 0x4b, 0xa8, 0x42}},
+				56890 + 15101,
+				56890 + 24000,
+			},
+			{
+				[][]byte{
+					{ // IDR
+						0x65, 0x88, 0x84, 0x00, 0x33, 0xff,
+					},
+				},
+				56890 + 18067,
+				56890 + 24000,
+			},
+		},
+	},
 }
 
 func TestDTSExtractor(t *testing.T) {
@@ -550,6 +617,126 @@ func TestDTSExtractor(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDTSExtractorErrors(t *testing.T) {
+	sps := []byte{
+		0x67, 0x64, 0x00, 0x28, 0xac, 0xd9, 0x40, 0x78,
+		0x02, 0x27, 0xe5, 0x84, 0x00, 0x00, 0x03, 0x00,
+		0x04, 0x00, 0x00, 0x03, 0x00, 0xf0, 0x3c, 0x60,
+		0xc6, 0x58,
+	}
+	seiRecoveryPoint := []byte{0x06, 0x06, 0x01, 0xC4, 0x80}
+
+	t.Run("no random access frame", func(t *testing.T) {
+		ex := NewDTSExtractor()
+		_, err := ex.Extract([][]byte{sps}, 56890)
+		require.EqualError(t, err, "random access frame not received yet")
+	})
+
+	t.Run("recovery point without a frame", func(t *testing.T) {
+		ex := NewDTSExtractor()
+		_, err := ex.Extract([][]byte{sps, seiRecoveryPoint}, 56890)
+		require.EqualError(t, err, "random access frame not received yet")
+	})
+
+	t.Run("non-IDR without recovery point", func(t *testing.T) {
+		ex := NewDTSExtractor()
+		_, err := ex.Extract([][]byte{sps, {0x41, 0xe0, 0x04}}, 56890)
+		require.EqualError(t, err, "random access frame not received yet")
+		require.False(t, ex.randomReceived)
+	})
+
+	t.Run("recovery point after non-IDR", func(t *testing.T) {
+		ex := NewDTSExtractor()
+		_, err := ex.Extract([][]byte{sps, {0x41, 0xe0, 0x04}, seiRecoveryPoint, {0x41, 0xe0, 0x14}}, 56890)
+		require.EqualError(t, err, "random access frame not received yet")
+		require.False(t, ex.randomReceived)
+	})
+
+	t.Run("recovery point with invalid frame", func(t *testing.T) {
+		ex := NewDTSExtractor()
+		_, err := ex.Extract([][]byte{sps, seiRecoveryPoint, {0x41}}, 56890)
+		require.EqualError(t, err, "not enough bits")
+		require.False(t, ex.randomReceived)
+
+		dts, err := ex.Extract([][]byte{seiRecoveryPoint, {0x41, 0xe0, 0x04}}, 56980)
+		require.NoError(t, err)
+		require.Equal(t, int64(56980), dts)
+	})
+
+	for _, ca := range []struct {
+		name string
+		sei  []byte
+	}{
+		{"nonzero recovery count", []byte{0x06, 0x06, 0x01, 0x51, 0x80}},
+		{"malformed recovery point", []byte{0x06, 0x06, 0x01, 0x00, 0x80}},
+	} {
+		t.Run(ca.name, func(t *testing.T) {
+			ex := NewDTSExtractor()
+			_, err := ex.Extract([][]byte{sps, ca.sei, {0x41, 0xe0, 0x04}}, 56890)
+			require.EqualError(t, err, "random access frame not received yet")
+			require.False(t, ex.randomReceived)
+		})
+	}
+
+	t.Run("SPS not received yet", func(t *testing.T) {
+		ex := NewDTSExtractor()
+		_, err := ex.Extract([][]byte{{0x65, 0x88, 0x84, 0x00, 0x33, 0xff}}, 56890)
+		require.EqualError(t, err, "SPS not received yet")
+	})
+
+	t.Run("pic_order_cnt_type = 1", func(t *testing.T) {
+		ex := NewDTSExtractor()
+		ex.spsp = &SPS{PicOrderCntType: 1, FrameMbsOnlyFlag: true}
+		_, err := ex.Extract([][]byte{{0x65, 0x88, 0x84, 0x00, 0x33, 0xff}}, 56890)
+		require.EqualError(t, err, "pic_order_cnt_type = 1 is not supported yet")
+	})
+
+	t.Run("no-reference NALU before any DTS", func(t *testing.T) {
+		ex := NewDTSExtractor()
+		ex.spsp = &SPS{
+			PicOrderCntType:             0,
+			FrameMbsOnlyFlag:            true,
+			Log2MaxFrameNumMinus4:       0,
+			Log2MaxPicOrderCntLsbMinus4: 2,
+		}
+		ex.randomReceived = true
+		_, err := ex.Extract([][]byte{{0x06, 0x01, 0x02, 0x08, 0x14, 0x80}}, 56890)
+		require.EqualError(t, err, "access unit doesn't contain an IDR or non-IDR NALU")
+	})
+
+	t.Run("pause with previous DTS", func(t *testing.T) {
+		ex := NewDTSExtractor()
+		ex.spsp = &SPS{
+			PicOrderCntType:             0,
+			FrameMbsOnlyFlag:            true,
+			Log2MaxFrameNumMinus4:       0,
+			Log2MaxPicOrderCntLsbMinus4: 2,
+		}
+		ex.randomReceived = true
+		ex.prevDTSFilled = true
+		ex.prevDTS = 42
+		ex.pause = 1
+		dts, err := ex.Extract([][]byte{{0x65, 0x88, 0x84, 0x00, 0x33, 0xff}}, 56890)
+		require.NoError(t, err)
+		require.Equal(t, int64(132), dts)
+	})
+
+	t.Run("pause without previous DTS", func(t *testing.T) {
+		ex := NewDTSExtractor()
+		ex.spsp = &SPS{
+			PicOrderCntType:             0,
+			FrameMbsOnlyFlag:            true,
+			Log2MaxFrameNumMinus4:       0,
+			Log2MaxPicOrderCntLsbMinus4: 2,
+		}
+		ex.randomReceived = true
+		ex.pause = 1
+		dts, err := ex.Extract([][]byte{{0x65, 0x88, 0x84, 0x00, 0x33, 0xff}}, 56890)
+		require.NoError(t, err)
+		require.Equal(t, int64(56890), dts)
+	})
 }
 
 func serializeSequence(seq []sample) []byte {
