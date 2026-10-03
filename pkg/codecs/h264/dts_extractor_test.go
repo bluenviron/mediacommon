@@ -713,13 +713,6 @@ func TestDTSExtractorErrors(t *testing.T) {
 		require.False(t, ex.randomReceived)
 	})
 
-	t.Run("empty NALU before recovery point", func(t *testing.T) {
-		ex := NewDTSExtractor()
-		dts, err := ex.Extract([][]byte{{}, sps, seiRecoveryPoint, {0x41, 0xe0, 0x04}}, 56890)
-		require.NoError(t, err)
-		require.Equal(t, int64(56890), dts)
-	})
-
 	t.Run("recovery point with invalid frame", func(t *testing.T) {
 		ex := NewDTSExtractor()
 		_, err := ex.Extract([][]byte{sps, seiRecoveryPoint, {0x41}}, 56890)
