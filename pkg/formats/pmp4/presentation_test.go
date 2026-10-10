@@ -1438,6 +1438,8 @@ var casesPresentation = []struct {
 }
 
 func getSampleData(t *testing.T, p *Presentation) map[int][][]byte {
+	t.Helper()
+
 	sampleData := make(map[int][][]byte)
 	for _, track := range p.Tracks {
 		var trackData [][]byte //nolint:prealloc
