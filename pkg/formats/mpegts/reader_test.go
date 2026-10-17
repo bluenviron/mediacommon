@@ -2385,3 +2385,82 @@ func FuzzReader(f *testing.F) {
 		}
 	})
 }
+
+func writeDeadTrackStream(t *testing.T, audioStartSec float64) []byte {
+	t.Helper()
+
+	videoTrack := &Track{Codec: &codecs.H264{}}
+	audioTrack := &Track{Codec: &codecs.MPEG4Audio{
+		Config: mpeg4audio.AudioSpecificConfig{
+			Type:          2,
+			SampleRate:    48000,
+			ChannelConfig: 2,
+			ChannelCount:  2, //nolint:staticcheck
+		},
+	}}
+
+	var buf bytes.Buffer
+	// audio first, as in the PMT produced by vMix / FFmpeg
+	w := &Writer{W: &buf, Tracks: []*Track{audioTrack, videoTrack}}
+	err := w.Initialize()
+	require.NoError(t, err)
+
+	// 6 seconds at 60 fps
+	for i := range 360 {
+		pts := int64(90000 + i*1500)
+
+		err = w.WriteH264(videoTrack, pts, pts, [][]byte{
+			testH264SPS,
+			{0x08, 0x01},
+			{0x05, 0x01},
+		})
+		require.NoError(t, err)
+
+		if audioStartSec >= 0 && float64(i)/60 >= audioStartSec {
+			err = w.WriteMPEG4Audio(audioTrack, pts, [][]byte{{1, 2, 3, 4}})
+			require.NoError(t, err)
+		}
+	}
+
+	return buf.Bytes()
+}
+
+func TestReaderSkipsTrackWithoutData(t *testing.T) {
+	r := &Reader{R: bytes.NewReader(writeDeadTrackStream(t, -1))}
+	err := r.Initialize()
+	require.NoError(t, err)
+
+	require.Len(t, r.Tracks(), 1)
+	require.IsType(t, &codecs.H264{}, r.Tracks()[0].Codec)
+	require.Equal(t, []uint16{256}, r.SkippedTracks())
+
+	var decodeErrors []error
+	r.OnDecodeError(func(err error) { decodeErrors = append(decodeErrors, err) })
+
+	frames := 0
+	r.OnDataH264(r.Tracks()[0], func(_ int64, _ int64, _ [][]byte) error {
+		frames++
+		return nil
+	})
+
+	for {
+		err = r.Read()
+		if err != nil {
+			break
+		}
+	}
+
+	// data recorded during probing is replayed
+	require.Greater(t, frames, 350)
+	require.Empty(t, decodeErrors)
+}
+
+func TestReaderKeepsLateTrack(t *testing.T) {
+	// audio that starts 1 s after video is late, not dead
+	r := &Reader{R: bytes.NewReader(writeDeadTrackStream(t, 1))}
+	err := r.Initialize()
+	require.NoError(t, err)
+
+	require.Len(t, r.Tracks(), 2)
+	require.Empty(t, r.SkippedTracks())
+}

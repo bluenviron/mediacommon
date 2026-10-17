@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	maxRecordedSize = 1 * 1024 * 1024
+	maxRecordedSize = 32 * 1024 * 1024
 )
 
 // Reader is a reader that can be (and must be) rewinded once.
