@@ -101,9 +101,9 @@ func TestReaderEmptyReads(t *testing.T) {
 }
 
 func TestReaderMaxRecordedSize(t *testing.T) {
-	r := &rewindablereader.Reader{R: bytes.NewReader(make([]byte, 1024*1024+1))}
+	r := &rewindablereader.Reader{R: bytes.NewReader(make([]byte, 32*1024*1024+1))}
 
-	buf := make([]byte, 1024*1024)
+	buf := make([]byte, 32*1024*1024)
 	n, err := r.Read(buf)
 	require.NoError(t, err)
 	require.Equal(t, len(buf), n)
