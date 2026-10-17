@@ -12,6 +12,7 @@ import (
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h265"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg1audio"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/scte35"
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/codecs"
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/substructs"
 	"github.com/bluenviron/mediacommon/v2/pkg/rewindablereader"
@@ -60,6 +61,10 @@ type ReaderOnDataKLVFunc func(pts int64, data []byte) error
 
 // ReaderOnDataDVBSubtitleFunc is the prototype of the callback passed to OnDataDVBSubtitle.
 type ReaderOnDataDVBSubtitleFunc func(pts int64, data []byte) error
+
+// ReaderOnDataSCTE35Func is the prototype of the callback passed to OnDataSCTE35.
+// Since SCTE-35 sections do not have a PTS, pts is the last PTS received in the stream.
+type ReaderOnDataSCTE35Func func(pts int64, section []byte) error
 
 func findPMT(dem *robustDemuxer) (*astits.PMTData, error) {
 	for {
@@ -550,11 +555,47 @@ func (r *Reader) OnDataDVBSubtitle(track *Track, cb ReaderOnDataDVBSubtitleFunc)
 	}
 }
 
+// OnDataSCTE35 sets a callback that is called when a SCTE-35 splice_info_section is received.
+func (r *Reader) OnDataSCTE35(track *Track, cb ReaderOnDataSCTE35Func) {
+	r.onData[track.PID] = func(pts int64, _ int64, data []byte) error {
+		err := scte35.Section(data).Validate()
+		if err != nil {
+			r.onDecodeError(fmt.Errorf("invalid SCTE-35 section: %w", err))
+			return nil
+		}
+
+		return cb(pts, data)
+	}
+}
+
+func (r *Reader) readSection(data *robustDemuxerData) error {
+	if _, ok := r.tracksByPID[data.PID]; !ok {
+		r.onDecodeError(fmt.Errorf("received data from undeclared track with PID %d", data.PID))
+		return nil
+	}
+
+	// sections are not timestamped. Wait until the stream provides a timestamp.
+	if data.lastPTS == nil {
+		return nil
+	}
+
+	onData, ok := r.onData[data.PID]
+	if !ok {
+		return nil
+	}
+
+	return onData(*data.lastPTS, *data.lastPTS, data.Section)
+}
+
 // Read reads data.
 func (r *Reader) Read() error {
 	data, err := r.dem.nextData()
 	if err != nil {
 		return err
+	}
+
+	if data.Section != nil {
+		return r.readSection(data)
 	}
 
 	if data.PES == nil {
