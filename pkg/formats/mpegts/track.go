@@ -15,6 +15,7 @@ import (
 const (
 	opusIdentifier = 'O'<<24 | 'p'<<16 | 'u'<<8 | 's'
 	klvaIdentifier = 'K'<<24 | 'L'<<16 | 'V'<<8 | 'A'
+	cueiIdentifier = 'C'<<24 | 'U'<<16 | 'E'<<8 | 'I'
 )
 
 // MISB ST 1402, Table 4
@@ -251,6 +252,9 @@ func findCodec(dem *robustDemuxer, es *astits.PMTElementaryStream) (codecs.Codec
 			}, nil
 		}
 
+	case astits.StreamTypeSCTE35:
+		return &codecs.SCTE35{}, nil
+
 	case astits.StreamTypeMetadata:
 		desc := findKLVMetadataDescriptor(es.ElementaryStreamDescriptors)
 		if desc != nil {
@@ -331,8 +335,9 @@ type Track struct {
 	// Codec.
 	Codec codecs.Codec
 
-	isLeading  bool // Writer-only
-	mp3Checked bool // Writer-only
+	isLeading         bool  // Writer-only
+	mp3Checked        bool  // Writer-only
+	continuityCounter uint8 // Writer-only, used by tracks that are not handled by astits
 }
 
 func (t *Track) unmarshal(dem *robustDemuxer, es *astits.PMTElementaryStream) error {
@@ -553,6 +558,23 @@ func (t Track) marshal() (*astits.PMTElementaryStream, error) {
 					},
 				},
 			}
+		}
+
+	case *codecs.SCTE35:
+		es = &astits.PMTElementaryStream{
+			ElementaryPID: t.PID,
+			StreamType:    astits.StreamTypeSCTE35,
+			ElementaryStreamDescriptors: []*astits.Descriptor{
+				{
+					// Length must be different than zero.
+					// https://github.com/asticode/go-astits/blob/7c2bf6b71173d24632371faa01f28a9122db6382/descriptor.go#L2146-L2148
+					Length: 1,
+					Tag:    astits.DescriptorTagRegistration,
+					Registration: &astits.DescriptorRegistration{
+						FormatIdentifier: cueiIdentifier,
+					},
+				},
+			},
 		}
 
 	case *codecs.DVBSubtitle:
