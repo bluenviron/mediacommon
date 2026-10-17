@@ -100,9 +100,19 @@ func (w *Writer) WriteTables() (int, error) {
 	// Ensure PCR PID is set before writing tables (required by astits)
 	// If no leading track has been chosen yet, use the first track's PID
 	if !w.leadingTrackChosen && len(w.Tracks) > 0 {
-		w.mux.SetPCRPID(w.Tracks[0].PID)
+		w.mux.SetPCRPID(w.provisionalPCRPID())
 	}
 	return w.mux.WriteTables()
+}
+
+// provisionalPCRPID returns the PID of the first track that can carry PCR.
+func (w *Writer) provisionalPCRPID() uint16 {
+	for _, track := range w.Tracks {
+		if _, ok := track.Codec.(*codecs.SCTE35); !ok {
+			return track.PID
+		}
+	}
+	return w.Tracks[0].PID
 }
 
 // NewWriter allocates a Writer.
@@ -336,6 +346,56 @@ func (w *Writer) WriteDVBSubtitle(
 	data []byte,
 ) error {
 	return w.writeData(track, true, pts, streamIDPrivate, data)
+}
+
+// WriteSCTE35 writes a SCTE-35 splice_info_section.
+// The section is written as is, therefore its pts_adjustment
+// must be consistent with timestamps of other tracks.
+func (w *Writer) WriteSCTE35(
+	track *Track,
+	section []byte,
+) error {
+	if len(section) == 0 {
+		return fmt.Errorf("empty section")
+	}
+
+	// sections are rare and are not decodable without a PMT.
+	// Write tables before every section, so that a section written
+	// before any other data (or received by a late-joining reader) is not lost.
+	_, err := w.WriteTables()
+	if err != nil {
+		return err
+	}
+
+	// first packet starts with pointer_field
+	payload := make([]byte, 1+len(section))
+	copy(payload[1:], section)
+
+	start := true
+
+	for len(payload) != 0 {
+		n := min(len(payload), packetSize-4)
+
+		// remaining bytes of the last packet are filled with 0xFF stuffing by the muxer
+		_, err = w.mux.WritePacket(&astits.Packet{
+			Header: astits.PacketHeader{
+				ContinuityCounter:         track.continuityCounter,
+				HasPayload:                true,
+				PayloadUnitStartIndicator: start,
+				PID:                       track.PID,
+			},
+			Payload: payload[:n],
+		})
+		if err != nil {
+			return err
+		}
+
+		track.continuityCounter = (track.continuityCounter + 1) & 0x0F
+		payload = payload[n:]
+		start = false
+	}
+
+	return nil
 }
 
 func (w *Writer) writeVideo(
