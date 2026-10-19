@@ -1,6 +1,7 @@
 package mpegts
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -188,6 +189,7 @@ type Reader struct {
 
 	tracks        []*Track
 	tracksByPID   map[uint16]*Track
+	skippedPIDs   map[uint16]struct{}
 	preDem        *preDemuxer
 	dem           *robustDemuxer
 	onDecodeError ReaderOnDecodeErrorFunc
@@ -208,16 +210,21 @@ func (r *Reader) Initialize() error {
 		return err
 	}
 
-	tracks := make([]*Track, len(pmt.ElementaryStreams))
+	tracks := make([]*Track, 0, len(pmt.ElementaryStreams))
+	r.skippedPIDs = make(map[uint16]struct{})
 
-	for i, es := range pmt.ElementaryStreams {
+	for _, es := range pmt.ElementaryStreams {
 		var track Track
 		err = track.unmarshal(dem, es)
 		if err != nil {
+			if errors.Is(err, errTrackWithoutData) {
+				r.skippedPIDs[es.ElementaryPID] = struct{}{}
+				continue
+			}
 			return err
 		}
 
-		tracks[i] = &track
+		tracks = append(tracks, &track)
 	}
 
 	r.tracks = tracks
@@ -249,6 +256,16 @@ func NewReader(br io.Reader) (*Reader, error) {
 	}
 	err := r.Initialize()
 	return r, err
+}
+
+// SkippedTracks returns the PIDs of tracks that were declared in the PMT
+// but did not send any data during initialization, and were therefore skipped.
+func (r *Reader) SkippedTracks() []uint16 {
+	out := make([]uint16, 0, len(r.skippedPIDs))
+	for pid := range r.skippedPIDs {
+		out = append(out, pid)
+	}
+	return out
 }
 
 // Tracks returns detected tracks.
@@ -563,6 +580,9 @@ func (r *Reader) Read() error {
 
 	track, ok := r.tracksByPID[data.PID]
 	if !ok {
+		if _, skipped := r.skippedPIDs[data.PID]; skipped {
+			return nil
+		}
 		r.onDecodeError(fmt.Errorf("received data from undeclared track with PID %d", data.PID))
 		return nil
 	}

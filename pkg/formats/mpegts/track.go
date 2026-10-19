@@ -1,6 +1,7 @@
 package mpegts
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/asticode/go-astits"
@@ -17,6 +18,45 @@ const (
 	klvaIdentifier = 'K'<<24 | 'L'<<16 | 'V'<<8 | 'A'
 )
 
+// maxProbeDuration is the maximum stream duration (in 90 kHz units) that is read
+// while looking for the parameters of a track. A track that does not send any
+// data within this window (i.e. an audio track that is declared in the PMT but
+// never filled by the encoder) is considered dead and is skipped, instead of
+// making the whole stream fail.
+const maxProbeDuration = 3 * 90000
+
+// errTrackWithoutData is returned when a track does not send any data within maxProbeDuration.
+var errTrackWithoutData = errors.New("track did not send any data")
+
+// probeTimer measures the stream duration elapsed while probing a track,
+// using the PTS of PES packets of other tracks.
+type probeTimer struct {
+	start   int64
+	started bool
+}
+
+func (t *probeTimer) expired(data *robustDemuxerData) bool {
+	if data.PES == nil || data.PES.Header.OptionalHeader == nil {
+		return false
+	}
+
+	oh := data.PES.Header.OptionalHeader
+	if (oh.PTSDTSIndicator != astits.PTSDTSIndicatorOnlyPTS &&
+		oh.PTSDTSIndicator != astits.PTSDTSIndicatorBothPresent) || oh.PTS == nil {
+		return false
+	}
+
+	if !t.started {
+		t.start = oh.PTS.Base
+		t.started = true
+		return false
+	}
+
+	// PTS is a 33-bit value; ignore backward jumps (B-frames reordering).
+	d := (oh.PTS.Base - t.start) & 0x1FFFFFFFF
+	return d < (1<<32) && d > maxProbeDuration
+}
+
 // MISB ST 1402, Table 4
 const (
 	metadataApplicationFormatGeneral            = 0x0100
@@ -26,6 +66,8 @@ const (
 )
 
 func findMPEG4AudioConfig(dem *robustDemuxer, pid uint16) (*mpeg4audio.AudioSpecificConfig, error) {
+	var timer probeTimer
+
 	for {
 		data, err := dem.nextData()
 		if err != nil {
@@ -33,6 +75,9 @@ func findMPEG4AudioConfig(dem *robustDemuxer, pid uint16) (*mpeg4audio.AudioSpec
 		}
 
 		if data.PES == nil || data.PID != pid {
+			if timer.expired(data) {
+				return nil, errTrackWithoutData
+			}
 			continue
 		}
 
@@ -53,6 +98,8 @@ func findMPEG4AudioConfig(dem *robustDemuxer, pid uint16) (*mpeg4audio.AudioSpec
 }
 
 func findAC3Parameters(dem *robustDemuxer, pid uint16) (int, int, error) {
+	var timer probeTimer
+
 	for {
 		data, err := dem.nextData()
 		if err != nil {
@@ -60,6 +107,9 @@ func findAC3Parameters(dem *robustDemuxer, pid uint16) (int, int, error) {
 		}
 
 		if data.PES == nil || data.PID != pid {
+			if timer.expired(data) {
+				return 0, 0, errTrackWithoutData
+			}
 			continue
 		}
 
@@ -80,6 +130,8 @@ func findAC3Parameters(dem *robustDemuxer, pid uint16) (int, int, error) {
 }
 
 func findEAC3Parameters(dem *robustDemuxer, pid uint16) (int, int, error) {
+	var timer probeTimer
+
 	for {
 		data, err := dem.nextData()
 		if err != nil {
@@ -87,6 +139,9 @@ func findEAC3Parameters(dem *robustDemuxer, pid uint16) (int, int, error) {
 		}
 
 		if data.PES == nil || data.PID != pid {
+			if timer.expired(data) {
+				return 0, 0, errTrackWithoutData
+			}
 			continue
 		}
 
