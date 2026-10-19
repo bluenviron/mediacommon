@@ -5,6 +5,14 @@ import (
 	"io"
 )
 
+const (
+	// 1500 (ethernet MTU) - 20 (IPv4 header) - 8 (UDP header)
+	udpMaxPayloadSize = 1472
+
+	maxMPEGTSPacketsInUDP = udpMaxPayloadSize / packetSize
+	readBufferSize        = maxMPEGTSPacketsInUDP * packetSize
+)
+
 // this is needed to make sure that astits.Demuxer receives valid, 188 byte-long, MPEG-TS packets,
 // since it uses io.ReadFull which can only read full packets and cannot detect or skip garbage.
 // https://github.com/asticode/go-astits/blob/b0b19247aa31633650c32638fb55f597fa6e2468/packet_buffer.go#L133C1-L133C5
@@ -23,7 +31,7 @@ func (r *preDemuxer) initialize() {
 		r.OnDecodeError = func(_ error) {}
 	}
 
-	r.buf1 = make([]byte, 0, 1316)
+	r.buf1 = make([]byte, 0, readBufferSize)
 	r.buf1Pos = 0
 	r.buf2 = make([]byte, packetSize)
 	r.buf2Pos = len(r.buf2)
