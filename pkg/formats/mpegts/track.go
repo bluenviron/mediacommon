@@ -52,6 +52,38 @@ func findMPEG4AudioConfig(dem *robustDemuxer, pid uint16) (*mpeg4audio.AudioSpec
 	}
 }
 
+func findMPEG4AudioLATMConfig(dem *robustDemuxer, pid uint16) (*mpeg4audio.StreamMuxConfig, error) {
+	for {
+		data, err := dem.nextData()
+		if err != nil {
+			return nil, err
+		}
+
+		if data.PES == nil || data.PID != pid {
+			continue
+		}
+
+		var stream mpeg4audio.AudioSyncStream
+		err = stream.Unmarshal(data.PES.Data)
+		if err != nil {
+			return nil, fmt.Errorf("unable to decode LATM: %w", err)
+		}
+
+		for _, element := range stream.AudioMuxElements {
+			var ame mpeg4audio.AudioMuxElement
+			ame.MuxConfigPresent = true
+			err = ame.Unmarshal(element)
+			if err != nil {
+				return nil, fmt.Errorf("unable to decode LATM: %w", err)
+			}
+
+			if !ame.UseSameStreamMux {
+				return ame.StreamMuxConfig, nil
+			}
+		}
+	}
+}
+
 func findAC3Parameters(dem *robustDemuxer, pid uint16) (int, int, error) {
 	for {
 		data, err := dem.nextData()
@@ -197,7 +229,14 @@ func findCodec(dem *robustDemuxer, es *astits.PMTElementaryStream) (codecs.Codec
 		}, nil
 
 	case astits.StreamTypeAACLATMAudio:
-		return &codecs.MPEG4AudioLATM{}, nil
+		conf, err := findMPEG4AudioLATMConfig(dem, es.ElementaryPID)
+		if err != nil {
+			return nil, err
+		}
+
+		return &codecs.MPEG4AudioLATM{
+			StreamMuxConfig: *conf,
+		}, nil
 
 	case astits.StreamTypeMPEG1Audio:
 		return &codecs.MPEG1Audio{}, nil
