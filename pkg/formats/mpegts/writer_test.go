@@ -1,5 +1,5 @@
 //nolint:dupl
-package mpegts
+package mpegts_test
 
 import (
 	"bytes"
@@ -11,6 +11,7 @@ import (
 	"github.com/asticode/go-astits"
 	"github.com/stretchr/testify/require"
 
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts"
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/codecs"
 )
 
@@ -18,7 +19,7 @@ func TestWriter(t *testing.T) {
 	for _, ca := range casesReadWriter {
 		t.Run(ca.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			w := NewWriter(&buf, []*Track{ca.track})
+			w := mpegts.NewWriter(&buf, []*mpegts.Track{ca.track})
 
 			for _, sample := range ca.samples {
 				var err error
@@ -89,9 +90,9 @@ func TestWriter(t *testing.T) {
 
 func TestWriterKLVAsync(t *testing.T) {
 	var buf bytes.Buffer
-	w := &Writer{
+	w := &mpegts.Writer{
 		W: &buf,
-		Tracks: []*Track{
+		Tracks: []*mpegts.Track{
 			{
 				Codec: &codecs.H264{},
 			},
@@ -205,9 +206,9 @@ func TestWriterKLVAsync(t *testing.T) {
 
 func TestWriterReaderLongKLVSync(t *testing.T) {
 	var buf bytes.Buffer
-	w := &Writer{
+	w := &mpegts.Writer{
 		W: &buf,
-		Tracks: []*Track{
+		Tracks: []*mpegts.Track{
 			{
 				Codec: &codecs.KLV{
 					Synchronous: true,
@@ -221,13 +222,13 @@ func TestWriterReaderLongKLVSync(t *testing.T) {
 	err = w.WriteKLV(w.Tracks[0], 90000, bytes.Repeat([]byte{1, 2, 3, 4}, 200000/4))
 	require.NoError(t, err)
 
-	r := &Reader{
+	r := &mpegts.Reader{
 		R: bytes.NewReader(buf.Bytes()),
 	}
 	err = r.Initialize()
 	require.NoError(t, err)
 
-	require.Equal(t, []*Track{{
+	require.Equal(t, []*mpegts.Track{{
 		PID: 256,
 		Codec: &codecs.KLV{
 			Synchronous: true,
@@ -254,20 +255,20 @@ func TestWriterReaderLongKLVSync(t *testing.T) {
 }
 
 func TestWriterAutomaticPID(t *testing.T) {
-	track := &Track{
+	track := &mpegts.Track{
 		Codec: &codecs.H265{},
 	}
 
 	var buf bytes.Buffer
-	NewWriter(&buf, []*Track{track})
+	mpegts.NewWriter(&buf, []*mpegts.Track{track})
 	require.NotEqual(t, 0, track.PID)
 }
 
 func TestWriterError(t *testing.T) {
 	var buf bytes.Buffer
-	w := &Writer{
+	w := &mpegts.Writer{
 		W: &buf,
-		Tracks: []*Track{
+		Tracks: []*mpegts.Track{
 			{
 				PID:   11,
 				Codec: &codecs.H265{},
@@ -285,9 +286,9 @@ func TestWriterError(t *testing.T) {
 func TestWriterWriteTables(t *testing.T) {
 	t.Run("single video track", func(t *testing.T) {
 		var buf bytes.Buffer
-		w := &Writer{
+		w := &mpegts.Writer{
 			W: &buf,
-			Tracks: []*Track{
+			Tracks: []*mpegts.Track{
 				{
 					Codec: &codecs.H264{},
 				},
@@ -331,9 +332,9 @@ func TestWriterWriteTables(t *testing.T) {
 
 	t.Run("multiple tracks", func(t *testing.T) {
 		var buf bytes.Buffer
-		w := &Writer{
+		w := &mpegts.Writer{
 			W: &buf,
-			Tracks: []*Track{
+			Tracks: []*mpegts.Track{
 				{
 					Codec: &codecs.H264{},
 				},
@@ -373,9 +374,9 @@ func TestWriterWriteTables(t *testing.T) {
 
 	t.Run("called before and after media", func(t *testing.T) {
 		var buf bytes.Buffer
-		w := &Writer{
+		w := &mpegts.Writer{
 			W: &buf,
-			Tracks: []*Track{
+			Tracks: []*mpegts.Track{
 				{
 					Codec: &codecs.H264{},
 				},

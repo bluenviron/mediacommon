@@ -1,13 +1,15 @@
-package mpegts
+package mpegts_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts"
 )
 
 func TestTimeDecoderNegativeDiff(t *testing.T) {
-	d := NewTimeDecoder()
+	d := mpegts.NewTimeDecoder()
 
 	ts := d.Decode(64523434)
 	require.Equal(t, int64(0), ts)
@@ -26,7 +28,7 @@ func TestTimeDecoderNegativeDiff(t *testing.T) {
 }
 
 func TestTimeDecoderOverflow(t *testing.T) {
-	d := NewTimeDecoder()
+	d := mpegts.NewTimeDecoder()
 
 	ts := d.Decode(0x1FFFFFFFF - 20)
 	require.Equal(t, int64(0), ts)
@@ -55,7 +57,7 @@ func TestTimeDecoderOverflow(t *testing.T) {
 }
 
 func TestTimeDecoderOverflowAndBack(t *testing.T) {
-	d := NewTimeDecoder()
+	d := mpegts.NewTimeDecoder()
 
 	ts := d.Decode(0x1FFFFFFFF - 90000 + 1)
 	require.Equal(t, int64(0), ts)
