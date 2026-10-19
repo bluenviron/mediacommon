@@ -1,6 +1,7 @@
 package mpegts
 
 import (
+	"context"
 	"fmt"
 	"io"
 
@@ -198,12 +199,9 @@ type Reader struct {
 func (r *Reader) Initialize() error {
 	rr := &rewindablereader.Reader{R: r.R}
 
-	preDem := &preDemuxer{R: rr}
-	preDem.initialize()
-	dem := &robustDemuxer{R: preDem}
-	dem.initialize()
+	r.initializeDemuxer(rr)
 
-	pmt, err := findPMT(dem)
+	pmt, err := findPMT(r.dem)
 	if err != nil {
 		return err
 	}
@@ -212,7 +210,7 @@ func (r *Reader) Initialize() error {
 
 	for i, es := range pmt.ElementaryStreams {
 		var track Track
-		err = track.unmarshal(dem, es)
+		err = track.unmarshal(r.dem, es)
 		if err != nil {
 			return err
 		}
@@ -229,15 +227,30 @@ func (r *Reader) Initialize() error {
 
 	// rewind demuxer
 	rr.Rewind()
-	r.preDem = &preDemuxer{R: rr}
-	r.preDem.initialize()
-	r.dem = &robustDemuxer{R: r.preDem}
-	r.dem.initialize()
+	r.initializeDemuxer(rr)
 
 	r.onDecodeError = func(_ error) {}
 	r.onData = make(map[uint16]func(int64, int64, []byte) error)
 
 	return nil
+}
+
+func (r *Reader) initializeDemuxer(rr io.Reader) {
+	r.preDem = &preDemuxer{R: rr}
+	r.preDem.initialize()
+
+	errorWrapper := &errorWrapper{R: r.preDem}
+
+	ptsInterceptor := &ptsInterceptor{R: errorWrapper}
+
+	astitsDem := astits.NewDemuxer(
+		context.Background(),
+		ptsInterceptor,
+		astits.DemuxerOptPacketSize(packetSize),
+	)
+
+	r.dem = &robustDemuxer{ptsInterceptor: ptsInterceptor, astitsDem: astitsDem}
+	r.dem.initialize()
 }
 
 // NewReader allocates a Reader.
