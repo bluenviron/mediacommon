@@ -7,12 +7,13 @@ import (
 )
 
 const (
-	maxRecordedSize = 1 * 1024 * 1024
+	defaultMaxSize = 1 * 1024 * 1024
 )
 
 // Reader is a reader that can be (and must be) rewinded once.
 type Reader struct {
-	R io.Reader
+	R       io.Reader
+	MaxSize int
 
 	entries  [][]byte
 	size     int
@@ -22,9 +23,13 @@ type Reader struct {
 // Read implements io.Reader.
 func (r *Reader) Read(p []byte) (int, error) {
 	if !r.rewinded {
+		if r.MaxSize == 0 {
+			r.MaxSize = defaultMaxSize
+		}
+
 		n, err := r.R.Read(p)
 
-		if (r.size + n) > maxRecordedSize {
+		if (r.size + n) > r.MaxSize {
 			return 0, errors.New("max recorded size exceeded")
 		}
 
