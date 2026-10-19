@@ -18,6 +18,13 @@ import (
 	"github.com/bluenviron/mediacommon/v2/pkg/rewindablereader"
 )
 
+const (
+	// the reader needs to rewind until all track parameters have been found.
+	// Some audio track parameters come from audio packets.
+	// Big video frames might delay audio packets, therefore we need a sufficiently large buffer.
+	maxRewindedBytes = 10 * 1024 * 1024
+)
+
 // ReaderOnDecodeErrorFunc is the prototype of the callback passed to OnDecodeError.
 type ReaderOnDecodeErrorFunc func(err error)
 
@@ -197,7 +204,7 @@ type Reader struct {
 
 // Initialize initializes a Reader.
 func (r *Reader) Initialize() error {
-	rr := &rewindablereader.Reader{R: r.R}
+	rr := &rewindablereader.Reader{R: r.R, MaxSize: maxRewindedBytes}
 
 	r.initializeDemuxer(rr)
 
