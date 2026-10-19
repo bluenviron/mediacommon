@@ -1,10 +1,12 @@
-package mpegts
+package mpegts_test
 
 import (
 	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts"
 )
 
 func TestBufferedReader(t *testing.T) {
@@ -14,7 +16,7 @@ func TestBufferedReader(t *testing.T) {
 	buf.Write(bytes.Repeat([]byte{2}, 188))
 	buf.Write(bytes.Repeat([]byte{3}, 188))
 
-	r := NewBufferedReader(&buf)
+	r := mpegts.NewBufferedReader(&buf)
 
 	byts := make([]byte, 188)
 	n, err := r.Read(byts)
@@ -36,7 +38,7 @@ func TestBufferedReaderError(t *testing.T) {
 
 	buf.Write(bytes.Repeat([]byte{1}, 1000))
 
-	r := NewBufferedReader(&buf)
+	r := mpegts.NewBufferedReader(&buf)
 	byts := make([]byte, 188)
 	_, err := r.Read(byts)
 	require.EqualError(t, err, "received packet with size 1000 not multiple of 188")
