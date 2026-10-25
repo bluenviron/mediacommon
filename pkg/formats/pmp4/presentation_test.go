@@ -2985,6 +2985,55 @@ func TestPresentationGetPayloadSeekError(t *testing.T) {
 	require.EqualError(t, err, "seek error")
 }
 
+type readCounter struct {
+	io.ReadSeeker
+	reads int
+}
+
+func (r *readCounter) Read(p []byte) (int, error) {
+	r.reads++
+	return r.ReadSeeker.Read(p)
+}
+
+func TestPresentationUnmarshalBufferedReads(t *testing.T) {
+	// many samples, therefore large sample tables, that go-mp4 reads one byte at a time.
+	src := Presentation{
+		Tracks: []*Track{{
+			ID:        1,
+			TimeScale: 90000,
+			Codec:     casesPresentation[0].dec.Tracks[0].Codec,
+		}},
+	}
+
+	for i := range 10000 {
+		payload := []byte{byte(i), byte(i >> 8)}
+		src.Tracks[0].Samples = append(src.Tracks[0].Samples, &Sample{
+			Duration:        3000,
+			IsNonSyncSample: i%30 != 0,
+			PayloadSize:     uint32(len(payload)),
+			GetPayload: func() ([]byte, error) {
+				return payload, nil
+			},
+		})
+	}
+
+	var buf bytes.Buffer
+	err := src.Marshal(&buf)
+	require.NoError(t, err)
+
+	r := &readCounter{ReadSeeker: bytes.NewReader(buf.Bytes())}
+
+	var p Presentation
+	err = p.Unmarshal(r)
+	require.NoError(t, err)
+	require.Len(t, p.Tracks[0].Samples, 10000)
+	require.Less(t, r.reads, 100)
+
+	pl, err := p.Tracks[0].Samples[9999].GetPayload()
+	require.NoError(t, err)
+	require.Equal(t, []byte{0x0f, 0x27}, pl)
+}
+
 func TestPresentationMarshal(t *testing.T) {
 	for _, ca := range casesPresentation {
 		t.Run(ca.name, func(t *testing.T) {
