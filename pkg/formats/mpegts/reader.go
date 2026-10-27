@@ -67,6 +67,9 @@ type ReaderOnDataKLVFunc func(pts int64, data []byte) error
 // ReaderOnDataDVBSubtitleFunc is the prototype of the callback passed to OnDataDVBSubtitle.
 type ReaderOnDataDVBSubtitleFunc func(pts int64, data []byte) error
 
+// ReaderOnDataSCTE35Func is the prototype of the callback passed to OnDataSCTE35.
+type ReaderOnDataSCTE35Func func(section []byte) error
+
 func findPMT(dem *robustDemuxer) (*astits.PMTData, error) {
 	for {
 		data, err := dem.nextData()
@@ -246,16 +249,20 @@ func (r *Reader) initializeDemuxer(rr io.Reader) {
 
 	errorWrapper := &errorWrapper{R: r.preDem}
 
-	ptsInterceptor := &ptsInterceptor{R: errorWrapper}
-
-	astitsDem := astits.NewDemuxer(
-		context.Background(),
-		ptsInterceptor,
-		astits.DemuxerOptPacketSize(packetSize),
-	)
-
-	r.dem = &robustDemuxer{ptsInterceptor: ptsInterceptor, astitsDem: astitsDem}
+	r.dem = &robustDemuxer{}
 	r.dem.initialize()
+
+	r.dem.ptsInterceptor = &ptsInterceptor{
+		R:        errorWrapper,
+		OnPacket: r.dem.onPacket,
+	}
+
+	r.dem.astitsDem = astits.NewDemuxer(
+		context.Background(),
+		r.dem.ptsInterceptor,
+		astits.DemuxerOptPacketSize(packetSize),
+		astits.DemuxerOptPacketSkipper(r.dem.skipPacket),
+	)
 }
 
 // NewReader allocates a Reader.
@@ -541,11 +548,36 @@ func (r *Reader) OnDataDVBSubtitle(track *Track, cb ReaderOnDataDVBSubtitleFunc)
 	}
 }
 
+// OnDataSCTE35 sets a callback that is called when a SCTE-35 splice_info_section is received.
+func (r *Reader) OnDataSCTE35(track *Track, cb ReaderOnDataSCTE35Func) {
+	r.onData[track.PID] = func(_ int64, _ int64, data []byte) error {
+		return cb(data)
+	}
+}
+
+func (r *Reader) readSection(data *robustDemuxerData) error {
+	if _, ok := r.tracksByPID[data.PID]; !ok {
+		r.onDecodeError(fmt.Errorf("received data from undeclared track with PID %d", data.PID))
+		return nil
+	}
+
+	onData, ok := r.onData[data.PID]
+	if !ok {
+		return nil
+	}
+
+	return onData(0, 0, data.Section)
+}
+
 // Read reads data.
 func (r *Reader) Read() error {
 	data, err := r.dem.nextData()
 	if err != nil {
 		return err
+	}
+
+	if data.Section != nil {
+		return r.readSection(data)
 	}
 
 	if data.PES == nil {
