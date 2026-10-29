@@ -66,7 +66,11 @@ func (p *Presentation) Unmarshal(r io.ReadSeeker) error {
 	var curChunks []*chunk
 	var curSampleSizes []uint32
 
-	_, err := amp4.ReadBoxStructure(r, func(h *amp4.ReadHandle) (any, error) {
+	// go-mp4 reads boxes one byte at a time: buffer the reads of the box structure.
+	// Sample payloads are read from r directly.
+	br := newBufferedReadSeeker(r, 64*1024)
+
+	_, err := amp4.ReadBoxStructure(br, func(h *amp4.ReadHandle) (any, error) {
 		if state == readingCodec {
 			ret, err := codecBoxesReader.Read(h)
 			if err != nil {
