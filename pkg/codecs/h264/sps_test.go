@@ -482,6 +482,51 @@ var casesSPS = []struct {
 		1080,
 		25,
 	},
+	{
+		"1366x766 monochrome",
+		[]byte{
+			0x67, 0x64, 0x00, 0x20, 0xf3, 0x65, 0x01, 0x58,
+			0x18, 0x78, 0xbb, 0xc0, 0x5b, 0x20, 0x00, 0x00,
+			0x03, 0x00, 0x20, 0x00, 0x00, 0x06, 0x41, 0xe3,
+			0x06, 0x32, 0xc0,
+		},
+		h264.SPS{
+			ProfileIdc:                  100,
+			LevelIdc:                    32,
+			ChromaFormatIdc:             0,
+			Log2MaxPicOrderCntLsbMinus4: 2,
+			MaxNumRefFrames:             4,
+			PicWidthInMbsMinus1:         85,
+			PicHeightInMapUnitsMinus1:   47,
+			FrameMbsOnlyFlag:            true,
+			Direct8x8InferenceFlag:      true,
+			FrameCropping: &h264.SPS_FrameCropping{
+				RightOffset:  10,
+				BottomOffset: 2,
+			},
+			VUI: &h264.SPS_VUI{
+				AspectRatioInfoPresentFlag: true,
+				AspectRatioIdc:             1,
+				VideoSignalTypePresentFlag: true,
+				VideoFormat:                5,
+				VideoFullRangeFlag:         true,
+				TimingInfo: &h264.SPS_TimingInfo{
+					NumUnitsInTick: 1,
+					TimeScale:      50,
+				},
+				BitstreamRestriction: &h264.SPS_BitstreamRestriction{
+					MotionVectorsOverPicBoundariesFlag: true,
+					Log2MaxMvLengthHorizontal:          11,
+					Log2MaxMvLengthVertical:            11,
+					MaxNumReorderFrames:                2,
+					MaxDecFrameBuffering:               4,
+				},
+			},
+		},
+		1366,
+		766,
+		25,
+	},
 }
 
 func TestSPSUnmarshal(t *testing.T) {
