@@ -740,7 +740,7 @@ func (s SPS) Width() int {
 
 	var cropUnitX uint32
 	if chromaArrayType == 0 {
-		cropUnitX = 0
+		cropUnitX = 1
 	} else {
 		cropUnitX = subWidthC
 	}
