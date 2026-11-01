@@ -388,7 +388,6 @@ func (h *SequenceHeader) Unmarshal(buf []byte) error {
 					}
 					h.InitialDisplayDelayMinus1[i] = uint8(tmp)
 				}
-				return fmt.Errorf("initial_display_delay_present_flag is not supported yet")
 			}
 		}
 	}
