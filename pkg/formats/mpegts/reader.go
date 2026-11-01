@@ -485,6 +485,11 @@ func (r *Reader) OnDataAC3(track *Track, cb ReaderOnDataAC3Func) {
 			return nil
 		}
 
+		if len(data) == 0 {
+			r.onDecodeError(fmt.Errorf("empty frame"))
+			return nil
+		}
+
 		return cb(pts, data)
 	}
 }
@@ -496,6 +501,11 @@ func (r *Reader) OnDataEAC3(track *Track, cb ReaderOnDataEAC3Func) {
 	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
 		if pts != dts {
 			r.onDecodeError(fmt.Errorf("PTS is not equal to DTS"))
+			return nil
+		}
+
+		if len(data) == 0 {
+			r.onDecodeError(fmt.Errorf("empty frame"))
 			return nil
 		}
 
