@@ -2832,6 +2832,146 @@ func FuzzReader(f *testing.F) {
 			Header: astits.PacketHeader{
 				HasPayload:                true,
 				PayloadUnitStartIndicator: true,
+				PID:                       0,
+			},
+			Payload: append([]byte{
+				0x00, 0x00, 0xb0, 0x0d, 0x00, 0x00, 0xc1, 0x00,
+				0x00, 0x00, 0x01, 0xf0, 0x00, 0x71, 0x10, 0xd8,
+				0x78,
+			}, bytes.Repeat([]byte{0xff}, 167)...),
+		},
+		{ // PMT
+			Header: astits.PacketHeader{
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+				PID:                       4096,
+			},
+			Payload: append([]byte{
+				0x00, 0x02, 0xb0, 0x17, 0x00, 0x01, 0xc1, 0x00,
+				0x00, 0xe1, 0x01, 0xf0, 0x00, 0x81, 0xe1, 0x01,
+				0xf0, 0x05, 0x6a, 0x03, 0xcf, 0x05, 0x08, 0x35,
+				0x4a, 0x57, 0xb7,
+			}, bytes.Repeat([]byte{0xff}, 157)...),
+		},
+		{ // AC-3 PES
+			AdaptationField: &astits.PacketAdaptationField{
+				Length:                129,
+				StuffingLength:        122,
+				RandomAccessIndicator: true,
+				HasPCR:                true,
+				PCR:                   &astits.ClockReference{Base: 2691000},
+			},
+			Header: astits.PacketHeader{
+				HasAdaptationField:        true,
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+				PID:                       257,
+			},
+			Payload: []byte{
+				0x00, 0x00, 0x01, 0xc0, 0x00, 0x30, 0x80, 0x80,
+				0x05, 0x21, 0x00, 0xa5, 0x65, 0xc1, 0x0b, 0x77,
+				0x47, 0x11, 0x0c, 0x40, 0x2f, 0x84, 0x2b, 0xc1,
+				0x07, 0x7a, 0xb0, 0xfa, 0xbb, 0xea, 0xef, 0x9f,
+				0x57, 0x7c, 0xf9, 0xf3, 0xf7, 0xcf, 0x9f, 0x3e,
+				0x32, 0xfe, 0xd5, 0xc1, 0x50, 0xde, 0xc5, 0x1e,
+				0x73, 0xd2, 0x6c, 0xa6, 0x94, 0x46,
+			},
+		},
+		{ // AC-3 PES with empty payload
+			AdaptationField: &astits.PacketAdaptationField{
+				Length:                169,
+				StuffingLength:        162,
+				RandomAccessIndicator: true,
+				HasPCR:                true,
+				PCR:                   &astits.ClockReference{Base: 2691000},
+			},
+			Header: astits.PacketHeader{
+				ContinuityCounter:         1,
+				HasAdaptationField:        true,
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+				PID:                       257,
+			},
+			Payload: []byte{
+				0x00, 0x00, 0x01, 0xc0, 0x00, 0x08, 0x80, 0x80,
+				0x05, 0x21, 0x00, 0xa5, 0x65, 0xc1,
+			},
+		},
+	})
+
+	addPackets([]*astits.Packet{
+		{ // PAT
+			Header: astits.PacketHeader{
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+				PID:                       0,
+			},
+			Payload: append([]byte{
+				0x00, 0x00, 0xb0, 0x0d, 0x00, 0x00, 0xc1, 0x00,
+				0x00, 0x00, 0x01, 0xf0, 0x00, 0x71, 0x10, 0xd8,
+				0x78,
+			}, bytes.Repeat([]byte{0xff}, 167)...),
+		},
+		{ // PMT
+			Header: astits.PacketHeader{
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+				PID:                       4096,
+			},
+			Payload: append([]byte{
+				0x00, 0x02, 0xb0, 0x17, 0x00, 0x01, 0xc1, 0x00,
+				0x00, 0xe1, 0x01, 0xf0, 0x00, 0x87, 0xe1, 0x01,
+				0xf0, 0x05, 0x7a, 0x03, 0xc0, 0x05, 0x10, 0xd9,
+				0x6f, 0xab, 0x55,
+			}, bytes.Repeat([]byte{0xff}, 157)...),
+		},
+		{ // E-AC-3 PES
+			AdaptationField: &astits.PacketAdaptationField{
+				Length:                41,
+				StuffingLength:        34,
+				RandomAccessIndicator: true,
+				HasPCR:                true,
+				PCR:                   &astits.ClockReference{Base: 2691000},
+			},
+			Header: astits.PacketHeader{
+				HasAdaptationField:        true,
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+				PID:                       257,
+			},
+			Payload: append([]byte{
+				0x00, 0x00, 0x01, 0xc0, 0x00, 0x88, 0x80, 0x80,
+				0x05, 0x21, 0x00, 0xa5, 0x65, 0xc1, 0x0b, 0x77,
+				0x00, 0x3f, 0x34, 0x80,
+			}, bytes.Repeat([]byte{0x00}, 122)...),
+		},
+		{ // E-AC-3 PES with empty payload
+			AdaptationField: &astits.PacketAdaptationField{
+				Length:                169,
+				StuffingLength:        162,
+				RandomAccessIndicator: true,
+				HasPCR:                true,
+				PCR:                   &astits.ClockReference{Base: 2691000},
+			},
+			Header: astits.PacketHeader{
+				ContinuityCounter:         1,
+				HasAdaptationField:        true,
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
+				PID:                       257,
+			},
+			Payload: []byte{
+				0x00, 0x00, 0x01, 0xc0, 0x00, 0x08, 0x80, 0x80,
+				0x05, 0x21, 0x00, 0xa5, 0x65, 0xc1,
+			},
+		},
+	})
+
+	addPackets([]*astits.Packet{
+		{ // PAT
+			Header: astits.PacketHeader{
+				HasPayload:                true,
+				PayloadUnitStartIndicator: true,
 			},
 			Payload: append(
 				[]byte{
