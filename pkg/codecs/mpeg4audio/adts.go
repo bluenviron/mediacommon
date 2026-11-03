@@ -40,9 +40,13 @@ func (ps *ADTSPackets) Unmarshal(buf []byte) error {
 			return fmt.Errorf("invalid syncword")
 		}
 
+		// When protection_absent is 0, adts_error_check() places
+		// a 16-bit crc_check after the header (ISO 14496-3, adts_frame()).
+		// The CRC is skipped and not verified.
+		headerLen := 7
 		protectionAbsent := buf[pos+1] & 0x01
 		if protectionAbsent != 1 {
-			return fmt.Errorf("CRC is not supported")
+			headerLen = 9
 		}
 
 		pkt := &ADTSPacket{}
@@ -87,7 +91,7 @@ func (ps *ADTSPackets) Unmarshal(buf []byte) error {
 
 		frameLen := int(((uint16(buf[pos+3])&0x03)<<11)|
 			(uint16(buf[pos+4])<<3)|
-			((uint16(buf[pos+5])>>5)&0x07)) - 7
+			((uint16(buf[pos+5])>>5)&0x07)) - headerLen
 
 		if frameLen <= 0 {
 			return fmt.Errorf("invalid FrameLen")
@@ -102,12 +106,12 @@ func (ps *ADTSPackets) Unmarshal(buf []byte) error {
 			return fmt.Errorf("frame count greater than 1 is not supported")
 		}
 
-		if len(buf[pos+7:]) < frameLen {
+		if (bl - pos - headerLen) < frameLen {
 			return fmt.Errorf("invalid frame length")
 		}
 
-		pkt.AU = buf[pos+7 : pos+7+frameLen]
-		pos += 7 + frameLen
+		pkt.AU = buf[pos+headerLen : pos+headerLen+frameLen]
+		pos += headerLen + frameLen
 
 		*ps = append(*ps, pkt)
 
