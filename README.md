@@ -11,6 +11,7 @@ Definitions and functions shared between [gortsplib](https://github.com/bluenvir
 - [Format utilities](https://pkg.go.dev/github.com/bluenviron/mediacommon/v2/pkg/formats)
 - [Bit reader and writer](https://pkg.go.dev/github.com/bluenviron/mediacommon/v2/pkg/bits)
 - [Rewindable reader](https://pkg.go.dev/github.com/bluenviron/mediacommon/v2/pkg/rewindablereader)
+- [Limited reader](https://pkg.go.dev/github.com/bluenviron/mediacommon/v2/pkg/limitedreader)
 
 Go &ge; 1.26 is required.
 
