@@ -6,6 +6,8 @@ const (
 )
 
 // TimeDecoder is a MPEG-TS timestamp decoder.
+// It extends 33-bit timestamps into 64-bit ones, by handling overflows.
+// The first timestamp is returned as it is.
 type TimeDecoder struct {
 	initialized bool
 	overall     int64
@@ -27,6 +29,7 @@ func (d *TimeDecoder) Initialize() {
 func (d *TimeDecoder) Decode(ts int64) int64 {
 	if !d.initialized {
 		d.initialized = true
+		d.overall = ts
 		d.prev = ts
 	}
 

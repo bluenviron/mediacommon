@@ -8,32 +8,43 @@ import (
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts"
 )
 
+func TestTimeDecoderFirstTimestamp(t *testing.T) {
+	for _, first := range []int64{0, 90000, 64523434, 0x1FFFFFFFF} {
+		d := mpegts.NewTimeDecoder()
+
+		ts := d.Decode(first)
+		require.Equal(t, first, ts)
+	}
+}
+
 func TestTimeDecoderNegativeDiff(t *testing.T) {
 	d := mpegts.NewTimeDecoder()
 
 	ts := d.Decode(64523434)
-	require.Equal(t, int64(0), ts)
+	require.Equal(t, int64(64523434), ts)
 
 	ts = d.Decode(64523434 - 90000)
-	require.Equal(t, int64(-90000), ts)
+	require.Equal(t, int64(64523434-90000), ts)
 
 	ts = d.Decode(64523434)
-	require.Equal(t, int64(0), ts)
+	require.Equal(t, int64(64523434), ts)
 
 	ts = d.Decode(64523434 + 90000*2)
-	require.Equal(t, int64(2*90000), ts)
+	require.Equal(t, int64(64523434+2*90000), ts)
 
 	ts = d.Decode(64523434 + 90000)
-	require.Equal(t, int64(1*90000), ts)
+	require.Equal(t, int64(64523434+1*90000), ts)
 }
 
 func TestTimeDecoderOverflow(t *testing.T) {
 	d := mpegts.NewTimeDecoder()
 
-	ts := d.Decode(0x1FFFFFFFF - 20)
-	require.Equal(t, int64(0), ts)
+	first := int64(0x1FFFFFFFF - 20)
 
-	i := int64(0x1FFFFFFFF - 20)
+	ts := d.Decode(first)
+	require.Equal(t, first, ts)
+
+	i := first
 	secs := int64(0)
 	const stride = 150
 	lim := int64(uint64(0x1FFFFFFFF - (stride * 90000)))
@@ -42,15 +53,15 @@ func TestTimeDecoderOverflow(t *testing.T) {
 		// overflow
 		i += 90000 * stride
 		secs += stride
-		ts = d.Decode(i)
-		require.Equal(t, secs*90000, ts)
+		ts = d.Decode(i & 0x1FFFFFFFF)
+		require.Equal(t, first+secs*90000, ts)
 
 		// reach 2^32 slowly
 		secs += stride
 		i += 90000 * stride
-		for ; i < lim; i += 90000 * stride {
-			ts = d.Decode(i)
-			require.Equal(t, secs*90000, ts)
+		for ; (i & 0x1FFFFFFFF) < lim; i += 90000 * stride {
+			ts = d.Decode(i & 0x1FFFFFFFF)
+			require.Equal(t, first+secs*90000, ts)
 			secs += stride
 		}
 	}
@@ -59,24 +70,26 @@ func TestTimeDecoderOverflow(t *testing.T) {
 func TestTimeDecoderOverflowAndBack(t *testing.T) {
 	d := mpegts.NewTimeDecoder()
 
-	ts := d.Decode(0x1FFFFFFFF - 90000 + 1)
-	require.Equal(t, int64(0), ts)
+	first := int64(0x1FFFFFFFF - 90000 + 1)
 
-	ts = d.Decode(0x1FFFFFFFF - 90000 + 1)
-	require.Equal(t, int64(0), ts)
+	ts := d.Decode(first)
+	require.Equal(t, first, ts)
+
+	ts = d.Decode(first)
+	require.Equal(t, first, ts)
 
 	ts = d.Decode(90000)
-	require.Equal(t, int64(2*90000), ts)
+	require.Equal(t, first+2*90000, ts)
 
-	ts = d.Decode(0x1FFFFFFFF - 90000 + 1)
-	require.Equal(t, int64(0), ts)
+	ts = d.Decode(first)
+	require.Equal(t, first, ts)
 
 	ts = d.Decode(0x1FFFFFFFF - 90000*2 + 1)
-	require.Equal(t, int64(-1*90000), ts)
+	require.Equal(t, first-90000, ts)
 
-	ts = d.Decode(0x1FFFFFFFF - 90000 + 1)
-	require.Equal(t, int64(0), ts)
+	ts = d.Decode(first)
+	require.Equal(t, first, ts)
 
 	ts = d.Decode(90000)
-	require.Equal(t, int64(2*90000), ts)
+	require.Equal(t, first+2*90000, ts)
 }
