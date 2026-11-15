@@ -18,7 +18,8 @@ func IsValidConfig(config []byte) error {
 	pos := 4
 
 	for pos < len(config)-3 {
-		i := bytes.Index(config[pos:], startCodePrefix)
+		// exclude the last byte, so that a start code prefix is always followed by a start code
+		i := bytes.Index(config[pos:len(config)-1], startCodePrefix)
 		if i == -1 {
 			break
 		}
