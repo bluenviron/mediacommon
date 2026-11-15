@@ -1,19 +1,21 @@
-package mpeg4audio
+package mpeg4audio_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 )
 
 var casesAudioSyncStream = []struct {
 	name string
-	dec  AudioSyncStream
+	dec  mpeg4audio.AudioSyncStream
 	enc  []byte
 }{
 	{
 		"a",
-		AudioSyncStream{
+		mpeg4audio.AudioSyncStream{
 			AudioMuxElements: [][]byte{
 				{1, 2, 3, 4},
 				{5, 6, 7, 8},
@@ -29,7 +31,7 @@ var casesAudioSyncStream = []struct {
 func TestAudioSyncStreamUnmarshal(t *testing.T) {
 	for _, ca := range casesAudioSyncStream {
 		t.Run(ca.name, func(t *testing.T) {
-			var dec AudioSyncStream
+			var dec mpeg4audio.AudioSyncStream
 			err := dec.Unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, ca.dec, dec)
@@ -53,7 +55,7 @@ func FuzzAudioSyncStreamUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, b []byte) {
-		var dec AudioSyncStream
+		var dec mpeg4audio.AudioSyncStream
 		err := dec.Unmarshal(b)
 		if err != nil {
 			return

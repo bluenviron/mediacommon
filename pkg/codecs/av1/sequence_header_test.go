@@ -1,15 +1,17 @@
-package av1
+package av1_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/av1"
 )
 
 var casesSequenceHeader = []struct {
 	name   string
 	byts   []byte
-	sh     SequenceHeader
+	sh     av1.SequenceHeader
 	width  int
 	height int
 }{
@@ -18,7 +20,7 @@ var casesSequenceHeader = []struct {
 		[]byte{
 			8, 0, 0, 0, 66, 167, 191, 228, 96, 13, 0, 64,
 		},
-		SequenceHeader{
+		av1.SequenceHeader{
 			OperatingPointIdc:              []uint16{0},
 			SeqLevelIdx:                    []uint8{8},
 			SeqTier:                        []bool{false},
@@ -32,7 +34,7 @@ var casesSequenceHeader = []struct {
 			SeqChooseIntegerMv:             true,
 			SeqForceIntegerMv:              2,
 			EnableCdef:                     true,
-			ColorConfig: SequenceHeader_ColorConfig{
+			ColorConfig: av1.SequenceHeader_ColorConfig{
 				BitDepth:                8,
 				ColorPrimaries:          2,
 				TransferCharacteristics: 2,
@@ -49,7 +51,7 @@ var casesSequenceHeader = []struct {
 		[]byte{
 			10, 11, 0, 0, 0, 66, 167, 191, 230, 46, 223, 200, 66,
 		},
-		SequenceHeader{
+		av1.SequenceHeader{
 			OperatingPointIdc:              []uint16{0},
 			SeqLevelIdx:                    []uint8{8},
 			SeqTier:                        []bool{false},
@@ -72,7 +74,7 @@ var casesSequenceHeader = []struct {
 			OrderHintBitsMinus1:            6,
 			SeqForceIntegerMv:              2,
 			EnableCdef:                     true,
-			ColorConfig: SequenceHeader_ColorConfig{
+			ColorConfig: av1.SequenceHeader_ColorConfig{
 				BitDepth:                8,
 				ColorPrimaries:          2,
 				TransferCharacteristics: 2,
@@ -90,7 +92,7 @@ var casesSequenceHeader = []struct {
 		[]byte{
 			0x8, 0x0, 0x0, 0x0, 0x42, 0xab, 0xbf, 0xc3, 0x71, 0xab, 0xe6, 0x1,
 		},
-		SequenceHeader{
+		av1.SequenceHeader{
 			OperatingPointIdc:              []uint16{0},
 			SeqLevelIdx:                    []uint8{8},
 			SeqTier:                        []bool{false},
@@ -111,7 +113,7 @@ var casesSequenceHeader = []struct {
 			OrderHintBitsMinus1:            6,
 			EnableCdef:                     true,
 			EnableRestoration:              true,
-			ColorConfig: SequenceHeader_ColorConfig{
+			ColorConfig: av1.SequenceHeader_ColorConfig{
 				BitDepth:                8,
 				ColorPrimaries:          2,
 				TransferCharacteristics: 2,
@@ -131,8 +133,8 @@ var casesSequenceHeader = []struct {
 			0x73, 0xd0, 0x02, 0x7d, 0x10, 0x10, 0x10, 0x10,
 			0x40,
 		},
-		SequenceHeader{
-			TimingInfo: &SequenceHeader_TimingInfo{
+		av1.SequenceHeader{
+			TimingInfo: &av1.SequenceHeader_TimingInfo{
 				NumUnitsInDisplayTick: 1,
 				TimeScale:             60,
 				EqualPictureInterval:  true,
@@ -149,17 +151,17 @@ var casesSequenceHeader = []struct {
 			DeltaFrameIDLengthMinus2:       13,
 			EnableOrderHint:                true,
 			SeqChooseScreenContentTools:    true,
-			SeqForceScreenContentTools:     SequenceHeader_SeqForceScreenContentTools(2),
+			SeqForceScreenContentTools:     av1.SequenceHeader_SeqForceScreenContentTools(2),
 			SeqChooseIntegerMv:             true,
 			SeqForceIntegerMv:              2,
 			OrderHintBitsMinus1:            7,
 			EnableCdef:                     true,
-			ColorConfig: SequenceHeader_ColorConfig{
+			ColorConfig: av1.SequenceHeader_ColorConfig{
 				BitDepth:                    8,
 				ColorDescriptionPresentFlag: true,
 				ColorPrimaries:              1,
-				TransferCharacteristics:     SequenceHeader_TransferCharacteristics(1),
-				MatrixCoefficients:          SequenceHeader_MatrixCoefficients(1),
+				TransferCharacteristics:     av1.SequenceHeader_TransferCharacteristics(1),
+				MatrixCoefficients:          av1.SequenceHeader_MatrixCoefficients(1),
 				SubsamplingX:                true,
 				SubsamplingY:                true,
 			},
@@ -174,8 +176,8 @@ var casesSequenceHeader = []struct {
 			0x00, 0x00, 0x7b, 0x40, 0x00, 0x05, 0xbd, 0x4c,
 			0xff, 0xb3, 0xcc, 0xaf, 0x90, 0x04,
 		},
-		SequenceHeader{
-			TimingInfo: &SequenceHeader_TimingInfo{
+		av1.SequenceHeader{
+			TimingInfo: &av1.SequenceHeader_TimingInfo{
 				NumUnitsInDisplayTick: 1,
 				TimeScale:             30,
 				EqualPictureInterval:  true,
@@ -200,7 +202,7 @@ var casesSequenceHeader = []struct {
 			SeqForceIntegerMv:              2,
 			OrderHintBitsMinus1:            6,
 			EnableCdef:                     true,
-			ColorConfig: SequenceHeader_ColorConfig{
+			ColorConfig: av1.SequenceHeader_ColorConfig{
 				BitDepth:                8,
 				ColorPrimaries:          2,
 				TransferCharacteristics: 2,
@@ -217,7 +219,7 @@ var casesSequenceHeader = []struct {
 func TestSequenceHeaderUnmarshal(t *testing.T) {
 	for _, ca := range casesSequenceHeader {
 		t.Run(ca.name, func(t *testing.T) {
-			var sh SequenceHeader
+			var sh av1.SequenceHeader
 			err := sh.Unmarshal(ca.byts)
 			require.NoError(t, err)
 			require.Equal(t, ca.sh, sh)
@@ -233,7 +235,7 @@ func FuzzSequenceHeaderUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		var sh SequenceHeader
+		var sh av1.SequenceHeader
 		err := sh.Unmarshal(b)
 		if err != nil {
 			return

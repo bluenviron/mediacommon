@@ -1,15 +1,17 @@
-package eac3
+package eac3_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/eac3"
 )
 
 var eac3Cases = []struct {
 	name         string
 	enc          []byte
-	syncInfo     SyncInfo
+	syncInfo     eac3.SyncInfo
 	frameSizes   int
 	sampleRate   int
 	channelCount int
@@ -24,7 +26,7 @@ var eac3Cases = []struct {
 			0x80,       // bsid=16
 			0x00, 0x00, // padding
 		},
-		SyncInfo{
+		eac3.SyncInfo{
 			Strmtyp:     0,
 			Substreamid: 0,
 			Frmsiz:      0x1FF,
@@ -48,7 +50,7 @@ var eac3Cases = []struct {
 			0x80, // bsid=16
 			0x00, 0x00,
 		},
-		SyncInfo{
+		eac3.SyncInfo{
 			Strmtyp:     0,
 			Substreamid: 0,
 			Frmsiz:      0x1FF,
@@ -69,7 +71,7 @@ var eac3Cases = []struct {
 func TestSyncInfoUnmarshal(t *testing.T) {
 	for _, ca := range eac3Cases {
 		t.Run(ca.name, func(t *testing.T) {
-			var s SyncInfo
+			var s eac3.SyncInfo
 			err := s.Unmarshal(ca.enc)
 			require.NoError(t, err)
 
@@ -89,7 +91,7 @@ func FuzzSyncInfoUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		var syncInfo SyncInfo
+		var syncInfo eac3.SyncInfo
 		err := syncInfo.Unmarshal(b)
 		if err != nil {
 			return

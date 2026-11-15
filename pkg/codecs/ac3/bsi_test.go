@@ -1,15 +1,17 @@
-package ac3
+package ac3_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/ac3"
 )
 
 func TestBSIUnmarshal(t *testing.T) {
 	for _, ca := range ac3Cases {
 		t.Run(ca.name, func(t *testing.T) {
-			var bsi BSI
+			var bsi ac3.BSI
 			err := bsi.Unmarshal(ca.enc[5:])
 			require.NoError(t, err)
 			require.Equal(t, ca.bsi, bsi)
@@ -23,7 +25,7 @@ func FuzzBSIUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		var bsi BSI
+		var bsi ac3.BSI
 		err := bsi.Unmarshal(b)
 		if err != nil {
 			return

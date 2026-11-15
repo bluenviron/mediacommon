@@ -1,22 +1,24 @@
-package substructs
+package substructs_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/substructs"
 )
 
 var audioDescriptorCases = []struct {
 	name         string
 	enc          []byte
-	desc         *OpusAudioDescriptor
+	desc         *substructs.OpusAudioDescriptor
 	channelCount int
 }{
 	// pre-defined channel_config_codes (Table 4-3)
 	{
 		"dual mono (0x00)",
 		[]byte{0x00},
-		&OpusAudioDescriptor{
+		&substructs.OpusAudioDescriptor{
 			ChannelConfigCode: 0x00,
 		},
 		2,
@@ -24,7 +26,7 @@ var audioDescriptorCases = []struct {
 	{
 		"mono (0x01)",
 		[]byte{0x01},
-		&OpusAudioDescriptor{
+		&substructs.OpusAudioDescriptor{
 			ChannelConfigCode: 1,
 		},
 		1,
@@ -32,7 +34,7 @@ var audioDescriptorCases = []struct {
 	{
 		"stereo (0x02)",
 		[]byte{0x02},
-		&OpusAudioDescriptor{
+		&substructs.OpusAudioDescriptor{
 			ChannelConfigCode: 2,
 		},
 		2,
@@ -40,7 +42,7 @@ var audioDescriptorCases = []struct {
 	{
 		"3ch surround (0x03)",
 		[]byte{0x03},
-		&OpusAudioDescriptor{
+		&substructs.OpusAudioDescriptor{
 			ChannelConfigCode: 3,
 		},
 		3,
@@ -48,7 +50,7 @@ var audioDescriptorCases = []struct {
 	{
 		"quad (0x04)",
 		[]byte{0x04},
-		&OpusAudioDescriptor{
+		&substructs.OpusAudioDescriptor{
 			ChannelConfigCode: 4,
 		},
 		4,
@@ -56,7 +58,7 @@ var audioDescriptorCases = []struct {
 	{
 		"5ch (0x05)",
 		[]byte{0x05},
-		&OpusAudioDescriptor{
+		&substructs.OpusAudioDescriptor{
 			ChannelConfigCode: 5,
 		},
 		5,
@@ -64,7 +66,7 @@ var audioDescriptorCases = []struct {
 	{
 		"5.1 (0x06)",
 		[]byte{0x06},
-		&OpusAudioDescriptor{
+		&substructs.OpusAudioDescriptor{
 			ChannelConfigCode: 6,
 		},
 		6,
@@ -72,7 +74,7 @@ var audioDescriptorCases = []struct {
 	{
 		"6.1 (0x07)",
 		[]byte{0x07},
-		&OpusAudioDescriptor{
+		&substructs.OpusAudioDescriptor{
 			ChannelConfigCode: 7,
 		},
 		7,
@@ -80,7 +82,7 @@ var audioDescriptorCases = []struct {
 	{
 		"7.1 (0x08)",
 		[]byte{0x08},
-		&OpusAudioDescriptor{
+		&substructs.OpusAudioDescriptor{
 			ChannelConfigCode: 8,
 		},
 		8,
@@ -88,7 +90,7 @@ var audioDescriptorCases = []struct {
 	{
 		"dual mono alias (0x80)",
 		[]byte{0x80},
-		&OpusAudioDescriptor{
+		&substructs.OpusAudioDescriptor{
 			ChannelConfigCode: 0x80,
 		},
 		2,
@@ -96,7 +98,7 @@ var audioDescriptorCases = []struct {
 	{
 		"0x82 - 1ch mapping_family 1",
 		[]byte{0x82},
-		&OpusAudioDescriptor{
+		&substructs.OpusAudioDescriptor{
 			ChannelConfigCode: 0x82,
 		},
 		1,
@@ -104,7 +106,7 @@ var audioDescriptorCases = []struct {
 	{
 		"0x88 - 7ch mapping_family 1",
 		[]byte{0x88},
-		&OpusAudioDescriptor{
+		&substructs.OpusAudioDescriptor{
 			ChannelConfigCode: 0x88,
 		},
 		7,
@@ -114,7 +116,7 @@ var audioDescriptorCases = []struct {
 		// mapping_family=0, mono: no bit-packed fields.
 		"explicit mono mapping_family 0",
 		[]byte{0x81, 0x01, 0x00},
-		&OpusAudioDescriptor{
+		&substructs.OpusAudioDescriptor{
 			ChannelConfigCode:    0x81,
 			ExplicitChannelCount: 1,
 		},
@@ -124,7 +126,7 @@ var audioDescriptorCases = []struct {
 		// mapping_family=0, stereo: no bit-packed fields.
 		"explicit stereo mapping_family 0",
 		[]byte{0x81, 0x02, 0x00},
-		&OpusAudioDescriptor{
+		&substructs.OpusAudioDescriptor{
 			ChannelConfigCode:    0x81,
 			ExplicitChannelCount: 2,
 		},
@@ -138,7 +140,7 @@ var audioDescriptorCases = []struct {
 		//   total: 2 bits → padded to 1 byte → 0x00
 		"explicit 1ch mapping_family 1",
 		[]byte{0x81, 0x01, 0x01, 0x00},
-		&OpusAudioDescriptor{
+		&substructs.OpusAudioDescriptor{
 			ChannelConfigCode:    0x81,
 			ExplicitChannelCount: 1,
 			MappingFamily:        1,
@@ -157,7 +159,7 @@ var audioDescriptorCases = []struct {
 		//   → 0x68, 0x42, 0x9D
 		"explicit 5.1 mapping_family 1",
 		[]byte{0x81, 0x06, 0x01, 0x68, 0x42, 0x9D},
-		&OpusAudioDescriptor{
+		&substructs.OpusAudioDescriptor{
 			ChannelConfigCode:    0x81,
 			ExplicitChannelCount: 6,
 			MappingFamily:        1,
@@ -175,7 +177,7 @@ var audioDescriptorCases = []struct {
 		//   mapping: 00 01 10 → packed: 1000 0110 (pad 6 bits) → 0x81 0x80
 		"explicit 3ch mapping_family 255",
 		[]byte{0x81, 0x03, 0xFF, 0x81, 0x80},
-		&OpusAudioDescriptor{
+		&substructs.OpusAudioDescriptor{
 			ChannelConfigCode:    0x81,
 			ExplicitChannelCount: 3,
 			MappingFamily:        255,
@@ -190,7 +192,7 @@ var audioDescriptorCases = []struct {
 func TestOpusAudioDescriptorUnmarshal(t *testing.T) {
 	for _, ca := range audioDescriptorCases {
 		t.Run(ca.name, func(t *testing.T) {
-			desc := &OpusAudioDescriptor{}
+			desc := &substructs.OpusAudioDescriptor{}
 			err := desc.Unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, ca.desc, desc)
@@ -215,7 +217,7 @@ func FuzzOpusAudioDescriptorUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, b []byte) {
-		var h OpusAudioDescriptor
+		var h substructs.OpusAudioDescriptor
 		err := h.Unmarshal(b)
 		if err != nil {
 			return

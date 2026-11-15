@@ -1,13 +1,15 @@
-package av1
+package av1_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/av1"
 )
 
 func TestIsRandomAccess(t *testing.T) {
-	ok := IsRandomAccess2([][]byte{
+	ok := av1.IsRandomAccess2([][]byte{
 		{
 			0x12, 0x00, 0x0d, 0x0a, 0x0b, 0x00, 0x00, 0x00,
 			0x42, 0xab, 0xbf, 0xc3, 0x71, 0xab, 0xe6, 0x01,
@@ -21,9 +23,9 @@ func TestIsRandomAccess(t *testing.T) {
 	})
 	require.True(t, ok)
 
-	ok = IsRandomAccess2([][]byte{})
+	ok = av1.IsRandomAccess2([][]byte{})
 	require.False(t, ok)
 
-	ok = IsRandomAccess2([][]byte{{}})
+	ok = av1.IsRandomAccess2([][]byte{{}})
 	require.False(t, ok)
 }

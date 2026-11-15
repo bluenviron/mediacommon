@@ -1,15 +1,17 @@
-package mpeg1audio
+package mpeg1audio_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg1audio"
 )
 
 var casesFrameHeader = []struct {
 	name        string
 	enc         []byte
-	dec         FrameHeader
+	dec         mpeg1audio.FrameHeader
 	frameLen    int
 	sampleCount int
 }{
@@ -18,11 +20,11 @@ var casesFrameHeader = []struct {
 		[]byte{
 			0xff, 0xfd, 0x48, 0x00, 0x00,
 		},
-		FrameHeader{
+		mpeg1audio.FrameHeader{
 			Layer:       2,
 			Bitrate:     64000,
 			SampleRate:  32000,
-			ChannelMode: ChannelModeStereo,
+			ChannelMode: mpeg1audio.ChannelModeStereo,
 		},
 		288,
 		1152,
@@ -32,11 +34,11 @@ var casesFrameHeader = []struct {
 		[]byte{
 			0xff, 0xfb, 0x18, 0x64, 0x00,
 		},
-		FrameHeader{
+		mpeg1audio.FrameHeader{
 			Layer:       3,
 			Bitrate:     32000,
 			SampleRate:  32000,
-			ChannelMode: ChannelModeJointStereo,
+			ChannelMode: mpeg1audio.ChannelModeJointStereo,
 		},
 		144,
 		1152,
@@ -46,11 +48,11 @@ var casesFrameHeader = []struct {
 		[]byte{
 			0xff, 0xfb, 0x68, 0xc4, 0x00,
 		},
-		FrameHeader{
+		mpeg1audio.FrameHeader{
 			Layer:       3,
 			Bitrate:     80000,
 			SampleRate:  32000,
-			ChannelMode: ChannelModeMono,
+			ChannelMode: mpeg1audio.ChannelModeMono,
 		},
 		360,
 		1152,
@@ -60,12 +62,12 @@ var casesFrameHeader = []struct {
 		[]byte{
 			0xff, 0xfa, 0x52, 0x04, 0x00,
 		},
-		FrameHeader{
+		mpeg1audio.FrameHeader{
 			Layer:       3,
 			Bitrate:     64000,
 			SampleRate:  44100,
 			Padding:     true,
-			ChannelMode: ChannelModeStereo,
+			ChannelMode: mpeg1audio.ChannelModeStereo,
 		},
 		209,
 		1152,
@@ -75,11 +77,11 @@ var casesFrameHeader = []struct {
 		[]byte{
 			0xff, 0xfb, 0x14, 0x64, 0x00,
 		},
-		FrameHeader{
+		mpeg1audio.FrameHeader{
 			Layer:       3,
 			Bitrate:     32000,
 			SampleRate:  48000,
-			ChannelMode: ChannelModeJointStereo,
+			ChannelMode: mpeg1audio.ChannelModeJointStereo,
 		},
 		96,
 		1152,
@@ -89,12 +91,12 @@ var casesFrameHeader = []struct {
 		[]byte{
 			0xff, 0xf5, 0x88, 0x4, 0x00,
 		},
-		FrameHeader{
+		mpeg1audio.FrameHeader{
 			MPEG2:       true,
 			Layer:       2,
 			Bitrate:     64000,
 			SampleRate:  16000,
-			ChannelMode: ChannelModeStereo,
+			ChannelMode: mpeg1audio.ChannelModeStereo,
 		},
 		576,
 		1152,
@@ -104,7 +106,7 @@ var casesFrameHeader = []struct {
 func TestFrameHeaderUnmarshal(t *testing.T) {
 	for _, ca := range casesFrameHeader {
 		t.Run(ca.name, func(t *testing.T) {
-			var h FrameHeader
+			var h mpeg1audio.FrameHeader
 			err := h.Unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, ca.dec, h)
@@ -120,7 +122,7 @@ func FuzzFrameHeaderUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		var h FrameHeader
+		var h mpeg1audio.FrameHeader
 		err := h.Unmarshal(b)
 		if err != nil {
 			return

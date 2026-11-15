@@ -1,23 +1,25 @@
-package mpeg4audio
+package mpeg4audio_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 )
 
 var streamMuxConfigCases = []struct {
 	name string
 	enc  []byte
-	dec  StreamMuxConfig
+	dec  mpeg4audio.StreamMuxConfig
 }{
 	{
 		"lc",
 		[]byte{0x40, 0x00, 0x26, 0x20, 0x3f, 0xc0},
-		StreamMuxConfig{
-			Programs: []*StreamMuxConfigProgram{{
-				Layers: []*StreamMuxConfigLayer{{
-					AudioSpecificConfig: &AudioSpecificConfig{
+		mpeg4audio.StreamMuxConfig{
+			Programs: []*mpeg4audio.StreamMuxConfigProgram{{
+				Layers: []*mpeg4audio.StreamMuxConfigLayer{{
+					AudioSpecificConfig: &mpeg4audio.AudioSpecificConfig{
 						Type:          2,
 						SampleRate:    24000,
 						ChannelConfig: 2,
@@ -31,10 +33,10 @@ var streamMuxConfigCases = []struct {
 	{
 		"he-aac",
 		[]byte{0x40, 0x00, 0x26, 0x10, 0x3f, 0xc0},
-		StreamMuxConfig{
-			Programs: []*StreamMuxConfigProgram{{
-				Layers: []*StreamMuxConfigLayer{{
-					AudioSpecificConfig: &AudioSpecificConfig{
+		mpeg4audio.StreamMuxConfig{
+			Programs: []*mpeg4audio.StreamMuxConfigProgram{{
+				Layers: []*mpeg4audio.StreamMuxConfigLayer{{
+					AudioSpecificConfig: &mpeg4audio.AudioSpecificConfig{
 						Type:          2,
 						SampleRate:    24000,
 						ChannelConfig: 1,
@@ -48,10 +50,10 @@ var streamMuxConfigCases = []struct {
 	{
 		"sbr",
 		[]byte{0x40, 0x00, 0x56, 0x23, 0x10, 0x1f, 0xe0},
-		StreamMuxConfig{
-			Programs: []*StreamMuxConfigProgram{{
-				Layers: []*StreamMuxConfigLayer{{
-					AudioSpecificConfig: &AudioSpecificConfig{
+		mpeg4audio.StreamMuxConfig{
+			Programs: []*mpeg4audio.StreamMuxConfigProgram{{
+				Layers: []*mpeg4audio.StreamMuxConfigLayer{{
+					AudioSpecificConfig: &mpeg4audio.AudioSpecificConfig{
 						Type:                2,
 						ExtensionType:       5,
 						ExtensionSampleRate: 48000,
@@ -67,10 +69,10 @@ var streamMuxConfigCases = []struct {
 	{
 		"ps",
 		[]byte{0x40, 0x01, 0xd6, 0x13, 0x10, 0x1f, 0xe0},
-		StreamMuxConfig{
-			Programs: []*StreamMuxConfigProgram{{
-				Layers: []*StreamMuxConfigLayer{{
-					AudioSpecificConfig: &AudioSpecificConfig{
+		mpeg4audio.StreamMuxConfig{
+			Programs: []*mpeg4audio.StreamMuxConfigProgram{{
+				Layers: []*mpeg4audio.StreamMuxConfigLayer{{
+					AudioSpecificConfig: &mpeg4audio.AudioSpecificConfig{
 						Type:                2,
 						ExtensionType:       29,
 						ExtensionSampleRate: 48000,
@@ -86,10 +88,10 @@ var streamMuxConfigCases = []struct {
 	{
 		"other data and checksum",
 		[]byte{0x40, 0x00, 0x24, 0x10, 0xad, 0xca, 0x00},
-		StreamMuxConfig{
-			Programs: []*StreamMuxConfigProgram{{
-				Layers: []*StreamMuxConfigLayer{{
-					AudioSpecificConfig: &AudioSpecificConfig{
+		mpeg4audio.StreamMuxConfig{
+			Programs: []*mpeg4audio.StreamMuxConfigProgram{{
+				Layers: []*mpeg4audio.StreamMuxConfigLayer{{
+					AudioSpecificConfig: &mpeg4audio.AudioSpecificConfig{
 						Type:          2,
 						SampleRate:    44100,
 						ChannelConfig: 1,
@@ -107,10 +109,10 @@ var streamMuxConfigCases = []struct {
 	{
 		"other data > 256 and checksum",
 		[]byte{0x40, 0x00, 0x24, 0x10, 0xb0, 0x33, 0x85, 0x0},
-		StreamMuxConfig{
-			Programs: []*StreamMuxConfigProgram{{
-				Layers: []*StreamMuxConfigLayer{{
-					AudioSpecificConfig: &AudioSpecificConfig{
+		mpeg4audio.StreamMuxConfig{
+			Programs: []*mpeg4audio.StreamMuxConfigProgram{{
+				Layers: []*mpeg4audio.StreamMuxConfigLayer{{
+					AudioSpecificConfig: &mpeg4audio.AudioSpecificConfig{
 						Type:          2,
 						SampleRate:    44100,
 						ChannelConfig: 1,
@@ -130,7 +132,7 @@ var streamMuxConfigCases = []struct {
 func TestStreamMuxConfigUnmarshal(t *testing.T) {
 	for _, ca := range streamMuxConfigCases {
 		t.Run(ca.name, func(t *testing.T) {
-			var dec StreamMuxConfig
+			var dec mpeg4audio.StreamMuxConfig
 			err := dec.Unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, ca.dec, dec)
@@ -139,13 +141,13 @@ func TestStreamMuxConfigUnmarshal(t *testing.T) {
 }
 
 func TestStreamMuxConfigUnmarshalTruncated(t *testing.T) {
-	var dec StreamMuxConfig
+	var dec mpeg4audio.StreamMuxConfig
 	err := dec.Unmarshal([]byte{0x40, 0x00, 0x23, 0x10})
 	require.NoError(t, err)
-	require.Equal(t, StreamMuxConfig{
-		Programs: []*StreamMuxConfigProgram{{
-			Layers: []*StreamMuxConfigLayer{{
-				AudioSpecificConfig: &AudioSpecificConfig{
+	require.Equal(t, mpeg4audio.StreamMuxConfig{
+		Programs: []*mpeg4audio.StreamMuxConfigProgram{{
+			Layers: []*mpeg4audio.StreamMuxConfigLayer{{
+				AudioSpecificConfig: &mpeg4audio.AudioSpecificConfig{
 					Type:          2,
 					SampleRate:    48000,
 					ChannelConfig: 1,
@@ -173,7 +175,7 @@ func FuzzStreamMuxConfigUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, b []byte) {
-		var conf StreamMuxConfig
+		var conf mpeg4audio.StreamMuxConfig
 		err := conf.Unmarshal(b)
 		if err != nil {
 			return

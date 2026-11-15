@@ -1,15 +1,17 @@
-package seekablebuffer
+package seekablebuffer_test
 
 import (
 	"io"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/fmp4/seekablebuffer"
 )
 
 func TestBuffer(t *testing.T) {
 	t.Run("seek start", func(t *testing.T) {
-		var b Buffer
+		var b seekablebuffer.Buffer
 
 		_, err := b.Seek(-2, io.SeekStart)
 		require.Error(t, err)
@@ -24,7 +26,7 @@ func TestBuffer(t *testing.T) {
 	})
 
 	t.Run("seek current", func(t *testing.T) {
-		var b Buffer
+		var b seekablebuffer.Buffer
 
 		n2, err := b.Write([]byte{1, 2, 3, 4})
 		require.NoError(t, err)
@@ -42,7 +44,7 @@ func TestBuffer(t *testing.T) {
 	})
 
 	t.Run("seek end", func(t *testing.T) {
-		var b Buffer
+		var b seekablebuffer.Buffer
 
 		n2, err := b.Write([]byte{1, 2, 3, 4})
 		require.NoError(t, err)

@@ -1,14 +1,16 @@
-package av1
+package av1_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/av1"
 )
 
 var casesLEB128 = []struct {
 	name string
-	dec  LEB128
+	dec  av1.LEB128
 	enc  []byte
 }{
 	{
@@ -36,7 +38,7 @@ var casesLEB128 = []struct {
 func TestLEB128Unmarshal(t *testing.T) {
 	for _, ca := range casesLEB128 {
 		t.Run(ca.name, func(t *testing.T) {
-			var dec LEB128
+			var dec av1.LEB128
 			n, err := dec.Unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, len(ca.enc), n)
@@ -62,7 +64,7 @@ func FuzzLEB128Unmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		var v LEB128
+		var v av1.LEB128
 		_, err := v.Unmarshal(b)
 		if err != nil {
 			return

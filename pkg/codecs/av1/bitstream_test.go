@@ -1,15 +1,17 @@
-package av1
+package av1_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/av1"
 )
 
 var casesBitstream = []struct {
 	name string
 	enc  []byte
-	dec  Bitstream
+	dec  av1.Bitstream
 }{
 	{
 		"standard",
@@ -35,7 +37,7 @@ var casesBitstream = []struct {
 func TestBitstreamUnmarshal(t *testing.T) {
 	for _, ca := range casesBitstream {
 		t.Run(ca.name, func(t *testing.T) {
-			var dec Bitstream
+			var dec av1.Bitstream
 			err := dec.Unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, ca.dec, dec)
@@ -54,7 +56,7 @@ func TestBitstreamMarshal(t *testing.T) {
 }
 
 func TestBitstreamMarshalOBUsWithSize(t *testing.T) {
-	enc, err := Bitstream([][]byte{
+	enc, err := av1.Bitstream([][]byte{
 		{
 			0x0a, 0x0e, 0x00, 0x00, 0x00, 0x4a, 0xab, 0xbf,
 			0xc3, 0x77, 0x6b, 0xe4, 0x40, 0x40, 0x40, 0x41,
@@ -80,7 +82,7 @@ func FuzzBitstreamUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, b []byte) {
-		var tu Bitstream
+		var tu av1.Bitstream
 		err := tu.Unmarshal(b)
 		if err != nil {
 			return

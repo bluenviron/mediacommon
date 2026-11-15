@@ -1,15 +1,17 @@
-package vp9
+package vp9_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/vp9"
 )
 
 var casesHeader = []struct {
 	name   string
 	byts   []byte
-	sh     Header
+	sh     vp9.Header
 	width  int
 	height int
 }{
@@ -20,14 +22,14 @@ var casesHeader = []struct {
 			0x34, 0x30, 0x38, 0x24, 0x1c, 0x19, 0x40, 0x18,
 			0x03, 0x40, 0x5f, 0xb4,
 		},
-		Header{
+		vp9.Header{
 			ShowFrame: true,
-			ColorConfig: &Header_ColorConfig{
+			ColorConfig: &vp9.Header_ColorConfig{
 				BitDepth:     8,
 				SubsamplingX: true,
 				SubsamplingY: true,
 			},
-			FrameSize: &Header_FrameSize{
+			FrameSize: &vp9.Header_FrameSize{
 				FrameWidthMinus1:  1919,
 				FrameHeightMinus1: 803,
 			},
@@ -42,15 +44,15 @@ var casesHeader = []struct {
 			0xf4, 0x04, 0x21, 0xa0, 0xe0, 0x00, 0x30, 0x70,
 			0x00, 0x00, 0x00, 0x01,
 		},
-		Header{
+		vp9.Header{
 			ShowFrame: true,
-			ColorConfig: &Header_ColorConfig{
+			ColorConfig: &vp9.Header_ColorConfig{
 				BitDepth:     8,
 				ColorSpace:   2,
 				SubsamplingX: true,
 				SubsamplingY: true,
 			},
-			FrameSize: &Header_FrameSize{
+			FrameSize: &vp9.Header_FrameSize{
 				FrameWidthMinus1:  3839,
 				FrameHeightMinus1: 2159,
 			},
@@ -63,7 +65,7 @@ var casesHeader = []struct {
 func TestHeaderUnmarshal(t *testing.T) {
 	for _, ca := range casesHeader {
 		t.Run(ca.name, func(t *testing.T) {
-			var sh Header
+			var sh vp9.Header
 			err := sh.Unmarshal(ca.byts)
 			require.NoError(t, err)
 			require.Equal(t, ca.sh, sh)
@@ -79,7 +81,7 @@ func FuzzHeaderUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		var sh Header
+		var sh vp9.Header
 		err := sh.Unmarshal(b)
 		if err != nil {
 			return

@@ -1,4 +1,4 @@
-package fmp4
+package fmp4_test
 
 import (
 	"bytes"
@@ -9,6 +9,7 @@ import (
 
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/flac"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/fmp4"
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/fmp4/seekablebuffer"
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4/codecs"
 )
@@ -37,7 +38,7 @@ var testAudioTrack = &codecs.MPEG4Audio{
 var casesInit = []struct {
 	name string
 	enc  []byte
-	dec  Init
+	dec  fmp4.Init
 }{
 	{
 		"av1",
@@ -126,8 +127,8 @@ var casesInit = []struct {
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00,
 		},
-		Init{
-			Tracks: []*InitTrack{{
+		fmp4.Init{
+			Tracks: []*fmp4.InitTrack{{
 				ID:        1,
 				TimeScale: 90000,
 				Codec: &codecs.AV1{
@@ -225,8 +226,8 @@ var casesInit = []struct {
 			0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		},
-		Init{
-			Tracks: []*InitTrack{{
+		fmp4.Init{
+			Tracks: []*fmp4.InitTrack{{
 				ID:        1,
 				TimeScale: 90000,
 				Codec: &codecs.VP9{
@@ -335,8 +336,8 @@ var casesInit = []struct {
 			0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		},
-		Init{
-			Tracks: []*InitTrack{
+		fmp4.Init{
+			Tracks: []*fmp4.InitTrack{
 				{
 					ID:        1,
 					TimeScale: 90000,
@@ -458,8 +459,8 @@ var casesInit = []struct {
 			0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		},
-		Init{
-			Tracks: []*InitTrack{
+		fmp4.Init{
+			Tracks: []*fmp4.InitTrack{
 				{
 					ID:        1,
 					TimeScale: 90000,
@@ -564,8 +565,8 @@ var casesInit = []struct {
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00,
 		},
-		Init{
-			Tracks: []*InitTrack{
+		fmp4.Init{
+			Tracks: []*fmp4.InitTrack{
 				{
 					ID:        1,
 					TimeScale: 90000,
@@ -676,8 +677,8 @@ var casesInit = []struct {
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00,
 		},
-		Init{
-			Tracks: []*InitTrack{
+		fmp4.Init{
+			Tracks: []*fmp4.InitTrack{
 				{
 					ID:        1,
 					TimeScale: 90000,
@@ -781,8 +782,8 @@ var casesInit = []struct {
 			0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		},
-		Init{
-			Tracks: []*InitTrack{
+		fmp4.Init{
+			Tracks: []*fmp4.InitTrack{
 				{
 					ID:        1,
 					TimeScale: 90000,
@@ -876,8 +877,8 @@ var casesInit = []struct {
 			0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		},
-		Init{
-			Tracks: []*InitTrack{
+		fmp4.Init{
+			Tracks: []*fmp4.InitTrack{
 				{
 					ID:        1,
 					TimeScale: 48000,
@@ -971,8 +972,8 @@ var casesInit = []struct {
 			0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		},
-		Init{
-			Tracks: []*InitTrack{
+		fmp4.Init{
+			Tracks: []*fmp4.InitTrack{
 				{
 					ID:        1,
 					TimeScale: 44100,
@@ -1089,8 +1090,8 @@ var casesInit = []struct {
 			0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		},
-		Init{
-			Tracks: []*InitTrack{
+		fmp4.Init{
+			Tracks: []*fmp4.InitTrack{
 				{
 					ID:        1,
 					TimeScale: uint32(testAudioTrack.Config.SampleRate),
@@ -1182,8 +1183,8 @@ var casesInit = []struct {
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00,
 		},
-		Init{
-			Tracks: []*InitTrack{
+		fmp4.Init{
+			Tracks: []*fmp4.InitTrack{
 				{
 					ID:        1,
 					TimeScale: 90000,
@@ -1273,8 +1274,8 @@ var casesInit = []struct {
 			0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		},
-		Init{
-			Tracks: []*InitTrack{
+		fmp4.Init{
+			Tracks: []*fmp4.InitTrack{
 				{
 					ID:        1,
 					TimeScale: 90000,
@@ -1370,8 +1371,8 @@ var casesInit = []struct {
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00,
 		},
-		Init{
-			Tracks: []*InitTrack{
+		fmp4.Init{
+			Tracks: []*fmp4.InitTrack{
 				{
 					ID:        1,
 					TimeScale: 90000,
@@ -1469,8 +1470,8 @@ var casesInit = []struct {
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00,
 		},
-		Init{
-			Tracks: []*InitTrack{
+		fmp4.Init{
+			Tracks: []*fmp4.InitTrack{
 				{
 					ID:        1,
 					TimeScale: 90000,
@@ -1568,8 +1569,8 @@ var casesInit = []struct {
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00,
 		},
-		Init{
-			Tracks: []*InitTrack{
+		fmp4.Init{
+			Tracks: []*fmp4.InitTrack{
 				{
 					ID:        1,
 					TimeScale: 90000,
@@ -1748,8 +1749,8 @@ var casesInit = []struct {
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00,
 		},
-		Init{
-			Tracks: []*InitTrack{
+		fmp4.Init{
+			Tracks: []*fmp4.InitTrack{
 				{
 					ID:        1,
 					TimeScale: 90000,
@@ -1860,8 +1861,8 @@ var casesInit = []struct {
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		},
-		Init{
-			Tracks: []*InitTrack{{
+		fmp4.Init{
+			Tracks: []*fmp4.InitTrack{{
 				ID:        1,
 				TimeScale: 90000,
 				Codec: &codecs.H264{
@@ -1893,7 +1894,7 @@ var casesInit = []struct {
 func TestInitUnmarshal(t *testing.T) {
 	for _, ca := range casesInit {
 		t.Run(ca.name, func(t *testing.T) {
-			var init Init
+			var init fmp4.Init
 			err := init.Unmarshal(bytes.NewReader(ca.enc))
 			require.NoError(t, err)
 			require.Equal(t, ca.dec, init)
@@ -1905,7 +1906,7 @@ func TestInitUnmarshalOnly(t *testing.T) {
 	for _, ca := range []struct {
 		name string
 		byts []byte
-		init Init
+		init fmp4.Init
 	}{
 		{
 			"h264",
@@ -2008,8 +2009,8 @@ func TestInitUnmarshalOnly(t *testing.T) {
 				0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 				0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			},
-			Init{
-				Tracks: []*InitTrack{
+			fmp4.Init{
+				Tracks: []*fmp4.InitTrack{
 					{
 						ID:        256,
 						TimeScale: 10000000,
@@ -2183,8 +2184,8 @@ func TestInitUnmarshalOnly(t *testing.T) {
 				0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 				0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			},
-			Init{
-				Tracks: []*InitTrack{{
+			fmp4.Init{
+				Tracks: []*fmp4.InitTrack{{
 					ID:        1,
 					TimeScale: 6000,
 					Codec: &codecs.H265{
@@ -2301,8 +2302,8 @@ func TestInitUnmarshalOnly(t *testing.T) {
 				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 				0x00, 0x00, 0x00,
 			},
-			Init{
-				Tracks: []*InitTrack{
+			fmp4.Init{
+				Tracks: []*fmp4.InitTrack{
 					{
 						ID:        257,
 						TimeScale: 10000000,
@@ -2462,8 +2463,8 @@ func TestInitUnmarshalOnly(t *testing.T) {
 				0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
 				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			},
-			Init{
-				Tracks: []*InitTrack{{
+			fmp4.Init{
+				Tracks: []*fmp4.InitTrack{{
 					ID:        1,
 					TimeScale: 6000,
 					Codec: &codecs.H264{
@@ -2482,7 +2483,7 @@ func TestInitUnmarshalOnly(t *testing.T) {
 		},
 	} {
 		t.Run(ca.name, func(t *testing.T) {
-			var init Init
+			var init fmp4.Init
 			err := init.Unmarshal(bytes.NewReader(ca.byts))
 			require.NoError(t, err)
 			require.Equal(t, ca.init, init)
@@ -2536,8 +2537,8 @@ func TestInitMarshalEmptyParameters(t *testing.T) {
 		},
 	} {
 		t.Run(ca.name, func(t *testing.T) {
-			i := Init{
-				Tracks: []*InitTrack{{
+			i := fmp4.Init{
+				Tracks: []*fmp4.InitTrack{{
 					ID:        1,
 					TimeScale: 90000,
 					Codec:     ca.codec,
@@ -2557,7 +2558,7 @@ func FuzzInitUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, b []byte) {
-		var init Init
+		var init fmp4.Init
 		err := init.Unmarshal(bytes.NewReader(b))
 		if err != nil {
 			return
@@ -2578,7 +2579,7 @@ func FuzzInitUnmarshal(f *testing.F) {
 func BenchmarkInitUnmarshal(b *testing.B) {
 	for b.Loop() {
 		for _, ca := range casesInit {
-			var init Init
+			var init fmp4.Init
 			init.Unmarshal(bytes.NewReader(ca.enc)) //nolint:errcheck
 		}
 	}
