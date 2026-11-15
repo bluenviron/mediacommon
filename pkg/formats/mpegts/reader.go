@@ -398,15 +398,39 @@ func (r *Reader) OnDataOpus(track *Track, cb ReaderOnDataOpusFunc) {
 
 // OnDataMPEG4Audio sets a callback that is called when data from an MPEG-4 Audio track is received.
 func (r *Reader) OnDataMPEG4Audio(track *Track, cb ReaderOnDataMPEG4AudioFunc) {
+	// start of a frame that ends in one of the next PES packets, and its PTS.
+	var partial []byte
+	var partialPTS int64
+
 	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
 		if pts != dts {
 			r.onDecodeError(fmt.Errorf("PTS is not equal to DTS"))
 			return nil
 		}
 
+		// the PTS of a PES packet is the one of the first frame that starts in it
+		// (ISO 13818-1, 2.4.3.7), so a frame that started before keeps its own PTS.
+		resumed := len(partial) != 0
+		if resumed {
+			joined := make([]byte, len(partial)+len(data))
+			n := copy(joined, partial)
+			copy(joined[n:], data)
+			data = joined
+		}
+
+		n := adtsWholeFramesLen(data)
+		if n == 0 {
+			if !resumed {
+				partialPTS = pts
+			}
+			partial = data
+			return nil
+		}
+
 		var pkts mpeg4audio.ADTSPackets
-		err := pkts.Unmarshal(data)
+		err := pkts.Unmarshal(data[:n])
 		if err != nil {
+			partial = nil
 			r.onDecodeError(fmt.Errorf("invalid ADTS: %w", err))
 			return nil
 		}
@@ -416,7 +440,18 @@ func (r *Reader) OnDataMPEG4Audio(track *Track, cb ReaderOnDataMPEG4AudioFunc) {
 			aus[i] = pkt.AU
 		}
 
-		return cb(pts, aus)
+		// whole frames that started in this PES packet
+		started := len(pkts)
+		groupPTS := pts
+		if resumed {
+			started--
+			groupPTS = partialPTS
+		}
+
+		partial = data[n:]
+		partialPTS = pts + int64(started)*mpeg4audio.SamplesPerAccessUnit*90000/int64(pkts[0].SampleRate)
+
+		return cb(groupPTS, aus)
 	}
 }
 

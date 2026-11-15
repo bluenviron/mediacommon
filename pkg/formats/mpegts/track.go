@@ -25,7 +25,43 @@ const (
 	metadataApplicationFormatStillImageOnDemand = 0x0103
 )
 
+// adtsWholeFramesLen returns the length of the part of buf that is made of whole ADTS frames.
+// What follows is the start of a frame that ends in one of the next PES packets.
+// If buf is not a valid ADTS stream, its entire length is returned,
+// in order to let ADTSPackets.Unmarshal report the error.
+func adtsWholeFramesLen(buf []byte) int {
+	pos := 0
+
+	for pos < len(buf) {
+		if buf[pos] != 0xff || ((len(buf)-pos) >= 2 && (buf[pos+1]>>4) != 0x0f) {
+			return len(buf)
+		}
+
+		// the frame length is not available yet
+		if (len(buf) - pos) < 6 {
+			break
+		}
+
+		frameLen := int(((uint16(buf[pos+3]) & 0x03) << 11) |
+			(uint16(buf[pos+4]) << 3) |
+			((uint16(buf[pos+5]) >> 5) & 0x07))
+		if frameLen < 7 {
+			return len(buf)
+		}
+
+		if (len(buf) - pos) < frameLen {
+			break
+		}
+
+		pos += frameLen
+	}
+
+	return pos
+}
+
 func findMPEG4AudioConfig(dem *robustDemuxer, pid uint16) (*mpeg4audio.AudioSpecificConfig, error) {
+	var buf []byte
+
 	for {
 		data, err := dem.nextData()
 		if err != nil {
@@ -36,8 +72,15 @@ func findMPEG4AudioConfig(dem *robustDemuxer, pid uint16) (*mpeg4audio.AudioSpec
 			continue
 		}
 
+		// a frame can span PES packets
+		buf = append(buf, data.PES.Data...)
+		n := adtsWholeFramesLen(buf)
+		if n == 0 {
+			continue
+		}
+
 		var adtsPkts mpeg4audio.ADTSPackets
-		err = adtsPkts.Unmarshal(data.PES.Data)
+		err = adtsPkts.Unmarshal(buf[:n])
 		if err != nil {
 			return nil, fmt.Errorf("unable to decode ADTS: %w", err)
 		}
