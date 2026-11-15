@@ -1,9 +1,11 @@
-package mpeg4audio
+package mpeg4audio_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 )
 
 var countChannelsCases = []struct {
@@ -104,7 +106,7 @@ var countChannelsCases = []struct {
 func TestCountChannelsFromRawDataBlock(t *testing.T) {
 	for _, tt := range countChannelsCases {
 		t.Run(tt.name, func(t *testing.T) {
-			channels, err := CountChannelsFromRawDataBlock(tt.buf)
+			channels, err := mpeg4audio.CountChannelsFromRawDataBlock(tt.buf)
 			require.NoError(t, err)
 			require.Equal(t, tt.count, channels)
 		})
@@ -117,7 +119,7 @@ func FuzzCountChannelsFromRawDataBlock(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, b []byte) {
-		count, err := CountChannelsFromRawDataBlock(b)
+		count, err := mpeg4audio.CountChannelsFromRawDataBlock(b)
 		if err == nil {
 			require.NotZero(t, count)
 		}

@@ -1,26 +1,28 @@
-package mpeg4audio
+package mpeg4audio_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 )
 
 var casesAudioMuxElement = []struct {
 	name string
-	dec  AudioMuxElement
+	dec  mpeg4audio.AudioMuxElement
 	enc  []byte
 }{
 	{
 		"muxConfigPresent + !useSameStreamMux",
-		AudioMuxElement{
+		mpeg4audio.AudioMuxElement{
 			MuxConfigPresent: true,
-			StreamMuxConfig: &StreamMuxConfig{
-				Programs: []*StreamMuxConfigProgram{
+			StreamMuxConfig: &mpeg4audio.StreamMuxConfig{
+				Programs: []*mpeg4audio.StreamMuxConfigProgram{
 					{
-						Layers: []*StreamMuxConfigLayer{
+						Layers: []*mpeg4audio.StreamMuxConfigLayer{
 							{
-								AudioSpecificConfig: &AudioSpecificConfig{
+								AudioSpecificConfig: &mpeg4audio.AudioSpecificConfig{
 									Type:          2,
 									SampleRate:    24000,
 									ChannelConfig: 1,
@@ -29,7 +31,7 @@ var casesAudioMuxElement = []struct {
 								LatmBufferFullness: 255,
 							},
 							{
-								AudioSpecificConfig: &AudioSpecificConfig{
+								AudioSpecificConfig: &mpeg4audio.AudioSpecificConfig{
 									Type:          2,
 									SampleRate:    48000,
 									ChannelConfig: 1,
@@ -40,9 +42,9 @@ var casesAudioMuxElement = []struct {
 						},
 					},
 					{
-						Layers: []*StreamMuxConfigLayer{
+						Layers: []*mpeg4audio.StreamMuxConfigLayer{
 							{
-								AudioSpecificConfig: &AudioSpecificConfig{
+								AudioSpecificConfig: &mpeg4audio.AudioSpecificConfig{
 									Type:          2,
 									SampleRate:    44100,
 									ChannelConfig: 1,
@@ -76,12 +78,12 @@ var casesAudioMuxElement = []struct {
 	},
 	{
 		"muxConfigPresent + useSameStreamMux",
-		AudioMuxElement{
+		mpeg4audio.AudioMuxElement{
 			MuxConfigPresent: true,
-			StreamMuxConfig: &StreamMuxConfig{
-				Programs: []*StreamMuxConfigProgram{{
-					Layers: []*StreamMuxConfigLayer{{
-						AudioSpecificConfig: &AudioSpecificConfig{
+			StreamMuxConfig: &mpeg4audio.StreamMuxConfig{
+				Programs: []*mpeg4audio.StreamMuxConfigProgram{{
+					Layers: []*mpeg4audio.StreamMuxConfigLayer{{
+						AudioSpecificConfig: &mpeg4audio.AudioSpecificConfig{
 							Type:         2,
 							SampleRate:   24000,
 							ChannelCount: 1,
@@ -105,12 +107,12 @@ var casesAudioMuxElement = []struct {
 	},
 	{
 		"!muxConfigPresent",
-		AudioMuxElement{
+		mpeg4audio.AudioMuxElement{
 			MuxConfigPresent: false,
-			StreamMuxConfig: &StreamMuxConfig{
-				Programs: []*StreamMuxConfigProgram{{
-					Layers: []*StreamMuxConfigLayer{{
-						AudioSpecificConfig: &AudioSpecificConfig{
+			StreamMuxConfig: &mpeg4audio.StreamMuxConfig{
+				Programs: []*mpeg4audio.StreamMuxConfigProgram{{
+					Layers: []*mpeg4audio.StreamMuxConfigLayer{{
+						AudioSpecificConfig: &mpeg4audio.AudioSpecificConfig{
 							Type:         2,
 							SampleRate:   24000,
 							ChannelCount: 1,
@@ -136,7 +138,7 @@ var casesAudioMuxElement = []struct {
 func TestAudioMuxElementUnmarshal(t *testing.T) {
 	for _, ca := range casesAudioMuxElement {
 		t.Run(ca.name, func(t *testing.T) {
-			var dec AudioMuxElement
+			var dec mpeg4audio.AudioMuxElement
 			dec.MuxConfigPresent = ca.dec.MuxConfigPresent
 			if !dec.MuxConfigPresent || ca.dec.UseSameStreamMux {
 				dec.StreamMuxConfig = ca.dec.StreamMuxConfig
@@ -164,15 +166,15 @@ func FuzzAudioMuxElementUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, muxConfigPresent bool, b []byte) {
-		var dec AudioMuxElement
+		var dec mpeg4audio.AudioMuxElement
 		dec.MuxConfigPresent = muxConfigPresent
 		if !muxConfigPresent {
-			dec.StreamMuxConfig = &StreamMuxConfig{
-				Programs: []*StreamMuxConfigProgram{
+			dec.StreamMuxConfig = &mpeg4audio.StreamMuxConfig{
+				Programs: []*mpeg4audio.StreamMuxConfigProgram{
 					{
-						Layers: []*StreamMuxConfigLayer{
+						Layers: []*mpeg4audio.StreamMuxConfigLayer{
 							{
-								AudioSpecificConfig: &AudioSpecificConfig{
+								AudioSpecificConfig: &mpeg4audio.AudioSpecificConfig{
 									Type:         2,
 									SampleRate:   24000,
 									ChannelCount: 1,

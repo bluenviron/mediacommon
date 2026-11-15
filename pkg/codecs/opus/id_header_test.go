@@ -1,19 +1,21 @@
-package opus
+package opus_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/opus"
 )
 
 var idHeaderCases = []struct {
 	name string
-	dec  IDHeader
+	dec  opus.IDHeader
 	enc  []byte
 }{
 	{
 		"stereo 48kHz",
-		IDHeader{
+		opus.IDHeader{
 			Version:              1,
 			ChannelCount:         2,
 			PreSkip:              312,
@@ -34,7 +36,7 @@ var idHeaderCases = []struct {
 	},
 	{
 		"5.1 with mapping table",
-		IDHeader{
+		opus.IDHeader{
 			Version:              1,
 			ChannelCount:         6,
 			PreSkip:              0,
@@ -56,7 +58,7 @@ var idHeaderCases = []struct {
 	},
 	{
 		"mono 44.1kHz with gain",
-		IDHeader{
+		opus.IDHeader{
 			Version:              1,
 			ChannelCount:         1,
 			PreSkip:              0xABCD,
@@ -90,7 +92,7 @@ func TestIDHeaderMarshal(t *testing.T) {
 func TestIDHeaderUnmarshal(t *testing.T) {
 	for _, ca := range idHeaderCases {
 		t.Run(ca.name, func(t *testing.T) {
-			var h IDHeader
+			var h opus.IDHeader
 			err := h.Unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, ca.dec, h)
@@ -104,7 +106,7 @@ func FuzzIDHeaderUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, b []byte) {
-		var h IDHeader
+		var h opus.IDHeader
 		err := h.Unmarshal(b)
 		if err != nil {
 			return

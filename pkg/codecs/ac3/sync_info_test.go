@@ -1,17 +1,19 @@
-package ac3
+package ac3_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/ac3"
 )
 
 var ac3Cases = []struct {
 	name       string
 	enc        []byte
-	syncInfo   SyncInfo
+	syncInfo   ac3.SyncInfo
 	sampleRate int
-	bsi        BSI
+	bsi        ac3.BSI
 }{
 	{
 		"1 ch",
@@ -65,11 +67,11 @@ var ac3Cases = []struct {
 			0x4e, 0x72, 0xfd, 0x3c, 0x01, 0x86, 0xfe, 0x56,
 			0x59, 0x74, 0x44, 0x3a, 0x40, 0x00, 0xec, 0xfc,
 		},
-		SyncInfo{
+		ac3.SyncInfo{
 			Frmsizecod: 12,
 		},
 		48000,
-		BSI{
+		ac3.BSI{
 			Bsid:  8,
 			Acmod: 1,
 		},
@@ -302,11 +304,11 @@ var ac3Cases = []struct {
 			0xae, 0x27, 0x39, 0x8a, 0x78, 0x0c, 0x37, 0xf2,
 			0xb0, 0x00, 0x00, 0x00, 0x00, 0x00, 0xe4, 0xa2,
 		},
-		SyncInfo{
+		ac3.SyncInfo{
 			Frmsizecod: 30,
 		},
 		48000,
-		BSI{
+		ac3.BSI{
 			Bsid:  8,
 			Acmod: 7,
 			LfeOn: true,
@@ -317,7 +319,7 @@ var ac3Cases = []struct {
 func TestSyncInfoUnmarshal(t *testing.T) {
 	for _, ca := range ac3Cases {
 		t.Run(ca.name, func(t *testing.T) {
-			var syncInfo SyncInfo
+			var syncInfo ac3.SyncInfo
 			err := syncInfo.Unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, ca.syncInfo, syncInfo)
@@ -332,7 +334,7 @@ func FuzzSyncInfoUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		var syncInfo SyncInfo
+		var syncInfo ac3.SyncInfo
 		err := syncInfo.Unmarshal(b)
 		if err != nil {
 			return

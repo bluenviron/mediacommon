@@ -1,21 +1,23 @@
-package substructs
+package substructs_test
 
 import (
 	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/substructs"
 )
 
 var OpusAccessUnitCases = []struct {
 	name string
-	dec  OpusAccessUnit
+	dec  substructs.OpusAccessUnit
 	enc  []byte
 }{
 	{
 		"a",
-		OpusAccessUnit{
-			ControlHeader: OpusControlHeader{
+		substructs.OpusAccessUnit{
+			ControlHeader: substructs.OpusControlHeader{
 				PayloadSize:            123,
 				StartTrimFlag:          true,
 				ControlExtensionFlag:   true,
@@ -67,7 +69,7 @@ func TestOpusAccessUnitMarshal(t *testing.T) {
 func TestOpusAccessUnitUnmarshal(t *testing.T) {
 	for _, ca := range OpusAccessUnitCases {
 		t.Run(ca.name, func(t *testing.T) {
-			var h OpusAccessUnit
+			var h substructs.OpusAccessUnit
 			_, err := h.Unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, ca.dec, h)
@@ -81,7 +83,7 @@ func FuzzOpusAccessUnitUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, b []byte) {
-		var h OpusAccessUnit
+		var h substructs.OpusAccessUnit
 		_, err := h.Unmarshal(b)
 		if err != nil {
 			return

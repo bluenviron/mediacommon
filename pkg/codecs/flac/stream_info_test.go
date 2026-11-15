@@ -1,19 +1,21 @@
-package flac
+package flac_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/flac"
 )
 
 var streamInfoCases = []struct {
 	name string
-	dec  StreamInfo
+	dec  flac.StreamInfo
 	enc  []byte
 }{
 	{
 		"stereo 44.1kHz 16-bit",
-		StreamInfo{
+		flac.StreamInfo{
 			MinBlockSize: 4096,
 			MaxBlockSize: 4096,
 			MinFrameSize: 0,
@@ -37,7 +39,7 @@ var streamInfoCases = []struct {
 	},
 	{
 		"5.1 surround 96kHz 24-bit with samples and MD5",
-		StreamInfo{
+		flac.StreamInfo{
 			MinBlockSize: 256,
 			MaxBlockSize: 65535,
 			MinFrameSize: 100,
@@ -64,7 +66,7 @@ var streamInfoCases = []struct {
 	},
 	{
 		"mono 48kHz 32-bit large TotalSamples",
-		StreamInfo{
+		flac.StreamInfo{
 			MinBlockSize: 16,
 			MaxBlockSize: 4096,
 			MinFrameSize: 1024,
@@ -101,7 +103,7 @@ func TestStreamInfoMarshal(t *testing.T) {
 func TestStreamInfoUnmarshal(t *testing.T) {
 	for _, ca := range streamInfoCases {
 		t.Run(ca.name, func(t *testing.T) {
-			var s StreamInfo
+			var s flac.StreamInfo
 			err := s.Unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, ca.dec, s)
@@ -115,7 +117,7 @@ func FuzzStreamInfoUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, b []byte) {
-		var s StreamInfo
+		var s flac.StreamInfo
 		err := s.Unmarshal(b)
 		if err != nil {
 			return

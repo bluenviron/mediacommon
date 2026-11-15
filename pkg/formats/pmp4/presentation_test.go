@@ -1,4 +1,4 @@
-package pmp4
+package pmp4_test
 
 import (
 	"bytes"
@@ -10,17 +10,18 @@ import (
 
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 	"github.com/bluenviron/mediacommon/v2/pkg/formats/mp4/codecs"
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/pmp4"
 )
 
 var casesPresentation = []struct {
 	name string
-	dec  Presentation
+	dec  pmp4.Presentation
 	enc  []byte
 }{
 	{
 		"standard",
-		Presentation{
-			Tracks: []*Track{
+		pmp4.Presentation{
+			Tracks: []*pmp4.Track{
 				{
 					ID:         1,
 					TimeScale:  90000,
@@ -33,7 +34,7 @@ var casesPresentation = []struct {
 						},
 						PPS: []byte{0x08, 0x06, 0x07, 0x08},
 					},
-					Samples: []*Sample{
+					Samples: []*pmp4.Sample{
 						{
 							Duration:    90000,
 							PayloadSize: 2,
@@ -76,7 +77,7 @@ var casesPresentation = []struct {
 						},
 						PPS: []byte{0x08},
 					},
-					Samples: []*Sample{{
+					Samples: []*pmp4.Sample{{
 						Duration:    90000,
 						PayloadSize: 2,
 						GetPayload: func() ([]byte, error) {
@@ -95,7 +96,7 @@ var casesPresentation = []struct {
 						ChromaSubsampling: 1,
 						ColorRange:        false,
 					},
-					Samples: []*Sample{{
+					Samples: []*pmp4.Sample{{
 						Duration:    90000,
 						PayloadSize: 2,
 						GetPayload: func() ([]byte, error) {
@@ -111,7 +112,7 @@ var casesPresentation = []struct {
 							8, 0, 0, 0, 66, 167, 191, 228, 96, 13, 0, 64,
 						},
 					},
-					Samples: []*Sample{{
+					Samples: []*pmp4.Sample{{
 						Duration:    90000,
 						PayloadSize: 2,
 						GetPayload: func() ([]byte, error) {
@@ -132,7 +133,7 @@ var casesPresentation = []struct {
 							0x2e, 0x31, 0x33, 0x34, 0x2e, 0x31, 0x30, 0x30,
 						},
 					},
-					Samples: []*Sample{{
+					Samples: []*pmp4.Sample{{
 						Duration:    90000,
 						PayloadSize: 2,
 						GetPayload: func() ([]byte, error) {
@@ -150,7 +151,7 @@ var casesPresentation = []struct {
 							0x14, 0x4a, 0x00, 0x01, 0x00, 0x00,
 						},
 					},
-					Samples: []*Sample{{
+					Samples: []*pmp4.Sample{{
 						Duration:    90000,
 						PayloadSize: 2,
 						GetPayload: func() ([]byte, error) {
@@ -165,7 +166,7 @@ var casesPresentation = []struct {
 						Width:  640,
 						Height: 480,
 					},
-					Samples: []*Sample{{
+					Samples: []*pmp4.Sample{{
 						Duration:    90000,
 						PayloadSize: 2,
 						GetPayload: func() ([]byte, error) {
@@ -179,7 +180,7 @@ var casesPresentation = []struct {
 					Codec: &codecs.Opus{
 						ChannelCount: 2,
 					},
-					Samples: []*Sample{{
+					Samples: []*pmp4.Sample{{
 						Duration:    90000,
 						PayloadSize: 2,
 						GetPayload: func() ([]byte, error) {
@@ -198,7 +199,7 @@ var casesPresentation = []struct {
 							ChannelCount:  2, //nolint:staticcheck
 						},
 					},
-					Samples: []*Sample{{
+					Samples: []*pmp4.Sample{{
 						Duration:    90000,
 						PayloadSize: 2,
 						GetPayload: func() ([]byte, error) {
@@ -213,7 +214,7 @@ var casesPresentation = []struct {
 						SampleRate:   48000,
 						ChannelCount: 2,
 					},
-					Samples: []*Sample{{
+					Samples: []*pmp4.Sample{{
 						Duration:    90000,
 						PayloadSize: 2,
 						GetPayload: func() ([]byte, error) {
@@ -233,7 +234,7 @@ var casesPresentation = []struct {
 						LfeOn:        true,
 						BitRateCode:  0xf,
 					},
-					Samples: []*Sample{{
+					Samples: []*pmp4.Sample{{
 						Duration:    90000,
 						PayloadSize: 2,
 						GetPayload: func() ([]byte, error) {
@@ -249,7 +250,7 @@ var casesPresentation = []struct {
 						SampleRate:   48000,
 						ChannelCount: 2,
 					},
-					Samples: []*Sample{{
+					Samples: []*pmp4.Sample{{
 						Duration:    90000,
 						PayloadSize: 2,
 						GetPayload: func() ([]byte, error) {
@@ -1101,8 +1102,8 @@ var casesPresentation = []struct {
 	},
 	{
 		"no samples",
-		Presentation{
-			Tracks: []*Track{
+		pmp4.Presentation{
+			Tracks: []*pmp4.Track{
 				{
 					ID:        2,
 					TimeScale: 90000,
@@ -1118,7 +1119,7 @@ var casesPresentation = []struct {
 						},
 						PPS: []byte{0x08},
 					},
-					Samples: []*Sample{{
+					Samples: []*pmp4.Sample{{
 						Duration:    90000,
 						PayloadSize: 2,
 						GetPayload: func() ([]byte, error) {
@@ -1305,8 +1306,8 @@ var casesPresentation = []struct {
 	},
 	{
 		"long duration",
-		Presentation{
-			Tracks: []*Track{
+		pmp4.Presentation{
+			Tracks: []*pmp4.Track{
 				{
 					ID:         1,
 					TimeScale:  90000,
@@ -1319,7 +1320,7 @@ var casesPresentation = []struct {
 						},
 						PPS: []byte{0x08, 0x06, 0x07, 0x08},
 					},
-					Samples: []*Sample{
+					Samples: []*pmp4.Sample{
 						{
 							Duration:    2268000000,
 							PayloadSize: 2,
@@ -1437,7 +1438,7 @@ var casesPresentation = []struct {
 	},
 }
 
-func getSampleData(t *testing.T, p *Presentation) map[int][][]byte {
+func getSampleData(t *testing.T, p *pmp4.Presentation) map[int][][]byte {
 	t.Helper()
 
 	sampleData := make(map[int][][]byte)
@@ -1453,7 +1454,7 @@ func getSampleData(t *testing.T, p *Presentation) map[int][][]byte {
 	return sampleData
 }
 
-func removeGetPayloads(p *Presentation) []func() ([]byte, error) {
+func removeGetPayloads(p *pmp4.Presentation) []func() ([]byte, error) {
 	var ret []func() ([]byte, error) //nolint:prealloc
 	for _, track := range p.Tracks {
 		for _, sample := range track.Samples {
@@ -1464,7 +1465,7 @@ func removeGetPayloads(p *Presentation) []func() ([]byte, error) {
 	return ret
 }
 
-func restoreGetPayloads(p *Presentation, getPayloads []func() ([]byte, error)) {
+func restoreGetPayloads(p *pmp4.Presentation, getPayloads []func() ([]byte, error)) {
 	i := 0
 	for _, track := range p.Tracks {
 		for _, sample := range track.Samples {
@@ -1477,7 +1478,7 @@ func restoreGetPayloads(p *Presentation, getPayloads []func() ([]byte, error)) {
 func TestPresentationUnmarshal(t *testing.T) {
 	for _, ca := range casesPresentation {
 		t.Run(ca.name, func(t *testing.T) {
-			var p Presentation
+			var p pmp4.Presentation
 			err := p.Unmarshal(bytes.NewReader(ca.enc))
 			require.NoError(t, err)
 
@@ -1499,7 +1500,7 @@ func TestPresentationUnmarshalOnly(t *testing.T) {
 	for _, ca := range []struct {
 		name string
 		enc  []byte
-		dec  Presentation
+		dec  pmp4.Presentation
 	}{
 		{
 			"ctts version 0",
@@ -1599,8 +1600,8 @@ func TestPresentationUnmarshalOnly(t *testing.T) {
 				0x00, 0x00, 0x0e, 0x6d, 0x64, 0x61, 0x74, 0x01,
 				0x02, 0x03, 0x04, 0x05, 0x06,
 			},
-			Presentation{
-				Tracks: []*Track{{
+			pmp4.Presentation{
+				Tracks: []*pmp4.Track{{
 					ID:        1,
 					TimeScale: 90000,
 					Codec: &codecs.H264{
@@ -1611,7 +1612,7 @@ func TestPresentationUnmarshalOnly(t *testing.T) {
 						},
 						PPS: []byte{0x08, 0x06, 0x07, 0x08},
 					},
-					Samples: []*Sample{
+					Samples: []*pmp4.Sample{
 						{
 							Duration:    90000,
 							PayloadSize: 2,
@@ -1720,14 +1721,14 @@ func TestPresentationUnmarshalOnly(t *testing.T) {
 				0x00, 0x00, 0x00, 0x0e, 0x6d, 0x64, 0x61, 0x74,
 				0x01, 0x02, 0x03, 0x04, 0x05, 0x06,
 			},
-			Presentation{
-				Tracks: []*Track{{
+			pmp4.Presentation{
+				Tracks: []*pmp4.Track{{
 					ID:        1,
 					TimeScale: 48000,
 					Codec: &codecs.Opus{
 						ChannelCount: 2,
 					},
-					Samples: []*Sample{
+					Samples: []*pmp4.Sample{
 						{
 							Duration:    960,
 							PayloadSize: 2,
@@ -1850,8 +1851,8 @@ func TestPresentationUnmarshalOnly(t *testing.T) {
 				0x00, 0x00, 0x0c, 0x6d, 0x64, 0x61, 0x74, 0x01,
 				0x02, 0x03, 0x04,
 			},
-			Presentation{
-				Tracks: []*Track{{
+			pmp4.Presentation{
+				Tracks: []*pmp4.Track{{
 					ID:         1,
 					TimeScale:  90000,
 					TimeOffset: 90000,
@@ -1863,7 +1864,7 @@ func TestPresentationUnmarshalOnly(t *testing.T) {
 						},
 						PPS: []byte{0x08, 0x06, 0x07, 0x08},
 					},
-					Samples: []*Sample{
+					Samples: []*pmp4.Sample{
 						{
 							Duration:    2268000000,
 							PayloadSize: 2,
@@ -2017,8 +2018,8 @@ func TestPresentationUnmarshalOnly(t *testing.T) {
 				0x00, 0xca, 0xff, 0xc3, 0xcc, 0x40, 0x1a, 0x01,
 				0x88,
 			},
-			Presentation{
-				Tracks: []*Track{
+			pmp4.Presentation{
+				Tracks: []*pmp4.Track{
 					{
 						ID:        1,
 						TimeScale: 15360,
@@ -2028,7 +2029,7 @@ func TestPresentationUnmarshalOnly(t *testing.T) {
 								0x00, 0xbe, 0x00, 0x10,
 							},
 						},
-						Samples: []*Sample{
+						Samples: []*pmp4.Sample{
 							{
 								Duration:    512,
 								PayloadSize: 57,
@@ -2407,8 +2408,8 @@ func TestPresentationUnmarshalOnly(t *testing.T) {
 				0x00, 0x00, 0x00, 0x4c, 0x61, 0x76, 0x66, 0x36,
 				0x32, 0x2e, 0x33, 0x2e, 0x31, 0x30, 0x30,
 			},
-			Presentation{
-				Tracks: []*Track{{
+			pmp4.Presentation{
+				Tracks: []*pmp4.Track{{
 					ID:        1,
 					TimeScale: 15360,
 					Codec: &codecs.H264{
@@ -2419,7 +2420,7 @@ func TestPresentationUnmarshalOnly(t *testing.T) {
 						},
 						PPS: []byte{0x68, 0xce, 0x3c, 0x80},
 					},
-					Samples: []*Sample{
+					Samples: []*pmp4.Sample{
 						{
 							Duration:    512,
 							PayloadSize: 1524,
@@ -2791,8 +2792,8 @@ func TestPresentationUnmarshalOnly(t *testing.T) {
 				0x48, 0x61, 0x6e, 0x64, 0x6c, 0x65, 0x72, 0x00,
 				0x00, 0x00, 0x00, 0x08, 0x69, 0x6c, 0x73, 0x74,
 			},
-			Presentation{
-				Tracks: []*Track{{
+			pmp4.Presentation{
+				Tracks: []*pmp4.Track{{
 					ID:        1,
 					TimeScale: 1000,
 					Codec: &codecs.H264{
@@ -2804,7 +2805,7 @@ func TestPresentationUnmarshalOnly(t *testing.T) {
 						},
 						PPS: []byte{0x68, 0xeb, 0xe3, 0xcb, 0x22, 0xc0},
 					},
-					Samples: []*Sample{
+					Samples: []*pmp4.Sample{
 						{
 							Duration:    1000,
 							PayloadSize: 50,
@@ -2909,8 +2910,8 @@ func TestPresentationUnmarshalOnly(t *testing.T) {
 				0x00, 0x02, 0xc3, 0x00, 0x00, 0x00, 0x0c, 0x6d,
 				0x64, 0x61, 0x74, 0x01, 0x02, 0x03, 0x04,
 			},
-			Presentation{
-				Tracks: []*Track{{
+			pmp4.Presentation{
+				Tracks: []*pmp4.Track{{
 					ID:        1,
 					TimeScale: 90000,
 					Codec: &codecs.H264{
@@ -2921,7 +2922,7 @@ func TestPresentationUnmarshalOnly(t *testing.T) {
 						},
 						PPS: []byte{0x08, 0x06, 0x07, 0x08},
 					},
-					Samples: []*Sample{
+					Samples: []*pmp4.Sample{
 						{
 							Duration:    3600,
 							PayloadSize: 2,
@@ -2943,7 +2944,7 @@ func TestPresentationUnmarshalOnly(t *testing.T) {
 		},
 	} {
 		t.Run(ca.name, func(t *testing.T) {
-			var p Presentation
+			var p pmp4.Presentation
 			err := p.Unmarshal(bytes.NewReader(ca.enc))
 			require.NoError(t, err)
 
@@ -2976,7 +2977,7 @@ func (r *seekFailer) Seek(offset int64, whence int) (int64, error) {
 func TestPresentationGetPayloadSeekError(t *testing.T) {
 	r := &seekFailer{ReadSeeker: bytes.NewReader(casesPresentation[0].enc)}
 
-	var p Presentation
+	var p pmp4.Presentation
 	err := p.Unmarshal(r)
 	require.NoError(t, err)
 
@@ -3002,7 +3003,7 @@ func FuzzPresentationUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, b []byte) {
-		var p Presentation
+		var p pmp4.Presentation
 		err := p.Unmarshal(bytes.NewReader(b))
 		if err != nil {
 			return

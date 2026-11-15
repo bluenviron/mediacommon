@@ -1,9 +1,11 @@
-package mpeg4video
+package mpeg4video_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4video"
 )
 
 var casesIsValidConfig = []struct {
@@ -37,7 +39,7 @@ var casesIsValidConfig = []struct {
 func TestIsValidConfig(t *testing.T) {
 	for _, ca := range casesIsValidConfig {
 		t.Run(ca.name, func(t *testing.T) {
-			err := IsValidConfig(ca.byts)
+			err := mpeg4video.IsValidConfig(ca.byts)
 			require.NoError(t, err)
 		})
 	}
@@ -47,7 +49,7 @@ func BenchmarkIsValidConfig(b *testing.B) {
 	for _, ca := range casesIsValidConfig {
 		b.Run(ca.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				IsValidConfig(ca.byts) //nolint:errcheck
+				mpeg4video.IsValidConfig(ca.byts) //nolint:errcheck
 			}
 		})
 	}
@@ -59,6 +61,6 @@ func FuzzIsValidConfig(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		IsValidConfig(b) //nolint:errcheck
+		mpeg4video.IsValidConfig(b) //nolint:errcheck
 	})
 }

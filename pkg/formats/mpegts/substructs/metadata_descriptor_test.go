@@ -1,19 +1,21 @@
-package substructs
+package substructs_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/substructs"
 )
 
 var casesMetadataDescriptor = []struct {
 	name string
-	dec  MetadataDescriptor
+	dec  substructs.MetadataDescriptor
 	enc  []byte
 }{
 	{
 		"a",
-		MetadataDescriptor{
+		substructs.MetadataDescriptor{
 			MetadataApplicationFormat:           0xFFFF,
 			MetadataApplicationFormatIdentifier: 893234,
 			MetadataFormat:                      23,
@@ -31,7 +33,7 @@ var casesMetadataDescriptor = []struct {
 func TestMetadataDescriptorUnmarshal(t *testing.T) {
 	for _, ca := range casesMetadataDescriptor {
 		t.Run(ca.name, func(t *testing.T) {
-			var h MetadataDescriptor
+			var h substructs.MetadataDescriptor
 			err := h.Unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, ca.dec, h)
@@ -51,7 +53,7 @@ func TestMetadataDescriptorMarshal(t *testing.T) {
 
 func FuzzMetadataDescriptor(f *testing.F) {
 	f.Fuzz(func(t *testing.T, buf []byte) {
-		var dm MetadataDescriptor
+		var dm substructs.MetadataDescriptor
 		err := dm.Unmarshal(buf)
 		if err != nil {
 			return

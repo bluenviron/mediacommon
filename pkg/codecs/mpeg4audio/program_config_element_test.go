@@ -1,15 +1,17 @@
-package mpeg4audio
+package mpeg4audio_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 )
 
 var parsePCECases = []struct {
 	name string
 	buf  []byte
-	pce  ProgramConfigElement
+	pce  mpeg4audio.ProgramConfigElement
 }{
 	{
 		// PCE with 1 front CPE (channel pair element) = 2 channels
@@ -30,7 +32,7 @@ var parsePCECases = []struct {
 		// - front[0]: is_cpe(1)=1, tag(4)=0000 (CPE = stereo pair)
 		name: "valid stereo PCE",
 		buf:  []byte{0xA0, 0xA0, 0x80, 0x00, 0x04, 0x00},
-		pce: ProgramConfigElement{
+		pce: mpeg4audio.ProgramConfigElement{
 			ElementInstanceTag:      0,
 			ObjectType:              1,
 			SamplingFrequencyIndex:  4,
@@ -60,7 +62,7 @@ var parsePCECases = []struct {
 		// Byte 5: bits 40-47 = 0 1 0000 00 = 0x40 (matrix=0, is_cpe=1, tag=0000)
 		name: "PCE with mono mixdown",
 		buf:  []byte{0xA0, 0xA0, 0x80, 0x00, 0x20, 0x40, 0x00},
-		pce: ProgramConfigElement{
+		pce: mpeg4audio.ProgramConfigElement{
 			ElementInstanceTag:      0,
 			ObjectType:              1,
 			SamplingFrequencyIndex:  4,
@@ -106,7 +108,7 @@ var parsePCECases = []struct {
 		// Byte 6: 0000 0000 = 0x00 (back[0] tag, lfe[0] tag)
 		name: "PCE 5.1 surround",
 		buf:  []byte{0xA0, 0xA1, 0x00, 0xA0, 0x00, 0x21, 0x00, 0x00},
-		pce: ProgramConfigElement{
+		pce: mpeg4audio.ProgramConfigElement{
 			ElementInstanceTag:      0,
 			ObjectType:              1,
 			SamplingFrequencyIndex:  4,
@@ -124,7 +126,7 @@ var parsePCECases = []struct {
 func TestParsePCEFromRawDataBlock(t *testing.T) {
 	for _, ca := range parsePCECases {
 		t.Run(ca.name, func(t *testing.T) {
-			pce, err := ParsePCEFromRawDataBlock(ca.buf)
+			pce, err := mpeg4audio.ParsePCEFromRawDataBlock(ca.buf)
 			require.NoError(t, err)
 			require.Equal(t, ca.pce, *pce)
 		})
@@ -137,6 +139,6 @@ func FuzzParsePCEFromRawDataBlock(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		ParsePCEFromRawDataBlock(b) //nolint:errcheck
+		mpeg4audio.ParsePCEFromRawDataBlock(b) //nolint:errcheck
 	})
 }

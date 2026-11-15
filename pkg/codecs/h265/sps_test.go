@@ -1,15 +1,17 @@
-package h265
+package h265_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h265"
 )
 
 var casesSPS = []struct {
 	name   string
 	byts   []byte
-	sps    SPS
+	sps    h265.SPS
 	width  int
 	height int
 	fps    float64
@@ -24,9 +26,9 @@ var casesSPS = []struct {
 			0x00, 0x03, 0x00, 0x10, 0x00, 0x00, 0x03, 0x01,
 			0xe0, 0x80,
 		},
-		SPS{
+		h265.SPS{
 			TemporalIDNestingFlag: true,
-			ProfileTierLevel: SPS_ProfileTierLevel{
+			ProfileTierLevel: h265.SPS_ProfileTierLevel{
 				GeneralProfileIdc: 1,
 				GeneralProfileCompatibilityFlag: [32]bool{
 					false, true, true, false, false, false, false, false,
@@ -51,8 +53,8 @@ var casesSPS = []struct {
 			SampleAdaptiveOffsetEnabledFlag:      true,
 			TemporalMvpEnabledFlag:               true,
 			StrongIntraSmoothingEnabledFlag:      true,
-			VUI: &SPS_VUI{
-				TimingInfo: &SPS_TimingInfo{
+			VUI: &h265.SPS_VUI{
+				TimingInfo: &h265.SPS_TimingInfo{
 					NumUnitsInTick: 1,
 					TimeScale:      30,
 				},
@@ -72,9 +74,9 @@ var casesSPS = []struct {
 			0x80, 0x80, 0x82, 0x00, 0x00, 0x07, 0xd2, 0x00,
 			0x00, 0xbb, 0x80, 0x10,
 		},
-		SPS{
+		h265.SPS{
 			TemporalIDNestingFlag: true,
-			ProfileTierLevel: SPS_ProfileTierLevel{
+			ProfileTierLevel: h265.SPS_ProfileTierLevel{
 				GeneralProfileIdc: 1,
 				GeneralProfileCompatibilityFlag: [32]bool{
 					false, true, true, false, false, false, false, false,
@@ -99,7 +101,7 @@ var casesSPS = []struct {
 			SampleAdaptiveOffsetEnabledFlag:      true,
 			TemporalMvpEnabledFlag:               true,
 			StrongIntraSmoothingEnabledFlag:      true,
-			VUI: &SPS_VUI{
+			VUI: &h265.SPS_VUI{
 				AspectRatioInfoPresentFlag:   true,
 				AspectRatioIdc:               1,
 				VideoSignalTypePresentFlag:   true,
@@ -108,7 +110,7 @@ var casesSPS = []struct {
 				ColourPrimaries:              1,
 				TransferCharacteristics:      1,
 				MatrixCoefficients:           1,
-				TimingInfo: &SPS_TimingInfo{
+				TimingInfo: &h265.SPS_TimingInfo{
 					NumUnitsInTick: 1001,
 					TimeScale:      24000,
 				},
@@ -129,9 +131,9 @@ var casesSPS = []struct {
 			0x00, 0x03, 0x00, 0x10, 0x00, 0x00, 0x03, 0x01,
 			0xe0, 0x80,
 		},
-		SPS{
+		h265.SPS{
 			TemporalIDNestingFlag: true,
-			ProfileTierLevel: SPS_ProfileTierLevel{
+			ProfileTierLevel: h265.SPS_ProfileTierLevel{
 				GeneralProfileIdc: 4,
 				GeneralProfileCompatibilityFlag: [32]bool{
 					false, false, false, false, true, false, false, false,
@@ -160,7 +162,7 @@ var casesSPS = []struct {
 			Log2DiffMaxMinLumaTransformBlockSize: 3,
 			TemporalMvpEnabledFlag:               true,
 			StrongIntraSmoothingEnabledFlag:      true,
-			VUI: &SPS_VUI{
+			VUI: &h265.SPS_VUI{
 				AspectRatioInfoPresentFlag:   true,
 				AspectRatioIdc:               255,
 				SarWidth:                     1,
@@ -171,7 +173,7 @@ var casesSPS = []struct {
 				ColourPrimaries:              1,
 				TransferCharacteristics:      1,
 				MatrixCoefficients:           1,
-				TimingInfo: &SPS_TimingInfo{
+				TimingInfo: &h265.SPS_TimingInfo{
 					NumUnitsInTick: 1,
 					TimeScale:      30,
 				},
@@ -191,9 +193,9 @@ var casesSPS = []struct {
 			0x00, 0x00, 0x03, 0x00, 0x64, 0x00, 0x00, 0x0b,
 			0xb5, 0x08,
 		},
-		SPS{
+		h265.SPS{
 			TemporalIDNestingFlag: true,
-			ProfileTierLevel: SPS_ProfileTierLevel{
+			ProfileTierLevel: h265.SPS_ProfileTierLevel{
 				GeneralTierFlag:   1,
 				GeneralProfileIdc: 2,
 				GeneralProfileCompatibilityFlag: [32]bool{
@@ -221,10 +223,10 @@ var casesSPS = []struct {
 			SampleAdaptiveOffsetEnabledFlag:      true,
 			TemporalMvpEnabledFlag:               true,
 			StrongIntraSmoothingEnabledFlag:      true,
-			VUI: &SPS_VUI{
+			VUI: &h265.SPS_VUI{
 				AspectRatioInfoPresentFlag: true,
 				AspectRatioIdc:             1,
-				TimingInfo: &SPS_TimingInfo{
+				TimingInfo: &h265.SPS_TimingInfo{
 					NumUnitsInTick: 100,
 					TimeScale:      2997,
 				},
@@ -246,9 +248,9 @@ var casesSPS = []struct {
 			0x00, 0x2e, 0xf2, 0x88, 0x00, 0x07, 0x27, 0x0c,
 			0x00, 0x00, 0x98, 0x96, 0x82,
 		},
-		SPS{
+		h265.SPS{
 			TemporalIDNestingFlag: true,
-			ProfileTierLevel: SPS_ProfileTierLevel{
+			ProfileTierLevel: h265.SPS_ProfileTierLevel{
 				GeneralProfileIdc: 1,
 				GeneralProfileCompatibilityFlag: [32]bool{
 					false, true, false, false, false, false, false, false,
@@ -261,7 +263,7 @@ var casesSPS = []struct {
 			ChromaFormatIdc:        1,
 			PicWidthInLumaSamples:  1920,
 			PicHeightInLumaSamples: 1088,
-			ConformanceWindow: &SPS_Window{
+			ConformanceWindow: &h265.SPS_Window{
 				BottomOffset: 4,
 			},
 			Log2MaxPicOrderCntLsbMinus4:          4,
@@ -275,12 +277,12 @@ var casesSPS = []struct {
 			MaxTransformHierarchyDepthInter:      3,
 			AmpEnabledFlag:                       true,
 			SampleAdaptiveOffsetEnabledFlag:      true,
-			ShortTermRefPicSets: []*SPS_ShortTermRefPicSet{{
+			ShortTermRefPicSets: []*h265.SPS_ShortTermRefPicSet{{
 				NumNegativePics:     1,
 				DeltaPocS0:          []int32{-1},
 				UsedByCurrPicS0Flag: []bool{true},
 			}},
-			VUI: &SPS_VUI{
+			VUI: &h265.SPS_VUI{
 				AspectRatioInfoPresentFlag:   true,
 				AspectRatioIdc:               1,
 				VideoSignalTypePresentFlag:   true,
@@ -289,7 +291,7 @@ var casesSPS = []struct {
 				ColourPrimaries:              1,
 				TransferCharacteristics:      1,
 				MatrixCoefficients:           1,
-				TimingInfo: &SPS_TimingInfo{
+				TimingInfo: &h265.SPS_TimingInfo{
 					NumUnitsInTick: 1,
 					TimeScale:      60,
 				},
@@ -311,9 +313,9 @@ var casesSPS = []struct {
 			0xe5, 0x10, 0x01, 0x6e, 0x20, 0x00, 0x66, 0xff,
 			0x00, 0x0b, 0x71, 0x00, 0x03, 0x37, 0xf8, 0x80,
 		},
-		SPS{
+		h265.SPS{
 			TemporalIDNestingFlag: true,
-			ProfileTierLevel: SPS_ProfileTierLevel{
+			ProfileTierLevel: h265.SPS_ProfileTierLevel{
 				GeneralProfileIdc: 1,
 				GeneralProfileCompatibilityFlag: [32]bool{
 					false, true, true, false, false, false, false, false,
@@ -327,7 +329,7 @@ var casesSPS = []struct {
 			ChromaFormatIdc:                      1,
 			PicWidthInLumaSamples:                3072,
 			PicHeightInLumaSamples:               1728,
-			ConformanceWindow:                    &SPS_Window{},
+			ConformanceWindow:                    &h265.SPS_Window{},
 			Log2MaxPicOrderCntLsbMinus4:          12,
 			SubLayerOrderingInfoPresentFlag:      true,
 			MaxDecPicBufferingMinus1:             []uint32{1},
@@ -341,7 +343,7 @@ var casesSPS = []struct {
 			Log2DiffMaxMinLumaTransformBlockSize: 2,
 			MaxTransformHierarchyDepthInter:      1,
 			Log2MinPcmLumaCodingBlockSizeMinus3:  2,
-			ShortTermRefPicSets: []*SPS_ShortTermRefPicSet{
+			ShortTermRefPicSets: []*h265.SPS_ShortTermRefPicSet{
 				{
 					NumNegativePics:     1,
 					DeltaPocS0:          []int32{-1},
@@ -349,7 +351,7 @@ var casesSPS = []struct {
 				},
 			},
 			TemporalMvpEnabledFlag: true,
-			VUI: &SPS_VUI{
+			VUI: &h265.SPS_VUI{
 				AspectRatioInfoPresentFlag:   true,
 				AspectRatioIdc:               1,
 				VideoSignalTypePresentFlag:   true,
@@ -359,7 +361,7 @@ var casesSPS = []struct {
 				ColourPrimaries:              1,
 				TransferCharacteristics:      1,
 				MatrixCoefficients:           1,
-				TimingInfo: &SPS_TimingInfo{
+				TimingInfo: &h265.SPS_TimingInfo{
 					NumUnitsInTick: 1000,
 					TimeScale:      17000,
 				},
@@ -379,9 +381,9 @@ var casesSPS = []struct {
 			0x03, 0x00, 0x08, 0x00, 0x00, 0x03, 0x01, 0x95,
 			0x08,
 		},
-		SPS{
+		h265.SPS{
 			TemporalIDNestingFlag: true,
-			ProfileTierLevel: SPS_ProfileTierLevel{
+			ProfileTierLevel: h265.SPS_ProfileTierLevel{
 				GeneralProfileIdc: 1,
 				GeneralProfileCompatibilityFlag: [32]bool{
 					false, true, true, false, false, false, false, false,
@@ -408,8 +410,8 @@ var casesSPS = []struct {
 			LongTermRefPicsPresentFlag:           true,
 			TemporalMvpEnabledFlag:               true,
 			StrongIntraSmoothingEnabledFlag:      true,
-			VUI: &SPS_VUI{
-				TimingInfo: &SPS_TimingInfo{
+			VUI: &h265.SPS_VUI{
+				TimingInfo: &h265.SPS_TimingInfo{
 					NumUnitsInTick:              1,
 					TimeScale:                   50,
 					POCProportionalToTimingFlag: true,
@@ -471,9 +473,9 @@ var casesSPS = []struct {
 			0x00, 0x7d, 0x00, 0x00, 0x03, 0x00, 0x3e, 0x80,
 			0x05, 0x70, 0x80, 0x41,
 		},
-		SPS{
+		h265.SPS{
 			TemporalIDNestingFlag: true,
-			ProfileTierLevel: SPS_ProfileTierLevel{
+			ProfileTierLevel: h265.SPS_ProfileTierLevel{
 				GeneralProfileIdc: 1,
 				GeneralProfileCompatibilityFlag: [32]bool{
 					false, true, true, false, false, false, false, false,
@@ -497,7 +499,7 @@ var casesSPS = []struct {
 			MaxTransformHierarchyDepthInter:      3,
 			MaxTransformHierarchyDepthIntra:      3,
 			ScalingListEnabledFlag:               true,
-			ScalingListData: &SPS_ScalingListData{
+			ScalingListData: &h265.SPS_ScalingListData{
 				ScalingListPredModeFlag: [4][6]bool{
 					{true, true, false, true, true, false},
 					{true, true, false, true, true, false},
@@ -518,7 +520,7 @@ var casesSPS = []struct {
 				},
 			},
 			SampleAdaptiveOffsetEnabledFlag: true,
-			ShortTermRefPicSets: []*SPS_ShortTermRefPicSet{
+			ShortTermRefPicSets: []*h265.SPS_ShortTermRefPicSet{
 				{},
 				{
 					NumNegativePics:     1,
@@ -526,14 +528,14 @@ var casesSPS = []struct {
 					UsedByCurrPicS0Flag: []bool{true},
 				},
 			},
-			VUI: &SPS_VUI{
+			VUI: &h265.SPS_VUI{
 				VideoSignalTypePresentFlag:   true,
 				VideoFormat:                  5,
 				ColourDescriptionPresentFlag: true,
 				ColourPrimaries:              2,
 				TransferCharacteristics:      2,
 				MatrixCoefficients:           2,
-				TimingInfo: &SPS_TimingInfo{
+				TimingInfo: &h265.SPS_TimingInfo{
 					NumUnitsInTick: 100,
 					TimeScale:      3000,
 				},
@@ -548,7 +550,7 @@ var casesSPS = []struct {
 func TestSPSUnmarshal(t *testing.T) {
 	for _, ca := range casesSPS {
 		t.Run(ca.name, func(t *testing.T) {
-			var sps SPS
+			var sps h265.SPS
 			err := sps.Unmarshal(ca.byts)
 			require.NoError(t, err)
 			require.Equal(t, ca.sps, sps)
@@ -565,7 +567,7 @@ func FuzzSPSUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		var sps SPS
+		var sps h265.SPS
 		err := sps.Unmarshal(b)
 		if err != nil {
 			return
