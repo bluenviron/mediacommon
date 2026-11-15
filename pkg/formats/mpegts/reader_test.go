@@ -2547,6 +2547,124 @@ func TestReaderDecodeErrors(t *testing.T) {
 	}
 }
 
+func TestReaderMPEG4AudioAcrossPES(t *testing.T) {
+	aus := [][]byte{
+		bytes.Repeat([]byte{1}, 20),
+		bytes.Repeat([]byte{2}, 30),
+		bytes.Repeat([]byte{3}, 10),
+		bytes.Repeat([]byte{4}, 25),
+	}
+
+	frames := make([][]byte, 0, len(aus))
+	for _, au := range aus {
+		frame, err := mpeg4audio.ADTSPackets{{
+			Type:          mpeg4audio.ObjectTypeAACLC,
+			SampleRate:    48000,
+			ChannelConfig: 2,
+			ChannelCount:  2,
+			AU:            au,
+		}}.Marshal()
+		require.NoError(t, err)
+		frames = append(frames, frame)
+	}
+
+	join := func(parts ...[]byte) []byte {
+		return bytes.Join(parts, nil)
+	}
+
+	// each PES packet carries the PTS of the first frame that starts in it.
+	// 1920 is the duration of a frame at 48khz.
+	pess := []struct {
+		pts  int64
+		data []byte
+	}{
+		{
+			90000,
+			frames[0][:10],
+		},
+		{
+			90000 + 1920,
+			join(frames[0][10:], frames[1], frames[2][:3]),
+		},
+		{
+			90000 + 3*1920,
+			join(frames[2][3:], frames[3]),
+		},
+	}
+
+	var buf bytes.Buffer
+	mux := astits.NewMuxer(context.Background(), &buf)
+
+	err := mux.AddElementaryStream(astits.PMTElementaryStream{
+		ElementaryPID: 123,
+		StreamType:    astits.StreamTypeAACAudio,
+	})
+	require.NoError(t, err)
+
+	mux.SetPCRPID(123)
+
+	for _, pes := range pess {
+		_, err = mux.WriteData(&astits.MuxerData{
+			PID: 123,
+			PES: &astits.PESData{
+				Header: &astits.PESHeader{
+					OptionalHeader: &astits.PESOptionalHeader{
+						MarkerBits:      2,
+						PTSDTSIndicator: astits.PTSDTSIndicatorOnlyPTS,
+						PTS:             &astits.ClockReference{Base: pes.pts},
+					},
+					StreamID: 192,
+				},
+				Data: pes.data,
+			},
+		})
+		require.NoError(t, err)
+	}
+
+	r, err := mpegts.NewReader(bytes.NewReader(buf.Bytes()))
+	require.NoError(t, err)
+
+	require.Equal(t, []*mpegts.Track{{
+		PID: 123,
+		Codec: &codecs.MPEG4Audio{
+			Config: mpeg4audio.AudioSpecificConfig{
+				Type:          mpeg4audio.ObjectTypeAACLC,
+				SampleRate:    48000,
+				ChannelConfig: 2,
+				ChannelCount:  2, //nolint:staticcheck
+			},
+		},
+	}}, r.Tracks())
+
+	type sample struct {
+		pts int64
+		aus [][]byte
+	}
+	var recv []sample
+
+	r.OnDataMPEG4Audio(r.Tracks()[0], func(pts int64, aus [][]byte) error {
+		recv = append(recv, sample{pts, aus})
+		return nil
+	})
+
+	r.OnDecodeError(func(err error) {
+		t.Errorf("unexpected decode error: %v", err)
+	})
+
+	for {
+		err = r.Read()
+		if err != nil {
+			require.ErrorIs(t, io.EOF, err)
+			break
+		}
+	}
+
+	require.Equal(t, []sample{
+		{90000, [][]byte{aus[0], aus[1]}},
+		{90000 + 2*1920, [][]byte{aus[2], aus[3]}},
+	}, recv)
+}
+
 var errCustom = errors.New("custom error")
 
 type dummyReader struct{}
