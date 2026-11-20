@@ -13,12 +13,15 @@ const (
 		(max_size(first_mb_in_slice) + max_size(slice_type) + max_size(pic_parameter_set_id) +
 		max_size(frame_num) + max_size(pic_order_cnt_lsb)) * 4 / 3 =
 		(3 * max_size(golomb) + (max(Log2MaxFrameNumMinus4) + 4) / 8 + (max(Log2MaxPicOrderCntLsbMinus4) + 4) / 8) * 4 / 3 =
-		(3 * 4 + 2 + 2) * 4 / 3 = 22
+		(3 * 4 + 2 + 2) * 4 / 3 = 22,
+		plus colour_plane_id (2 bits), field_pic_flag and bottom_field_flag (1 bit each): 23
 	*/
-	maxBytesToGetPOC = 22
+	maxBytesToGetPOC = 23
 )
 
-func getPictureOrderCount(buf []byte, sps *SPS, idr bool) (uint32, error) {
+// getPictureOrderCount returns the pic_order_cnt_lsb of a slice, and whether the slice is a field picture
+// (field_pic_flag = 1, only possible when frame_mbs_only_flag = 0).
+func getPictureOrderCount(buf []byte, sps *SPS, idr bool) (uint32, bool, error) {
 	buf = buf[1:]
 	lb := min(len(buf), maxBytesToGetPOC)
 
@@ -27,37 +30,67 @@ func getPictureOrderCount(buf []byte, sps *SPS, idr bool) (uint32, error) {
 
 	_, err := bits.ReadGolombUnsigned(buf, &pos) // first_mb_in_slice
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
 
 	_, err = bits.ReadGolombUnsigned(buf, &pos) // slice_type
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
 
 	_, err = bits.ReadGolombUnsigned(buf, &pos) // pic_parameter_set_id
 	if err != nil {
-		return 0, err
+		return 0, false, err
+	}
+
+	if sps.SeparateColourPlaneFlag {
+		_, err = bits.ReadBits(buf, &pos, 2) // colour_plane_id
+		if err != nil {
+			return 0, false, err
+		}
 	}
 
 	_, err = bits.ReadBits(buf, &pos, int(sps.Log2MaxFrameNumMinus4+4)) // frame_num
 	if err != nil {
-		return 0, err
+		return 0, false, err
+	}
+
+	fieldPicFlag := false
+
+	if !sps.FrameMbsOnlyFlag {
+		fieldPicFlag, err = bits.ReadFlag(buf, &pos) // field_pic_flag
+		if err != nil {
+			return 0, false, err
+		}
+
+		if fieldPicFlag {
+			_, err = bits.ReadFlag(buf, &pos) // bottom_field_flag
+			if err != nil {
+				return 0, false, err
+			}
+		}
 	}
 
 	if idr {
 		_, err = bits.ReadGolombUnsigned(buf, &pos) // idr_pic_id
 		if err != nil {
-			return 0, err
+			return 0, false, err
 		}
 	}
 
 	picOrderCntLsb, err := bits.ReadBits(buf, &pos, int(sps.Log2MaxPicOrderCntLsbMinus4+4))
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
 
-	return uint32(picOrderCntLsb), nil
+	return uint32(picOrderCntLsb), fieldPicFlag, nil
+}
+
+// isFieldPictureOrUnparsable returns true when the slice is a field picture or when its header can't be parsed.
+// In both cases the extractor keeps the previous behavior for interlaced streams (DTS = PTS).
+func isFieldPictureOrUnparsable(slice []byte, sps *SPS, idr bool) bool {
+	_, isField, err := getPictureOrderCount(slice, sps, idr)
+	return err != nil || isField
 }
 
 func pictureOrderCountDiff(a uint32, b uint32, sps *SPS) int32 {
@@ -155,8 +188,25 @@ outer:
 		return 0, false, fmt.Errorf("SPS not received yet")
 	}
 
-	if d.spsp.PicOrderCntType == 2 || !d.spsp.FrameMbsOnlyFlag {
+	if d.spsp.PicOrderCntType == 2 {
 		return pts, false, nil
+	}
+
+	// Interlaced streams (frame_mbs_only_flag = 0) can contain frame pictures (MBAFF, or frame-coded pictures of a
+	// PAFF stream) and field pictures. Frame pictures carry a frame POC and are handled like progressive ones;
+	// field pictures are not supported yet and keep the previous behavior (DTS = PTS).
+	if !d.spsp.FrameMbsOnlyFlag {
+		slice := idr
+		if slice == nil {
+			slice = nonIDR
+		}
+		if slice == nil {
+			return pts, false, nil
+		}
+
+		if isFieldPictureOrUnparsable(slice, d.spsp, idr != nil) {
+			return pts, false, nil
+		}
 	}
 
 	if d.spsp.PicOrderCntType == 1 {
@@ -172,7 +222,7 @@ outer:
 	switch {
 	case idr != nil:
 		var err error
-		d.expectedPOC, err = getPictureOrderCount(idr, d.spsp, true)
+		d.expectedPOC, _, err = getPictureOrderCount(idr, d.spsp, true)
 		if err != nil {
 			return 0, false, err
 		}
@@ -192,7 +242,7 @@ outer:
 	case nonIDR != nil && seiRecoveryPoint && !pictureBeforeSEIFound:
 		// Like CRA in H265: initialize state from first frame after recovery point
 		var err error
-		d.expectedPOC, err = getPictureOrderCount(nonIDR, d.spsp, false)
+		d.expectedPOC, _, err = getPictureOrderCount(nonIDR, d.spsp, false)
 		if err != nil {
 			return 0, false, err
 		}
@@ -210,7 +260,7 @@ outer:
 		ptsDTSDiff = 0
 
 	case nonIDR != nil:
-		poc, err := getPictureOrderCount(nonIDR, d.spsp, false)
+		poc, _, err := getPictureOrderCount(nonIDR, d.spsp, false)
 		if err != nil {
 			return 0, false, err
 		}
