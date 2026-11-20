@@ -23,7 +23,8 @@ func parseClock(b []byte) int64 {
 }
 
 type ptsInterceptor struct {
-	R io.Reader
+	R        io.Reader
+	OnPacket func(p []byte)
 
 	hasLastPTS bool
 	lastPTS    int64
@@ -40,6 +41,8 @@ func (r *ptsInterceptor) Read(p []byte) (int, error) {
 	}
 
 	if p[0] == syncByte {
+		r.OnPacket(p)
+
 		hasPayload := (p[3]&0x10 > 0)
 		payloadStartIndicator := (p[1]&0x40 > 0)
 
