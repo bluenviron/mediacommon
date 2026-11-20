@@ -18,7 +18,7 @@ const (
 	maxBytesToGetPOC = 22
 )
 
-func getPictureOrderCount(buf []byte, sps *SPS, idr bool) (uint32, error) {
+func getPictureOrderCount(buf []byte, sps *SPS, idr bool) (uint32, uint32, error) {
 	buf = buf[1:]
 	lb := min(len(buf), maxBytesToGetPOC)
 
@@ -27,37 +27,37 @@ func getPictureOrderCount(buf []byte, sps *SPS, idr bool) (uint32, error) {
 
 	_, err := bits.ReadGolombUnsigned(buf, &pos) // first_mb_in_slice
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
 	_, err = bits.ReadGolombUnsigned(buf, &pos) // slice_type
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
 	_, err = bits.ReadGolombUnsigned(buf, &pos) // pic_parameter_set_id
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
-	_, err = bits.ReadBits(buf, &pos, int(sps.Log2MaxFrameNumMinus4+4)) // frame_num
+	frameNum, err := bits.ReadBits(buf, &pos, int(sps.Log2MaxFrameNumMinus4+4))
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
 	if idr {
 		_, err = bits.ReadGolombUnsigned(buf, &pos) // idr_pic_id
 		if err != nil {
-			return 0, err
+			return 0, 0, err
 		}
 	}
 
 	picOrderCntLsb, err := bits.ReadBits(buf, &pos, int(sps.Log2MaxPicOrderCntLsbMinus4+4))
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
-	return uint32(picOrderCntLsb), nil
+	return uint32(picOrderCntLsb), uint32(frameNum), nil
 }
 
 func pictureOrderCountDiff(a uint32, b uint32, sps *SPS) int32 {
@@ -67,6 +67,24 @@ func pictureOrderCountDiff(a uint32, b uint32, sps *SPS) int32 {
 		return int32(d) - int32(maxVal)
 	}
 	return int32(d)
+}
+
+func frameNumDiff(a uint32, b uint32, sps *SPS) int32 {
+	maxVal := uint32(1 << (sps.Log2MaxFrameNumMinus4 + 4))
+	d := (a - b) & (maxVal - 1)
+	if d > (maxVal / 2) {
+		return int32(d) - int32(maxVal)
+	}
+	return int32(d)
+}
+
+// frame_num of the picture that follows the given one, if no picture is lost.
+// frame_num is increased after reference pictures only.
+func frameNumAfter(nalu []byte, frameNum uint32, sps *SPS) uint32 {
+	if (nalu[0] & 0x60) == 0 { // nal_ref_idc
+		return frameNum
+	}
+	return (frameNum + 1) & ((1 << (sps.Log2MaxFrameNumMinus4 + 4)) - 1)
 }
 
 // DTSExtractor computes DTS from PTS.
@@ -83,6 +101,8 @@ type DTSExtractor struct {
 	pocIncrement    int
 	prevPOC         uint32
 	prevPrevPOC     uint32
+	idrPOC          uint32
+	nextFrameNum    uint32
 }
 
 // Initialize initializes a DTSExtractor.
@@ -129,6 +149,8 @@ outer:
 				d.pocIncrement = 2
 				d.prevPOC = 0
 				d.prevPrevPOC = 0
+				d.idrPOC = 0
+				d.nextFrameNum = 0
 			}
 
 		case NALUTypeIDR:
@@ -171,11 +193,15 @@ outer:
 
 	switch {
 	case idr != nil:
+		var frameNum uint32
 		var err error
-		d.expectedPOC, err = getPictureOrderCount(idr, d.spsp, true)
+		d.expectedPOC, frameNum, err = getPictureOrderCount(idr, d.spsp, true)
 		if err != nil {
 			return 0, false, err
 		}
+
+		d.idrPOC = d.expectedPOC
+		d.nextFrameNum = frameNumAfter(idr, frameNum, d.spsp)
 
 		if d.pocIncrement == 2 {
 			if (d.expectedPOC % 2) != 0 {
@@ -191,11 +217,14 @@ outer:
 
 	case nonIDR != nil && seiRecoveryPoint && !pictureBeforeSEIFound:
 		// Like CRA in H265: initialize state from first frame after recovery point
+		var frameNum uint32
 		var err error
-		d.expectedPOC, err = getPictureOrderCount(nonIDR, d.spsp, false)
+		d.expectedPOC, frameNum, err = getPictureOrderCount(nonIDR, d.spsp, false)
 		if err != nil {
 			return 0, false, err
 		}
+
+		d.nextFrameNum = frameNumAfter(nonIDR, frameNum, d.spsp)
 
 		if d.pocIncrement == 2 {
 			if (d.expectedPOC % 2) != 0 {
@@ -210,10 +239,32 @@ outer:
 		ptsDTSDiff = 0
 
 	case nonIDR != nil:
-		poc, err := getPictureOrderCount(nonIDR, d.spsp, false)
+		poc, frameNum, err := getPictureOrderCount(nonIDR, d.spsp, false)
 		if err != nil {
 			return 0, false, err
 		}
+
+		// frame_num never decreases inside a coded video sequence,
+		// therefore a decrease means that the IDR that started a new sequence was lost.
+		// The lost IDR is assumed to have the same POC as the previous one.
+		if frameNumDiff(frameNum, d.nextFrameNum, d.spsp) < 0 &&
+			pictureOrderCountDiff(poc, d.expectedPOC, d.spsp) < 0 {
+			d.expectedPOC = d.idrPOC
+			d.nextFrameNum = 1 // frame_num after an IDR
+		}
+
+		// frame_num increases by one after every reference picture,
+		// therefore a value greater than the expected one means that reference pictures were lost.
+		// Skip their POCs, without exceeding the gap that is visible in POC.
+		if lost := int(frameNumDiff(frameNum, d.nextFrameNum, d.spsp)); lost > 0 {
+			gap := int(pictureOrderCountDiff(poc, d.expectedPOC+uint32(d.pocIncrement), d.spsp)) / d.pocIncrement
+			if lost = min(lost, gap); lost > 0 {
+				d.expectedPOC += uint32(lost * d.pocIncrement)
+				d.expectedPOC &= ((1 << (d.spsp.Log2MaxPicOrderCntLsbMinus4 + 4)) - 1)
+			}
+		}
+
+		d.nextFrameNum = frameNumAfter(nonIDR, frameNum, d.spsp)
 
 		if d.auCount < 5 && d.pocIncrement == 2 {
 			if (poc % 2) != 0 {
