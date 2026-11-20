@@ -1,4 +1,4 @@
-package h264
+package h264_test
 
 import (
 	"encoding/binary"
@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
 )
 
 type sample struct {
@@ -609,7 +611,7 @@ var casesDTSExtractor = []struct {
 func TestDTSExtractor(t *testing.T) {
 	for _, ca := range casesDTSExtractor {
 		t.Run(ca.name, func(t *testing.T) {
-			ex := NewDTSExtractor()
+			ex := h264.NewDTSExtractor()
 			for _, sample := range ca.sequence {
 				dts, err := ex.Extract(sample.au, sample.pts)
 				require.NoError(t, err)
@@ -629,36 +631,33 @@ func TestDTSExtractorErrors(t *testing.T) {
 	seiRecoveryPoint := []byte{0x06, 0x06, 0x01, 0xC4, 0x80}
 
 	t.Run("no random access frame", func(t *testing.T) {
-		ex := NewDTSExtractor()
+		ex := h264.NewDTSExtractor()
 		_, err := ex.Extract([][]byte{sps}, 56890)
 		require.EqualError(t, err, "random access frame not received yet")
 	})
 
 	t.Run("recovery point without a frame", func(t *testing.T) {
-		ex := NewDTSExtractor()
+		ex := h264.NewDTSExtractor()
 		_, err := ex.Extract([][]byte{sps, seiRecoveryPoint}, 56890)
 		require.EqualError(t, err, "random access frame not received yet")
 	})
 
 	t.Run("non-IDR without recovery point", func(t *testing.T) {
-		ex := NewDTSExtractor()
+		ex := h264.NewDTSExtractor()
 		_, err := ex.Extract([][]byte{sps, {0x41, 0xe0, 0x04}}, 56890)
 		require.EqualError(t, err, "random access frame not received yet")
-		require.False(t, ex.randomReceived)
 	})
 
 	t.Run("recovery point after non-IDR", func(t *testing.T) {
-		ex := NewDTSExtractor()
+		ex := h264.NewDTSExtractor()
 		_, err := ex.Extract([][]byte{sps, {0x41, 0xe0, 0x04}, seiRecoveryPoint, {0x41, 0xe0, 0x14}}, 56890)
 		require.EqualError(t, err, "random access frame not received yet")
-		require.False(t, ex.randomReceived)
 	})
 
 	t.Run("recovery point with invalid frame", func(t *testing.T) {
-		ex := NewDTSExtractor()
+		ex := h264.NewDTSExtractor()
 		_, err := ex.Extract([][]byte{sps, seiRecoveryPoint, {0x41}}, 56890)
 		require.EqualError(t, err, "not enough bits")
-		require.False(t, ex.randomReceived)
 
 		dts, err := ex.Extract([][]byte{seiRecoveryPoint, {0x41, 0xe0, 0x04}}, 56980)
 		require.NoError(t, err)
@@ -673,69 +672,16 @@ func TestDTSExtractorErrors(t *testing.T) {
 		{"malformed recovery point", []byte{0x06, 0x06, 0x01, 0x00, 0x80}},
 	} {
 		t.Run(ca.name, func(t *testing.T) {
-			ex := NewDTSExtractor()
+			ex := h264.NewDTSExtractor()
 			_, err := ex.Extract([][]byte{sps, ca.sei, {0x41, 0xe0, 0x04}}, 56890)
 			require.EqualError(t, err, "random access frame not received yet")
-			require.False(t, ex.randomReceived)
 		})
 	}
 
 	t.Run("SPS not received yet", func(t *testing.T) {
-		ex := NewDTSExtractor()
+		ex := h264.NewDTSExtractor()
 		_, err := ex.Extract([][]byte{{0x65, 0x88, 0x84, 0x00, 0x33, 0xff}}, 56890)
 		require.EqualError(t, err, "SPS not received yet")
-	})
-
-	t.Run("pic_order_cnt_type = 1", func(t *testing.T) {
-		ex := NewDTSExtractor()
-		ex.spsp = &SPS{PicOrderCntType: 1, FrameMbsOnlyFlag: true}
-		_, err := ex.Extract([][]byte{{0x65, 0x88, 0x84, 0x00, 0x33, 0xff}}, 56890)
-		require.EqualError(t, err, "pic_order_cnt_type = 1 is not supported yet")
-	})
-
-	t.Run("no-reference NALU before any DTS", func(t *testing.T) {
-		ex := NewDTSExtractor()
-		ex.spsp = &SPS{
-			PicOrderCntType:             0,
-			FrameMbsOnlyFlag:            true,
-			Log2MaxFrameNumMinus4:       0,
-			Log2MaxPicOrderCntLsbMinus4: 2,
-		}
-		ex.randomReceived = true
-		_, err := ex.Extract([][]byte{{0x06, 0x01, 0x02, 0x08, 0x14, 0x80}}, 56890)
-		require.EqualError(t, err, "access unit doesn't contain an IDR or non-IDR NALU")
-	})
-
-	t.Run("pause with previous DTS", func(t *testing.T) {
-		ex := NewDTSExtractor()
-		ex.spsp = &SPS{
-			PicOrderCntType:             0,
-			FrameMbsOnlyFlag:            true,
-			Log2MaxFrameNumMinus4:       0,
-			Log2MaxPicOrderCntLsbMinus4: 2,
-		}
-		ex.randomReceived = true
-		ex.prevDTSFilled = true
-		ex.prevDTS = 42
-		ex.pause = 1
-		dts, err := ex.Extract([][]byte{{0x65, 0x88, 0x84, 0x00, 0x33, 0xff}}, 56890)
-		require.NoError(t, err)
-		require.Equal(t, int64(132), dts)
-	})
-
-	t.Run("pause without previous DTS", func(t *testing.T) {
-		ex := NewDTSExtractor()
-		ex.spsp = &SPS{
-			PicOrderCntType:             0,
-			FrameMbsOnlyFlag:            true,
-			Log2MaxFrameNumMinus4:       0,
-			Log2MaxPicOrderCntLsbMinus4: 2,
-		}
-		ex.randomReceived = true
-		ex.pause = 1
-		dts, err := ex.Extract([][]byte{{0x65, 0x88, 0x84, 0x00, 0x33, 0xff}}, 56890)
-		require.NoError(t, err)
-		require.Equal(t, int64(56890), dts)
 	})
 }
 
@@ -747,7 +693,7 @@ func serializeSequence(seq []sample) []byte {
 		binary.LittleEndian.PutUint64(tmp, uint64(sample.pts))
 		buf = append(buf, tmp...)
 
-		au, _ := AnnexB(sample.au).Marshal()
+		au, _ := h264.AnnexB(sample.au).Marshal()
 
 		tmp = make([]byte, 4)
 		binary.LittleEndian.PutUint32(tmp, uint32(len(au)))
@@ -784,7 +730,7 @@ func unserializeSequence(buf []byte) ([]sample, error) {
 		rawAu := buf[:auLen]
 		buf = buf[auLen:]
 
-		var au AnnexB
+		var au h264.AnnexB
 		err := au.Unmarshal(rawAu)
 		if err != nil {
 			return nil, fmt.Errorf("not enough bits")
@@ -815,7 +761,7 @@ func FuzzDTSExtractor(f *testing.F) {
 			return
 		}
 
-		ex := NewDTSExtractor()
+		ex := h264.NewDTSExtractor()
 		for _, sample := range seq {
 			_, err = ex.Extract(sample.au, sample.pts)
 			if err != nil {

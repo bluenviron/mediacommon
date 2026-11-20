@@ -50,6 +50,55 @@ func mpeg1AudioMarshalSize(frames [][]byte) int {
 	return n
 }
 
+func writeMetadataAUWrapper(in []byte) ([]byte, error) {
+	const maxDataPerCell = 65535
+	dataLen := len(in)
+	cellCount := dataLen / maxDataPerCell
+	if (dataLen % maxDataPerCell) != 0 {
+		cellCount++
+	}
+
+	bufLen := 5*cellCount + dataLen
+	out := make([]byte, bufLen)
+	n := 0
+
+	for i := range cellCount {
+		cellDataLen := min(maxDataPerCell, len(in))
+		cellData := in[:cellDataLen]
+		in = in[cellDataLen:]
+
+		var fragmentIndication uint8
+		switch {
+		case cellCount == 1:
+			fragmentIndication = 0b11
+
+		case i == 0:
+			fragmentIndication = 0b10
+
+		case i == cellCount-1:
+			fragmentIndication = 0b01
+
+		default:
+			fragmentIndication = 0b00
+		}
+
+		n2, err := substructs.MetadataAUCell{
+			MetadataServiceID:      0,
+			SequenceNumber:         uint8(i),
+			CellFragmentIndication: fragmentIndication,
+			DecoderConfigFlag:      false,
+			RandomAccessIndicator:  true,
+			AUCellData:             cellData,
+		}.MarshalTo(out[n:])
+		if err != nil {
+			return nil, err
+		}
+		n += n2
+	}
+
+	return out, nil
+}
+
 // Writer is a MPEG-TS writer.
 type Writer struct {
 	W      io.Writer

@@ -1,19 +1,26 @@
-package substructs
+package substructs_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/substructs"
 )
+
+func opusAccessUnitInput(header substructs.OpusControlHeader, encoded []byte) []byte {
+	out := append([]byte(nil), encoded...)
+	return append(out, make([]byte, header.PayloadSize)...)
+}
 
 var OpusControlHeaderCases = []struct {
 	name string
-	dec  OpusControlHeader
+	dec  substructs.OpusControlHeader
 	enc  []byte
 }{
 	{
 		"a",
-		OpusControlHeader{
+		substructs.OpusControlHeader{
 			PayloadSize:            25348,
 			StartTrimFlag:          true,
 			ControlExtensionFlag:   true,
@@ -64,7 +71,7 @@ var OpusControlHeaderCases = []struct {
 	},
 	{
 		"b",
-		OpusControlHeader{
+		substructs.OpusControlHeader{
 			PayloadSize: 25348,
 		},
 		[]byte{
@@ -85,7 +92,7 @@ var OpusControlHeaderCases = []struct {
 	},
 	{
 		"c",
-		OpusControlHeader{
+		substructs.OpusControlHeader{
 			PayloadSize:   25348,
 			StartTrimFlag: true,
 			EndTrimFlag:   true,
@@ -114,12 +121,16 @@ var OpusControlHeaderCases = []struct {
 func TestOpusControlHeaderMarshal(t *testing.T) {
 	for _, ca := range OpusControlHeaderCases {
 		t.Run(ca.name, func(t *testing.T) {
-			s := ca.dec.marshalSize()
-			buf := make([]byte, s)
-			n, err := ca.dec.marshalTo(buf)
+			var au substructs.OpusAccessUnit
+			encoded := opusAccessUnitInput(ca.dec, ca.enc)
+			_, err := au.Unmarshal(encoded)
 			require.NoError(t, err)
-			require.Equal(t, s, n)
-			require.Equal(t, ca.enc, buf)
+			require.Equal(t, ca.dec, au.ControlHeader)
+
+			buf := make([]byte, au.MarshalSize())
+			n, err := au.MarshalTo(buf)
+			require.NoError(t, err)
+			require.Equal(t, encoded[:n], buf)
 		})
 	}
 }
@@ -127,10 +138,10 @@ func TestOpusControlHeaderMarshal(t *testing.T) {
 func TestOpusControlHeaderUnmarshal(t *testing.T) {
 	for _, ca := range OpusControlHeaderCases {
 		t.Run(ca.name, func(t *testing.T) {
-			var h OpusControlHeader
-			_, err := h.unmarshal(ca.enc)
+			var au substructs.OpusAccessUnit
+			_, err := au.Unmarshal(opusAccessUnitInput(ca.dec, ca.enc))
 			require.NoError(t, err)
-			require.Equal(t, ca.dec, h)
+			require.Equal(t, ca.dec, au.ControlHeader)
 		})
 	}
 }
@@ -141,14 +152,14 @@ func FuzzOpusControlHeaderUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, b []byte) {
-		var h OpusControlHeader
-		_, err := h.unmarshal(b)
+		var au substructs.OpusAccessUnit
+		_, err := au.Unmarshal(b)
 		if err != nil {
 			return
 		}
 
-		buf := make([]byte, h.marshalSize())
-		_, err = h.marshalTo(buf)
+		buf := make([]byte, au.MarshalSize())
+		_, err = au.MarshalTo(buf)
 		require.NoError(t, err)
 	})
 }

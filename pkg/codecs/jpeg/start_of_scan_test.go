@@ -1,15 +1,17 @@
-package jpeg //nolint:revive
+package jpeg_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/jpeg"
 )
 
 var casesStartOfScan = []struct {
 	name string
 	enc  []byte
-	dec  StartOfScan
+	dec  jpeg.StartOfScan
 }{
 	{
 		"base",
@@ -17,14 +19,14 @@ var casesStartOfScan = []struct {
 			0xff, 0xda, 0x0, 0xc, 0x3, 0x0, 0x0, 0x1,
 			0x11, 0x2, 0x11, 0x0, 0x3f, 0x0,
 		},
-		StartOfScan{},
+		jpeg.StartOfScan{},
 	},
 }
 
 func TestStartOfScanUnmarshal(t *testing.T) {
 	for _, ca := range casesStartOfScan {
 		t.Run(ca.name, func(t *testing.T) {
-			var h StartOfScan
+			var h jpeg.StartOfScan
 			err := h.Unmarshal(ca.enc[4:])
 			require.NoError(t, err)
 			require.Equal(t, ca.dec, h)
@@ -47,7 +49,7 @@ func FuzzStartOfScanUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		var h StartOfScan
+		var h jpeg.StartOfScan
 		h.Unmarshal(b) //nolint:errcheck
 	})
 }
