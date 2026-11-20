@@ -48,16 +48,6 @@ func (c *MetadataAUCell) Unmarshal(buf []byte) (int, error) {
 	return n, nil
 }
 
-func (c MetadataAUCell) marshalSize() int {
-	return 5 + len(c.AUCellData)
-}
-
-func (c MetadataAUCell) marshal() ([]byte, error) {
-	buf := make([]byte, c.marshalSize())
-	_, err := c.MarshalTo(buf)
-	return buf, err
-}
-
 // MarshalTo marshals a MetadataAUCell to a buffer.
 func (c MetadataAUCell) MarshalTo(buf []byte) (int, error) {
 	n := 0

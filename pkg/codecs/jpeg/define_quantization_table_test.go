@@ -1,16 +1,18 @@
-package jpeg //nolint:revive
+package jpeg_test
 
 import (
 	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/jpeg"
 )
 
 var casesDefineQuantizationTable = []struct {
 	name string
 	enc  []byte
-	dec  DefineQuantizationTable
+	dec  jpeg.DefineQuantizationTable
 }{
 	{
 		"base",
@@ -33,8 +35,8 @@ var casesDefineQuantizationTable = []struct {
 			0x7, 0x8, 0x5, 0x6, 0x7, 0x8, 0x5, 0x6,
 			0x7, 0x8, 0x5, 0x6, 0x7, 0x8,
 		},
-		DefineQuantizationTable{
-			Tables: []QuantizationTable{
+		jpeg.DefineQuantizationTable{
+			Tables: []jpeg.QuantizationTable{
 				{
 					ID:   4,
 					Data: bytes.Repeat([]byte{0x01, 0x02, 0x03, 0x04}, 64/4),
@@ -51,7 +53,7 @@ var casesDefineQuantizationTable = []struct {
 func TestDefineQuantizationTableUnmarshal(t *testing.T) {
 	for _, ca := range casesDefineQuantizationTable {
 		t.Run(ca.name, func(t *testing.T) {
-			var h DefineQuantizationTable
+			var h jpeg.DefineQuantizationTable
 			err := h.Unmarshal(ca.enc[4:])
 			require.NoError(t, err)
 			require.Equal(t, ca.dec, h)
@@ -74,7 +76,7 @@ func FuzzDefineQuantizationTableUnmarshal(f *testing.F) {
 	}
 
 	f.Fuzz(func(_ *testing.T, b []byte) {
-		var h DefineQuantizationTable
+		var h jpeg.DefineQuantizationTable
 		h.Unmarshal(b) //nolint:errcheck
 	})
 }

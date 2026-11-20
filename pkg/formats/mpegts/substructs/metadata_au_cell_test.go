@@ -1,19 +1,21 @@
-package substructs
+package substructs_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/formats/mpegts/substructs"
 )
 
 var casesMetadataAUCell = []struct {
 	name string
-	dec  MetadataAUCell
+	dec  substructs.MetadataAUCell
 	enc  []byte
 }{
 	{
 		"a",
-		MetadataAUCell{
+		substructs.MetadataAUCell{
 			MetadataServiceID:      15,
 			SequenceNumber:         18,
 			CellFragmentIndication: 3,
@@ -28,7 +30,7 @@ var casesMetadataAUCell = []struct {
 func TestMetadataAUCellUnmarshal(t *testing.T) {
 	for _, ca := range casesMetadataAUCell {
 		t.Run(ca.name, func(t *testing.T) {
-			var h MetadataAUCell
+			var h substructs.MetadataAUCell
 			n, err := h.Unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, n, len(ca.enc))
@@ -40,8 +42,10 @@ func TestMetadataAUCellUnmarshal(t *testing.T) {
 func TestMetadataAUCellMarshal(t *testing.T) {
 	for _, ca := range casesMetadataAUCell {
 		t.Run(ca.name, func(t *testing.T) {
-			buf, err := ca.dec.marshal()
+			buf := make([]byte, len(ca.enc))
+			n, err := ca.dec.MarshalTo(buf)
 			require.NoError(t, err)
+			require.Equal(t, len(buf), n)
 			require.Equal(t, ca.enc, buf)
 		})
 	}
@@ -49,7 +53,7 @@ func TestMetadataAUCellMarshal(t *testing.T) {
 
 func FuzzMetadataAUCell(f *testing.F) {
 	f.Fuzz(func(t *testing.T, buf []byte) {
-		var c MetadataAUCell
+		var c substructs.MetadataAUCell
 		_, err := c.Unmarshal(buf)
 		if err != nil {
 			return
@@ -57,7 +61,8 @@ func FuzzMetadataAUCell(f *testing.F) {
 
 		require.NotEmpty(t, c.AUCellData)
 
-		_, err = c.marshal()
+		out := make([]byte, len(c.AUCellData)+5)
+		_, err = c.MarshalTo(out)
 		require.NoError(t, err)
 	})
 }

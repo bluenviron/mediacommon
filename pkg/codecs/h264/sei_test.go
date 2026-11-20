@@ -1,9 +1,11 @@
-package h264
+package h264_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
 )
 
 var seiCases = []struct {
@@ -107,20 +109,44 @@ var seiCases = []struct {
 	},
 }
 
-func TestIsSEIRecoveryPoint(t *testing.T) {
+var seiTestSPS = []byte{
+	0x67, 0x64, 0x00, 0x28, 0xac, 0xd9, 0x40, 0x78,
+	0x02, 0x27, 0xe5, 0x84, 0x00, 0x00, 0x03, 0x00,
+	0x04, 0x00, 0x00, 0x03, 0x00, 0xf0, 0x3c, 0x60,
+	0xc6, 0x58,
+}
+
+func TestDTSExtractorSEIRecoveryPoint(t *testing.T) {
 	for _, ca := range seiCases {
 		t.Run(ca.name, func(t *testing.T) {
-			require.Equal(t, ca.out, isSEIRecoveryPoint(ca.nalu))
+			au := [][]byte{seiTestSPS}
+			if len(ca.nalu) > 0 {
+				au = append(au, ca.nalu)
+			}
+			au = append(au, []byte{0x41, 0xe0, 0x04})
+
+			ex := h264.NewDTSExtractor()
+			_, err := ex.Extract(au, 56890)
+			if ca.out {
+				require.NoError(t, err)
+			} else {
+				require.EqualError(t, err, "random access frame not received yet")
+			}
 		})
 	}
 }
 
-func FuzzIsSEIRecoveryPoint(f *testing.F) {
+func FuzzDTSExtractorSEIRecoveryPoint(f *testing.F) {
 	for _, ca := range seiCases {
 		f.Add(ca.nalu)
 	}
 
 	f.Fuzz(func(_ *testing.T, payload []byte) {
-		isSEIRecoveryPoint(payload)
+		if len(payload) == 0 {
+			return
+		}
+
+		ex := h264.NewDTSExtractor()
+		_, _ = ex.Extract([][]byte{seiTestSPS, payload, {0x41, 0xe0, 0x04}}, 56890)
 	})
 }
