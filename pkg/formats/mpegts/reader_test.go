@@ -2665,6 +2665,107 @@ func TestReaderMPEG4AudioAcrossPES(t *testing.T) {
 	}, recv)
 }
 
+func TestReaderAC3MultipleFramesPerPES(t *testing.T) {
+	newFrame := func(fill byte) []byte {
+		// fscod = 0 (48khz), frmsizecod = 0 (128 bytes)
+		return append(
+			[]byte{0x0b, 0x77, 0x00, 0x00, 0x00, 0x40, 0x40},
+			bytes.Repeat([]byte{fill}, 121)...)
+	}
+
+	frames := [][]byte{newFrame(1), newFrame(2), newFrame(3)}
+
+	var buf bytes.Buffer
+	w := &mpegts.Writer{W: &buf, Tracks: []*mpegts.Track{{
+		PID:   123,
+		Codec: &codecs.AC3{SampleRate: 48000, ChannelCount: 1},
+	}}}
+	require.NoError(t, w.Initialize())
+
+	require.NoError(t, w.WriteAC32(w.Tracks[0], 90000, frames[:2]))
+	require.NoError(t, w.WriteAC32(w.Tracks[0], 90000+2*1536, frames[2:]))
+
+	r, err := mpegts.NewReader(bytes.NewReader(buf.Bytes()))
+	require.NoError(t, err)
+
+	var recv [][][]byte
+
+	r.OnDataAC32(r.Tracks()[0], func(_ int64, frames [][]byte) error {
+		recv = append(recv, frames)
+		return nil
+	})
+
+	r.OnDecodeError(func(err error) {
+		t.Errorf("unexpected decode error: %v", err)
+	})
+
+	for {
+		err = r.Read()
+		if err != nil {
+			require.ErrorIs(t, io.EOF, err)
+			break
+		}
+	}
+
+	require.Equal(t, [][][]byte{frames[:2], frames[2:]}, recv)
+}
+
+func TestReaderEAC3MultipleFramesPerPES(t *testing.T) {
+	newSubstream := func(header []byte, size int, fill byte) []byte {
+		return append(
+			append([]byte{0x0b, 0x77}, header...),
+			bytes.Repeat([]byte{fill}, size-2-len(header))...)
+	}
+
+	independent := func(fill byte) []byte {
+		return newSubstream([]byte{0x00, 0x3f, 0x34, 0x80}, 128, fill)
+	}
+
+	dependent := func(fill byte) []byte {
+		return newSubstream([]byte{0x40, 0x1f, 0x34, 0x80}, 64, fill)
+	}
+
+	frames := [][]byte{
+		bytes.Join([][]byte{independent(1), dependent(2)}, nil),
+		independent(3),
+		independent(4),
+	}
+
+	var buf bytes.Buffer
+	w := &mpegts.Writer{W: &buf, Tracks: []*mpegts.Track{{
+		PID:   123,
+		Codec: &codecs.EAC3{SampleRate: 48000, ChannelCount: 2},
+	}}}
+	require.NoError(t, w.Initialize())
+
+	require.NoError(t, w.WriteEAC32(w.Tracks[0], 90000, frames[:2]))
+	require.NoError(t, w.WriteEAC32(w.Tracks[0], 90000+2*1536, frames[2:]))
+
+	r, err := mpegts.NewReader(bytes.NewReader(buf.Bytes()))
+	require.NoError(t, err)
+
+	var recv [][][]byte
+
+	r.OnDataEAC32(r.Tracks()[0], func(_ int64, frames [][]byte) error {
+		recv = append(recv, frames)
+		return nil
+	})
+
+	r.OnDecodeError(func(err error) {
+		t.Errorf("unexpected decode error: %v", err)
+	})
+
+	for {
+		err = r.Read()
+		if err != nil {
+			require.ErrorIs(t, io.EOF, err)
+			break
+		}
+	}
+
+	require.Equal(t, [][][]byte{frames[:2], frames[2:]}, recv)
+}
+
 var errCustom = errors.New("custom error")
 
 type dummyReader struct{}

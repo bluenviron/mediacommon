@@ -341,6 +341,8 @@ func (w *Writer) WriteMPEG1Audio(
 }
 
 // WriteAC3 writes a AC-3 frame.
+//
+// Deprecated: replaced by WriteAC32.
 func (w *Writer) WriteAC3(
 	track *Track,
 	pts int64,
@@ -349,13 +351,33 @@ func (w *Writer) WriteAC3(
 	return w.writeAudio(track, pts, frame)
 }
 
+// WriteAC32 writes one or more AC-3 frames into a single PES packet.
+func (w *Writer) WriteAC32(
+	track *Track,
+	pts int64,
+	frames [][]byte,
+) error {
+	return w.writeAudio(track, pts, bytes.Join(frames, nil))
+}
+
 // WriteEAC3 writes an E-AC-3 (Dolby Digital Plus) frame.
+//
+// Deprecated: replaced by WriteEAC32.
 func (w *Writer) WriteEAC3(
 	track *Track,
 	pts int64,
 	frame []byte,
 ) error {
 	return w.writeAudio(track, pts, frame)
+}
+
+// WriteEAC32 writes one or more E-AC-3 (Dolby Digital Plus) frames into a single PES packet.
+func (w *Writer) WriteEAC32(
+	track *Track,
+	pts int64,
+	frames [][]byte,
+) error {
+	return w.writeAudio(track, pts, bytes.Join(frames, nil))
 }
 
 // WriteKLV writes a KLV unit.
