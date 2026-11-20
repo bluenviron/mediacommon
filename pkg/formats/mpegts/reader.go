@@ -7,6 +7,8 @@ import (
 
 	"github.com/asticode/go-astits"
 
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/ac3"
+	"github.com/bluenviron/mediacommon/v2/pkg/codecs/eac3"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h265"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg1audio"
@@ -56,10 +58,21 @@ type ReaderOnDataMPEG4AudioLATMFunc func(pts int64, els [][]byte) error
 type ReaderOnDataMPEG1AudioFunc func(pts int64, frames [][]byte) error
 
 // ReaderOnDataAC3Func is the prototype of the callback passed to OnDataAC3.
+//
+// Deprecated: replaced by ReaderOnDataAC3Func2.
 type ReaderOnDataAC3Func func(pts int64, frame []byte) error
 
+// ReaderOnDataAC3Func2 is the prototype of the callback passed to OnDataAC32.
+type ReaderOnDataAC3Func2 func(pts int64, frames [][]byte) error
+
 // ReaderOnDataEAC3Func is the prototype of the callback passed to OnDataEAC3.
+//
+// Deprecated: replaced by ReaderOnDataEAC3Func2.
 type ReaderOnDataEAC3Func func(pts int64, frame []byte) error
+
+// ReaderOnDataEAC3Func2 is the prototype of the callback passed to OnDataEAC32.
+// Each frame is an access unit: an independent substream followed by its dependent substreams.
+type ReaderOnDataEAC3Func2 func(pts int64, frames [][]byte) error
 
 // ReaderOnDataKLVFunc is the prototype of the callback passed to OnDataKLV.
 type ReaderOnDataKLVFunc func(pts int64, data []byte) error
@@ -137,6 +150,57 @@ func readMetadataAUWrapper(in []byte) ([]byte, error) {
 			return nil, fmt.Errorf("unexpected cell_fragment_indication %v", au.CellFragmentIndication)
 		}
 	}
+}
+
+func splitAC3Frames(data []byte) ([][]byte, error) {
+	var frames [][]byte
+
+	for len(data) != 0 {
+		var syncInfo ac3.SyncInfo
+		err := syncInfo.Unmarshal(data)
+		if err != nil {
+			return nil, err
+		}
+
+		size := syncInfo.FrameSize()
+		if len(data) < size {
+			return nil, fmt.Errorf("buffer is too short")
+		}
+
+		frames = append(frames, data[:size])
+		data = data[size:]
+	}
+
+	return frames, nil
+}
+
+func splitEAC3Frames(data []byte) ([][]byte, error) {
+	var frames [][]byte
+	start := 0
+	pos := 0
+
+	for pos < len(data) {
+		var syncInfo eac3.SyncInfo
+		err := syncInfo.Unmarshal(data[pos:])
+		if err != nil {
+			return nil, err
+		}
+
+		size := syncInfo.FrameSize()
+		if len(data)-pos < size {
+			return nil, fmt.Errorf("buffer is too short")
+		}
+
+		startsAccessUnit := syncInfo.Strmtyp != 1 && syncInfo.Substreamid == 0
+		if startsAccessUnit && pos != start {
+			frames = append(frames, data[start:pos])
+			start = pos
+		}
+
+		pos += size
+	}
+
+	return append(frames, data[start:]), nil
 }
 
 // Reader is a MPEG-TS reader.
@@ -464,6 +528,9 @@ func (r *Reader) OnDataMPEG1Audio(track *Track, cb ReaderOnDataMPEG1AudioFunc) {
 }
 
 // OnDataAC3 sets a callback that is called when data from an AC-3 track is received.
+// The callback receives the whole PES payload, that might contain multiple frames.
+//
+// Deprecated: replaced by OnDataAC32.
 func (r *Reader) OnDataAC3(track *Track, cb ReaderOnDataAC3Func) {
 	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
 		if pts != dts {
@@ -480,9 +547,35 @@ func (r *Reader) OnDataAC3(track *Track, cb ReaderOnDataAC3Func) {
 	}
 }
 
+// OnDataAC32 sets a callback that is called when data from an AC-3 track is received.
+// A PES packet can contain multiple frames; the PTS refers to the first one.
+func (r *Reader) OnDataAC32(track *Track, cb ReaderOnDataAC3Func2) {
+	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
+		if pts != dts {
+			r.onDecodeError(fmt.Errorf("PTS is not equal to DTS"))
+			return nil
+		}
+
+		if len(data) == 0 {
+			r.onDecodeError(fmt.Errorf("empty frame"))
+			return nil
+		}
+
+		frames, err := splitAC3Frames(data)
+		if err != nil {
+			r.onDecodeError(err)
+			return nil
+		}
+
+		return cb(pts, frames)
+	}
+}
+
 // OnDataEAC3 sets a callback that is called when data from an E-AC-3 track is received.
 // E-AC3 supports multiple substreams (independent + dependent) concatenated together.
 // We validate only the first substream's sync header and pass the full data to the callback.
+//
+// Deprecated: replaced by OnDataEAC32.
 func (r *Reader) OnDataEAC3(track *Track, cb ReaderOnDataEAC3Func) {
 	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
 		if pts != dts {
@@ -496,6 +589,31 @@ func (r *Reader) OnDataEAC3(track *Track, cb ReaderOnDataEAC3Func) {
 		}
 
 		return cb(pts, data)
+	}
+}
+
+// OnDataEAC32 sets a callback that is called when data from an E-AC-3 track is received.
+// A PES packet can contain multiple frames; the PTS refers to the first one.
+// Each frame is an independent substream followed by its dependent substreams.
+func (r *Reader) OnDataEAC32(track *Track, cb ReaderOnDataEAC3Func2) {
+	r.onData[track.PID] = func(pts int64, dts int64, data []byte) error {
+		if pts != dts {
+			r.onDecodeError(fmt.Errorf("PTS is not equal to DTS"))
+			return nil
+		}
+
+		if len(data) == 0 {
+			r.onDecodeError(fmt.Errorf("empty frame"))
+			return nil
+		}
+
+		frames, err := splitEAC3Frames(data)
+		if err != nil {
+			r.onDecodeError(err)
+			return nil
+		}
+
+		return cb(pts, frames)
 	}
 }
 
