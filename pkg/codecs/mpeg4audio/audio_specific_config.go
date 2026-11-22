@@ -14,7 +14,9 @@ type Config = AudioSpecificConfig
 // AudioSpecificConfig is an AudioSpecificConfig.
 // Specification: ISO 14496-3, 1.6.2.1
 type AudioSpecificConfig struct {
-	Type       ObjectType
+	Type ObjectType
+
+	// this is guaranteed to be non-zero after unmarshaling.
 	SampleRate int
 
 	// 0: channel layout defined by a PCE either in GASpecificConfig or the start of raw_data_block
@@ -26,14 +28,24 @@ type AudioSpecificConfig struct {
 	// Deprecated: replaced by ChannelConfig
 	ChannelCount int
 
+	//
 	// SBR / PS specific
-	ExtensionType       ObjectType
+	//
+
+	ExtensionType ObjectType
+
+	// when ExtensionType is SBR / PS, this is guaranteed to be non-zero after unmarshaling.
 	ExtensionSampleRate int
 
+	//
 	// GASpecificConfig
-	FrameLengthFlag    bool
+	//
+
+	FrameLengthFlag bool
+
 	DependsOnCoreCoder bool
-	CoreCoderDelay     uint16
+
+	CoreCoderDelay uint16
 }
 
 // Unmarshal decodes a AudioSpecificConfig.
@@ -81,6 +93,9 @@ func (c *AudioSpecificConfig) unmarshalBits(buf []byte, pos *int) error {
 		tmp, err = bits.ReadBits(buf, pos, 24)
 		if err != nil {
 			return err
+		}
+		if tmp == 0 {
+			return fmt.Errorf("invalid sample rate: 0")
 		}
 		c.SampleRate = int(tmp)
 
@@ -134,6 +149,9 @@ func (c *AudioSpecificConfig) unmarshalBits(buf []byte, pos *int) error {
 			tmp, err = bits.ReadBits(buf, pos, 24)
 			if err != nil {
 				return err
+			}
+			if tmp == 0 {
+				return fmt.Errorf("invalid extension sample rate: 0")
 			}
 			c.ExtensionSampleRate = int(tmp)
 

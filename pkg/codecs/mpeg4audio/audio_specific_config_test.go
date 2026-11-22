@@ -123,6 +123,18 @@ var audioSpecificConfigCases = []struct {
 		},
 	},
 	{
+		"sbr (he-aac v1) 96khz stereo",
+		[]byte{0x29, 0x90, 0x08, 0x00},
+		mpeg4audio.AudioSpecificConfig{
+			Type:                mpeg4audio.ObjectTypeAACLC,
+			SampleRate:          48000,
+			ChannelConfig:       2,
+			ChannelCount:        2,
+			ExtensionSampleRate: 96000,
+			ExtensionType:       mpeg4audio.ObjectTypeSBR,
+		},
+	},
+	{
 		"ps (he-aac v2) 48khz stereo",
 		[]byte{0xeb, 0x09, 0x88, 0x00}, // the data from fdk_aac
 		mpeg4audio.AudioSpecificConfig{
@@ -143,6 +155,33 @@ func TestAudioSpecificConfigUnmarshal(t *testing.T) {
 			err := dec.Unmarshal(ca.enc)
 			require.NoError(t, err)
 			require.Equal(t, ca.dec, dec)
+		})
+	}
+}
+
+func TestAudioSpecificConfigUnmarshalZeroSampleRate(t *testing.T) {
+	enc, err := mpeg4audio.AudioSpecificConfig{
+		Type:          mpeg4audio.ObjectTypeAACLC,
+		SampleRate:    0,
+		ChannelConfig: 2,
+	}.Marshal()
+	require.NoError(t, err)
+
+	var dec mpeg4audio.AudioSpecificConfig
+	require.EqualError(t, dec.Unmarshal(enc), "invalid sample rate: 0")
+}
+
+func TestAudioSpecificConfigUnmarshalZeroExtensionSampleRate(t *testing.T) {
+	for _, ca := range []struct {
+		name string
+		enc  []byte
+	}{
+		{"sbr", []byte{0x2b, 0x0f, 0x80, 0x00, 0x00, 0x08, 0x00}},
+		{"ps", []byte{0xeb, 0x0f, 0x80, 0x00, 0x00, 0x08, 0x00}},
+	} {
+		t.Run(ca.name, func(t *testing.T) {
+			var dec mpeg4audio.AudioSpecificConfig
+			require.EqualError(t, dec.Unmarshal(ca.enc), "invalid extension sample rate: 0")
 		})
 	}
 }
@@ -203,6 +242,12 @@ func FuzzAudioSpecificConfigUnmarshal(f *testing.F) {
 		err := conf.Unmarshal(b)
 		if err != nil {
 			return
+		}
+
+		// make sure that sample rates are never zero
+		require.NotZero(t, conf.SampleRate)
+		if conf.ExtensionType == mpeg4audio.ObjectTypeSBR || conf.ExtensionType == mpeg4audio.ObjectTypePS {
+			require.NotZero(t, conf.ExtensionSampleRate)
 		}
 
 		_, err = conf.Marshal()
