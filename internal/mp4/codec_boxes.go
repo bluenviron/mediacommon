@@ -300,6 +300,7 @@ func (r *CodecBoxesReader) Read(h *amp4.ReadHandle) (any, error) {
 
 		r.sampleRate = int(mp4a.SampleRate / 65536)
 		r.channelCount = int(mp4a.ChannelCount)
+
 		r.state = waitingAudioEsds
 		return h.Expand()
 
@@ -361,14 +362,6 @@ func (r *CodecBoxesReader) Read(h *amp4.ReadHandle) (any, error) {
 			return nil, fmt.Errorf("unexpected box '%v'", h.BoxInfo.Type)
 		}
 
-		box, _, err := h.ReadPayload()
-		if err != nil {
-			return nil, err
-		}
-		flac := box.(*amp4.AudioSampleEntry)
-
-		r.sampleRate = int(flac.SampleRate / 65536)
-		r.channelCount = int(flac.ChannelCount)
 		r.state = waitingDfLa
 		return h.Expand()
 
@@ -486,6 +479,10 @@ func (r *CodecBoxesReader) Read(h *amp4.ReadHandle) (any, error) {
 				r.state = waitingAdditional
 
 			case ObjectTypeIndicationAudioISO11172part3:
+				if r.sampleRate == 0 {
+					return nil, fmt.Errorf("invalid MP4A sample rate: 0")
+				}
+
 				r.Codec = &codecs.MPEG1Audio{
 					SampleRate:   r.sampleRate,
 					ChannelCount: r.channelCount,
@@ -512,7 +509,12 @@ func (r *CodecBoxesReader) Read(h *amp4.ReadHandle) (any, error) {
 		ac3 := box.(*amp4.AudioSampleEntry)
 
 		r.sampleRate = int(ac3.SampleRate / 65536)
+		if r.sampleRate == 0 {
+			return nil, fmt.Errorf("invalid AC-3 sample rate: 0")
+		}
+
 		r.channelCount = int(ac3.ChannelCount)
+
 		r.state = waitingDac3
 		return h.Expand()
 
@@ -551,7 +553,12 @@ func (r *CodecBoxesReader) Read(h *amp4.ReadHandle) (any, error) {
 		eac3 := box.(*amp4.AudioSampleEntry)
 
 		r.sampleRate = int(eac3.SampleRate / 65536)
+		if r.sampleRate == 0 {
+			return nil, fmt.Errorf("invalid E-AC-3 sample rate: 0")
+		}
+
 		r.channelCount = int(eac3.ChannelCount)
+
 		r.state = waitingDec3
 		return h.Expand()
 
@@ -592,10 +599,15 @@ func (r *CodecBoxesReader) Read(h *amp4.ReadHandle) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		ac3 := box.(*amp4.AudioSampleEntry)
+		ipcm := box.(*amp4.AudioSampleEntry)
 
-		r.sampleRate = int(ac3.SampleRate / 65536)
-		r.channelCount = int(ac3.ChannelCount)
+		r.sampleRate = int(ipcm.SampleRate / 65536)
+		if r.sampleRate == 0 {
+			return nil, fmt.Errorf("invalid LPCM sample rate: 0")
+		}
+
+		r.channelCount = int(ipcm.ChannelCount)
+
 		r.state = waitingPcmC
 		return h.Expand()
 
