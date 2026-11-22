@@ -14,13 +14,12 @@ const (
 		max_size(frame_num) + max_size(pic_order_cnt_lsb)) * 4 / 3 =
 		(3 * max_size(golomb) + (max(Log2MaxFrameNumMinus4) + 4) / 8 + (max(Log2MaxPicOrderCntLsbMinus4) + 4) / 8) * 4 / 3 =
 		(3 * 4 + 2 + 2) * 4 / 3 = 22,
-		plus colour_plane_id (2 bits), field_pic_flag and bottom_field_flag (1 bit each): 23
+		plus colour_plane_id (2 bits) and field_pic_flag (1 bit): 23
 	*/
 	maxBytesToGetPOC = 23
 )
 
-// getPictureOrderCount returns the pic_order_cnt_lsb of a slice, and whether the slice is a field picture
-// (field_pic_flag = 1, only possible when frame_mbs_only_flag = 0).
+// getPictureOrderCount returns the pic_order_cnt_lsb of a frame picture, or reports a field picture.
 func getPictureOrderCount(buf []byte, sps *SPS, idr bool) (uint32, bool, error) {
 	buf = buf[1:]
 	lb := min(len(buf), maxBytesToGetPOC)
@@ -55,19 +54,13 @@ func getPictureOrderCount(buf []byte, sps *SPS, idr bool) (uint32, bool, error) 
 		return 0, false, err
 	}
 
-	fieldPicFlag := false
-
 	if !sps.FrameMbsOnlyFlag {
-		fieldPicFlag, err = bits.ReadFlag(buf, &pos) // field_pic_flag
+		fieldPicFlag, err := bits.ReadFlag(buf, &pos)
 		if err != nil {
 			return 0, false, err
 		}
-
 		if fieldPicFlag {
-			_, err = bits.ReadFlag(buf, &pos) // bottom_field_flag
-			if err != nil {
-				return 0, false, err
-			}
+			return 0, true, nil
 		}
 	}
 
@@ -83,14 +76,7 @@ func getPictureOrderCount(buf []byte, sps *SPS, idr bool) (uint32, bool, error) 
 		return 0, false, err
 	}
 
-	return uint32(picOrderCntLsb), fieldPicFlag, nil
-}
-
-// isFieldPictureOrUnparsable returns true when the slice is a field picture or when its header can't be parsed.
-// In both cases the extractor keeps the previous behavior for interlaced streams (DTS = PTS).
-func isFieldPictureOrUnparsable(slice []byte, sps *SPS, idr bool) bool {
-	_, isField, err := getPictureOrderCount(slice, sps, idr)
-	return err != nil || isField
+	return uint32(picOrderCntLsb), false, nil
 }
 
 func pictureOrderCountDiff(a uint32, b uint32, sps *SPS) int32 {
@@ -208,7 +194,11 @@ outer:
 			return pts, false, nil
 		}
 
-		if isFieldPictureOrUnparsable(slice, d.spsp, idr != nil) {
+		_, isField, err := getPictureOrderCount(slice, d.spsp, idr != nil)
+		if err != nil {
+			return 0, false, err
+		}
+		if isField {
 			return pts, false, nil
 		}
 	}

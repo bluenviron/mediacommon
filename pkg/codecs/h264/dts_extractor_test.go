@@ -767,6 +767,34 @@ func TestDTSExtractor(t *testing.T) {
 	}
 }
 
+func TestDTSExtractorInterlacedSliceHeaders(t *testing.T) {
+	sps := []byte{
+		0x67, 0x64, 0x00, 0x15, 0xac, 0xd9, 0x41, 0x41,
+		0x0d, 0x80, 0x88, 0x00, 0x00, 0x03, 0x00, 0x08,
+		0x00, 0x00, 0x03, 0x01, 0x90, 0xf8, 0xa1, 0x4c,
+		0xb0,
+	}
+
+	t.Run("truncated before field flag", func(t *testing.T) {
+		ex := h264.NewDTSExtractor()
+		_, err := ex.Extract([][]byte{sps, {0x65, 0x88}}, 7200)
+		require.EqualError(t, err, "not enough bits")
+	})
+
+	t.Run("frame picture with truncated POC", func(t *testing.T) {
+		ex := h264.NewDTSExtractor()
+		_, err := ex.Extract([][]byte{sps, {0x65, 0x88, 0x83}}, 7200)
+		require.EqualError(t, err, "not enough bits")
+	})
+
+	t.Run("field picture does not require POC", func(t *testing.T) {
+		ex := h264.NewDTSExtractor()
+		dts, err := ex.Extract([][]byte{sps, {0x65, 0x88, 0x85}}, 7200)
+		require.NoError(t, err)
+		require.Equal(t, int64(7200), dts)
+	})
+}
+
 func TestDTSExtractorErrors(t *testing.T) {
 	sps := []byte{
 		0x67, 0x64, 0x00, 0x28, 0xac, 0xd9, 0x40, 0x78,
