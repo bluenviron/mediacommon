@@ -19,10 +19,7 @@ const (
 	maxBytesToGetPOC = 23
 )
 
-// parseSliceHeader parses a slice header and returns
-// * pic_order_cnt_lsb
-// * field_pic_flag
-func parseSliceHeader(buf []byte, sps *SPS, idr bool) (uint32, bool, error) {
+func parseSliceHeaderPrefix(buf []byte, sps *SPS) ([]byte, int, error) {
 	buf = buf[1:]
 	lb := min(len(buf), maxBytesToGetPOC)
 
@@ -31,54 +28,74 @@ func parseSliceHeader(buf []byte, sps *SPS, idr bool) (uint32, bool, error) {
 
 	_, err := bits.ReadGolombUnsigned(buf, &pos) // first_mb_in_slice
 	if err != nil {
-		return 0, false, err
+		return nil, 0, err
 	}
 
 	_, err = bits.ReadGolombUnsigned(buf, &pos) // slice_type
 	if err != nil {
-		return 0, false, err
+		return nil, 0, err
 	}
 
 	_, err = bits.ReadGolombUnsigned(buf, &pos) // pic_parameter_set_id
 	if err != nil {
-		return 0, false, err
+		return nil, 0, err
 	}
 
 	if sps.SeparateColourPlaneFlag {
 		_, err = bits.ReadBits(buf, &pos, 2) // colour_plane_id
 		if err != nil {
-			return 0, false, err
+			return nil, 0, err
 		}
 	}
 
 	_, err = bits.ReadBits(buf, &pos, int(sps.Log2MaxFrameNumMinus4+4)) // frame_num
 	if err != nil {
-		return 0, false, err
+		return nil, 0, err
+	}
+
+	return buf, pos, nil
+}
+
+func parseFieldPicFlag(buf []byte, sps *SPS) (bool, error) {
+	if sps.FrameMbsOnlyFlag {
+		return false, nil
+	}
+
+	buf, pos, err := parseSliceHeaderPrefix(buf, sps)
+	if err != nil {
+		return false, err
+	}
+
+	return bits.ReadFlag(buf, &pos) // field_pic_flag
+}
+
+// this assumes that field_pic_flag is false.
+func parsePictureOrderCount(buf []byte, sps *SPS, idr bool) (uint32, error) {
+	buf, pos, err := parseSliceHeaderPrefix(buf, sps)
+	if err != nil {
+		return 0, err
 	}
 
 	if !sps.FrameMbsOnlyFlag {
-		fieldPicFlag, err := bits.ReadFlag(buf, &pos)
+		_, err = bits.ReadFlag(buf, &pos) // field_pic_flag
 		if err != nil {
-			return 0, false, err
-		}
-		if fieldPicFlag {
-			return 0, true, nil
+			return 0, err
 		}
 	}
 
 	if idr {
 		_, err = bits.ReadGolombUnsigned(buf, &pos) // idr_pic_id
 		if err != nil {
-			return 0, false, err
+			return 0, err
 		}
 	}
 
 	picOrderCntLsb, err := bits.ReadBits(buf, &pos, int(sps.Log2MaxPicOrderCntLsbMinus4+4))
 	if err != nil {
-		return 0, false, err
+		return 0, err
 	}
 
-	return uint32(picOrderCntLsb), false, nil
+	return uint32(picOrderCntLsb), nil
 }
 
 func pictureOrderCountDiff(a uint32, b uint32, sps *SPS) int32 {
@@ -92,11 +109,12 @@ func pictureOrderCountDiff(a uint32, b uint32, sps *SPS) int32 {
 
 // DTSExtractor computes DTS from PTS.
 type DTSExtractor struct {
-	sps             []byte
-	spsp            *SPS
-	prevDTSFilled   bool
-	prevDTS         int64
-	randomReceived  bool
+	sps           []byte
+	spsp          *SPS
+	prevDTSFilled bool
+	prevDTS       int64
+
+	pocInitialized  bool
 	expectedPOC     uint32
 	reorderedFrames int
 	pause           int
@@ -120,6 +138,17 @@ func NewDTSExtractor() *DTSExtractor {
 	return d
 }
 
+func (d *DTSExtractor) resetPOCState() {
+	d.pocInitialized = false
+	d.expectedPOC = 0
+	d.reorderedFrames = 0
+	d.pause = 0
+	d.auCount = 0
+	d.pocIncrement = 2
+	d.prevPOC = 0
+	d.prevPrevPOC = 0
+}
+
 func (d *DTSExtractor) extractInner(au [][]byte, pts int64) (int64, bool, error) {
 	var idr []byte
 	var nonIDR []byte
@@ -140,16 +169,7 @@ outer:
 				}
 				d.sps = nalu
 				d.spsp = &spsp
-
-				// reset state
-				d.randomReceived = false
-				d.expectedPOC = 0
-				d.reorderedFrames = 0
-				d.pause = 0
-				d.auCount = 0
-				d.pocIncrement = 2
-				d.prevPOC = 0
-				d.prevPrevPOC = 0
+				d.resetPOCState()
 			}
 
 		case NALUTypeIDR:
@@ -184,30 +204,30 @@ outer:
 		return 0, false, fmt.Errorf("pic_order_cnt_type = 1 is not supported yet")
 	}
 
-	// interlaced stream (frame_mbs_only_flag = 0)
-	if !d.spsp.FrameMbsOnlyFlag {
+	// Interlaced streams (frame_mbs_only_flag = 0).
+	// They can carry frame pictures and field pictures.
+	// Frame pictures carry a frame POC and are handled like progressive ones.
+	// Field pictures are not parsed yet and keep the historical behavior (DTS = PTS).
+	if !d.spsp.FrameMbsOnlyFlag && (idr != nil || nonIDR != nil) {
 		slice := idr
 		if slice == nil {
 			slice = nonIDR
 		}
-		if slice == nil {
-			return pts, false, nil
-		}
 
-		_, isField, err := parseSliceHeader(slice, d.spsp, idr != nil)
+		isField, err := parseFieldPicFlag(slice, d.spsp)
 		if err != nil {
 			return 0, false, err
 		}
 
-		// interlaced streams can contain frame pictures and field pictures.
-		// Frame pictures carry a frame POC and are handled like progressive ones.
-		// field pictures are not supported yet and keep the previous behavior (DTS = PTS).
 		if isField {
+			if idr != nil {
+				d.resetPOCState()
+			}
 			return pts, false, nil
 		}
 	}
 
-	if !d.randomReceived && idr == nil && (pictureBeforeSEIFound || !seiRecoveryPoint || nonIDR == nil) {
+	if !d.pocInitialized && idr == nil && (pictureBeforeSEIFound || !seiRecoveryPoint || nonIDR == nil) {
 		return 0, false, fmt.Errorf("random access frame not received yet")
 	}
 
@@ -216,27 +236,7 @@ outer:
 	switch {
 	case idr != nil:
 		var err error
-		d.expectedPOC, _, err = parseSliceHeader(idr, d.spsp, true)
-		if err != nil {
-			return 0, false, err
-		}
-
-		if d.pocIncrement == 2 {
-			if (d.expectedPOC % 2) != 0 {
-				d.pocIncrement = 1
-			}
-
-			d.auCount = 1
-			d.prevPrevPOC = 0
-			d.prevPOC = d.expectedPOC
-		}
-
-		ptsDTSDiff = 0
-
-	case nonIDR != nil && seiRecoveryPoint && !pictureBeforeSEIFound:
-		// Like CRA in H265: initialize state from first frame after recovery point
-		var err error
-		d.expectedPOC, _, err = parseSliceHeader(nonIDR, d.spsp, false)
+		d.expectedPOC, err = parsePictureOrderCount(idr, d.spsp, true)
 		if err != nil {
 			return 0, false, err
 		}
@@ -254,45 +254,66 @@ outer:
 		ptsDTSDiff = 0
 
 	case nonIDR != nil:
-		poc, _, err := parseSliceHeader(nonIDR, d.spsp, false)
-		if err != nil {
-			return 0, false, err
-		}
-
-		if d.auCount < 5 && d.pocIncrement == 2 {
-			if (poc % 2) != 0 {
-				d.pocIncrement = 1
-				d.expectedPOC /= 2
-
-				if d.reorderedFrames != 0 {
-					increase := d.reorderedFrames
-					if (d.reorderedFrames + increase) > maxReorderedFrames {
-						return 0, false, fmt.Errorf("too many reordered frames (%d)", d.reorderedFrames+increase)
-					}
-
-					d.reorderedFrames += increase
-					d.pause += increase
-				}
-			} else if d.auCount >= 2 && (poc%4) == 0 && poc == (d.prevPOC+4) && d.prevPOC == (d.prevPrevPOC+4) {
-				d.pocIncrement = 4
-				d.expectedPOC *= 2
+		if seiRecoveryPoint && !pictureBeforeSEIFound {
+			// Like CRA in H265: initialize state from first frame after recovery point
+			var err error
+			d.expectedPOC, err = parsePictureOrderCount(nonIDR, d.spsp, false)
+			if err != nil {
+				return 0, false, err
 			}
 
-			d.auCount++
-			d.prevPrevPOC = d.prevPOC
-			d.prevPOC = poc
+			if d.pocIncrement == 2 {
+				if (d.expectedPOC % 2) != 0 {
+					d.pocIncrement = 1
+				}
+
+				d.auCount = 1
+				d.prevPrevPOC = 0
+				d.prevPOC = d.expectedPOC
+			}
+
+			ptsDTSDiff = 0
+		} else {
+			poc, err := parsePictureOrderCount(nonIDR, d.spsp, false)
+			if err != nil {
+				return 0, false, err
+			}
+
+			if d.auCount < 5 && d.pocIncrement == 2 {
+				if (poc % 2) != 0 {
+					d.pocIncrement = 1
+					d.expectedPOC /= 2
+
+					if d.reorderedFrames != 0 {
+						increase := d.reorderedFrames
+						if (d.reorderedFrames + increase) > maxReorderedFrames {
+							return 0, false, fmt.Errorf("too many reordered frames (%d)", d.reorderedFrames+increase)
+						}
+
+						d.reorderedFrames += increase
+						d.pause += increase
+					}
+				} else if d.auCount >= 2 && (poc%4) == 0 && poc == (d.prevPOC+4) && d.prevPOC == (d.prevPrevPOC+4) {
+					d.pocIncrement = 4
+					d.expectedPOC *= 2
+				}
+
+				d.auCount++
+				d.prevPrevPOC = d.prevPOC
+				d.prevPOC = poc
+			}
+
+			d.expectedPOC += uint32(d.pocIncrement)
+			d.expectedPOC &= ((1 << (d.spsp.Log2MaxPicOrderCntLsbMinus4 + 4)) - 1)
+
+			ptsDTSDiff = int(pictureOrderCountDiff(poc, d.expectedPOC, d.spsp)) / d.pocIncrement
 		}
-
-		d.expectedPOC += uint32(d.pocIncrement)
-		d.expectedPOC &= ((1 << (d.spsp.Log2MaxPicOrderCntLsbMinus4 + 4)) - 1)
-
-		ptsDTSDiff = int(pictureOrderCountDiff(poc, d.expectedPOC, d.spsp)) / d.pocIncrement
 
 	default:
 		return 0, false, fmt.Errorf("access unit doesn't contain an IDR or non-IDR NALU")
 	}
 
-	d.randomReceived = true
+	d.pocInitialized = true
 	ptsDTSDiff += d.reorderedFrames
 
 	switch {

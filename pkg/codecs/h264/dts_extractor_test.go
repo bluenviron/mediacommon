@@ -793,6 +793,27 @@ func TestDTSExtractorInterlacedSliceHeaders(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, int64(7200), dts)
 	})
+
+	t.Run("field IDR resets frame POC", func(t *testing.T) {
+		ex := h264.NewDTSExtractor()
+		frameIDR := []byte{0x65, 0x88, 0x82, 0x02, 0x0d, 0xff}
+		fieldIDR := []byte{0x65, 0x88, 0x85}
+		nonIDRFrame := []byte{0x41, 0x9a, 0x21, 0x10, 0x88}
+
+		_, err := ex.Extract([][]byte{sps, frameIDR}, 7200)
+		require.NoError(t, err)
+
+		dts, err := ex.Extract([][]byte{fieldIDR}, 10800)
+		require.NoError(t, err)
+		require.Equal(t, int64(10800), dts)
+
+		_, err = ex.Extract([][]byte{nonIDRFrame}, 18000)
+		require.EqualError(t, err, "random access frame not received yet")
+
+		dts, err = ex.Extract([][]byte{frameIDR}, 21600)
+		require.NoError(t, err)
+		require.Equal(t, int64(21600), dts)
+	})
 }
 
 func TestDTSExtractorErrors(t *testing.T) {
