@@ -188,8 +188,12 @@ outer:
 		return 0, false, fmt.Errorf("SPS not received yet")
 	}
 
-	if d.spsp.PicOrderCntType == 2 {
+	switch d.spsp.PicOrderCntType {
+	case 2:
 		return pts, false, nil
+
+	case 1:
+		return 0, false, fmt.Errorf("pic_order_cnt_type = 1 is not supported yet")
 	}
 
 	// Interlaced streams (frame_mbs_only_flag = 0) can contain frame pictures (MBAFF, or frame-coded pictures of a
@@ -207,10 +211,6 @@ outer:
 		if isFieldPictureOrUnparsable(slice, d.spsp, idr != nil) {
 			return pts, false, nil
 		}
-	}
-
-	if d.spsp.PicOrderCntType == 1 {
-		return 0, false, fmt.Errorf("pic_order_cnt_type = 1 is not supported yet")
 	}
 
 	if !d.randomReceived && idr == nil && (pictureBeforeSEIFound || !seiRecoveryPoint || nonIDR == nil) {
