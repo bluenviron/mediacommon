@@ -6,6 +6,7 @@ import (
 	"io"
 	"testing"
 
+	amp4 "github.com/abema/go-mp4"
 	"github.com/stretchr/testify/require"
 
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
@@ -2993,6 +2994,94 @@ func TestPresentationMarshal(t *testing.T) {
 			err := ca.dec.Marshal(&buf)
 			require.NoError(t, err)
 			require.Equal(t, ca.enc, buf.Bytes())
+		})
+	}
+}
+
+func TestPresentationUnmarshalZeroAudioSampleEntryRate(t *testing.T) {
+	for _, ca := range []struct {
+		name    string
+		codec   codecs.Codec
+		boxType amp4.BoxType
+		wantErr string
+	}{
+		{
+			"MPEG-1 Audio",
+			&codecs.MPEG1Audio{SampleRate: 48000, ChannelCount: 1},
+			amp4.BoxTypeMp4a(),
+			"invalid MP4A sample rate: 0",
+		},
+		{
+			"AC-3",
+			&codecs.AC3{SampleRate: 48000, ChannelCount: 1},
+			amp4.BoxTypeAC3(),
+			"invalid AC-3 sample rate: 0",
+		},
+		{
+			"E-AC-3",
+			&codecs.EAC3{SampleRate: 48000, ChannelCount: 1},
+			amp4.BoxTypeEC3(),
+			"invalid E-AC-3 sample rate: 0",
+		},
+		{
+			"LPCM",
+			&codecs.LPCM{SampleRate: 48000, ChannelCount: 1, BitDepth: 16},
+			amp4.BoxTypeIpcm(),
+			"invalid LPCM sample rate: 0",
+		},
+		{
+			"96 kHz AAC",
+			&codecs.MPEG4Audio{Config: mpeg4audio.AudioSpecificConfig{
+				Type:          mpeg4audio.ObjectTypeAACLC,
+				SampleRate:    96000,
+				ChannelConfig: 1,
+			}},
+			amp4.BoxTypeMp4a(),
+			"",
+		},
+	} {
+		t.Run(ca.name, func(t *testing.T) {
+			p := pmp4.Presentation{
+				Tracks: []*pmp4.Track{{
+					ID:        1,
+					TimeScale: 48000,
+					Codec:     ca.codec,
+					Samples: []*pmp4.Sample{{
+						Duration:    1,
+						PayloadSize: 2,
+						GetPayload: func() ([]byte, error) {
+							return []byte{0, 0}, nil
+						},
+					}},
+				}},
+			}
+			var buf bytes.Buffer
+			require.NoError(t, p.Marshal(&buf))
+
+			boxes, err := amp4.ExtractBoxWithPayload(bytes.NewReader(buf.Bytes()), nil, amp4.BoxPath{
+				amp4.BoxTypeMoov(), amp4.BoxTypeTrak(), amp4.BoxTypeMdia(), amp4.BoxTypeMinf(),
+				amp4.BoxTypeStbl(), amp4.BoxTypeStsd(), ca.boxType,
+			})
+			require.NoError(t, err)
+			require.Len(t, boxes, 1)
+			box := boxes[0]
+			box.Payload.(*amp4.AudioSampleEntry).SampleRate = 0
+
+			var entry bytes.Buffer
+			_, err = amp4.Marshal(&entry, box.Payload, box.Info.Context)
+			require.NoError(t, err)
+			copy(buf.Bytes()[box.Info.Offset+box.Info.HeaderSize:], entry.Bytes())
+
+			var decoded pmp4.Presentation
+			err = decoded.Unmarshal(bytes.NewReader(buf.Bytes()))
+			if ca.wantErr != "" {
+				require.EqualError(t, err, ca.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			require.Len(t, decoded.Tracks, 1)
+			require.IsType(t, &codecs.MPEG4Audio{}, decoded.Tracks[0].Codec)
+			require.Equal(t, 96000, decoded.Tracks[0].Codec.(*codecs.MPEG4Audio).Config.SampleRate)
 		})
 	}
 }
