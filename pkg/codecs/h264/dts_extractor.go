@@ -19,8 +19,10 @@ const (
 	maxBytesToGetPOC = 23
 )
 
-// getPictureOrderCount returns the pic_order_cnt_lsb of a frame picture, or reports a field picture.
-func getPictureOrderCount(buf []byte, sps *SPS, idr bool) (uint32, bool, error) {
+// parseSliceHeader parses a slice header and returns
+// * pic_order_cnt_lsb
+// * field_pic_flag
+func parseSliceHeader(buf []byte, sps *SPS, idr bool) (uint32, bool, error) {
 	buf = buf[1:]
 	lb := min(len(buf), maxBytesToGetPOC)
 
@@ -182,9 +184,7 @@ outer:
 		return 0, false, fmt.Errorf("pic_order_cnt_type = 1 is not supported yet")
 	}
 
-	// Interlaced streams (frame_mbs_only_flag = 0) can contain frame pictures (MBAFF, or frame-coded pictures of a
-	// PAFF stream) and field pictures. Frame pictures carry a frame POC and are handled like progressive ones;
-	// field pictures are not supported yet and keep the previous behavior (DTS = PTS).
+	// interlaced stream (frame_mbs_only_flag = 0)
 	if !d.spsp.FrameMbsOnlyFlag {
 		slice := idr
 		if slice == nil {
@@ -194,10 +194,14 @@ outer:
 			return pts, false, nil
 		}
 
-		_, isField, err := getPictureOrderCount(slice, d.spsp, idr != nil)
+		_, isField, err := parseSliceHeader(slice, d.spsp, idr != nil)
 		if err != nil {
 			return 0, false, err
 		}
+
+		// interlaced streams can contain frame pictures and field pictures.
+		// Frame pictures carry a frame POC and are handled like progressive ones.
+		// field pictures are not supported yet and keep the previous behavior (DTS = PTS).
 		if isField {
 			return pts, false, nil
 		}
@@ -212,7 +216,7 @@ outer:
 	switch {
 	case idr != nil:
 		var err error
-		d.expectedPOC, _, err = getPictureOrderCount(idr, d.spsp, true)
+		d.expectedPOC, _, err = parseSliceHeader(idr, d.spsp, true)
 		if err != nil {
 			return 0, false, err
 		}
@@ -232,7 +236,7 @@ outer:
 	case nonIDR != nil && seiRecoveryPoint && !pictureBeforeSEIFound:
 		// Like CRA in H265: initialize state from first frame after recovery point
 		var err error
-		d.expectedPOC, _, err = getPictureOrderCount(nonIDR, d.spsp, false)
+		d.expectedPOC, _, err = parseSliceHeader(nonIDR, d.spsp, false)
 		if err != nil {
 			return 0, false, err
 		}
@@ -250,7 +254,7 @@ outer:
 		ptsDTSDiff = 0
 
 	case nonIDR != nil:
-		poc, _, err := getPictureOrderCount(nonIDR, d.spsp, false)
+		poc, _, err := parseSliceHeader(nonIDR, d.spsp, false)
 		if err != nil {
 			return 0, false, err
 		}
