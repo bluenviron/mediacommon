@@ -111,6 +111,16 @@ func TestStreamInfoUnmarshal(t *testing.T) {
 	}
 }
 
+func TestStreamInfoUnmarshalZeroSampleRate(t *testing.T) {
+	info := streamInfoCases[0].dec
+	info.SampleRate = 0
+	enc, err := info.Marshal()
+	require.NoError(t, err)
+
+	var s flac.StreamInfo
+	require.EqualError(t, s.Unmarshal(enc), "invalid sample rate: 0")
+}
+
 func FuzzStreamInfoUnmarshal(f *testing.F) {
 	for _, ca := range streamInfoCases {
 		f.Add(ca.enc)
@@ -122,6 +132,8 @@ func FuzzStreamInfoUnmarshal(f *testing.F) {
 		if err != nil {
 			return
 		}
+
+		require.NotZero(t, s.SampleRate)
 
 		_, err = s.Marshal()
 		require.NoError(t, err)
