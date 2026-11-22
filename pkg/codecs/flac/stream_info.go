@@ -7,29 +7,48 @@ import (
 
 // StreamInfo is a STREAMINFO metadata block.
 // Specification: RFC9639, section 8.2
+// Contrarily to what the spec says, we do not allow SampleRate to be zero
+// since we're dealing with audio only.
 type StreamInfo struct {
 	MinBlockSize uint16
+
 	MaxBlockSize uint16
-	MinFrameSize uint32 // 24-bit
-	MaxFrameSize uint32 // 24-bit
-	SampleRate   uint32 // 20-bit
-	ChannelCount uint8  // actual count (1-8)
-	BitDepth     uint8  // actual bit depth (4-32)
-	TotalSamples uint64 // 36-bit
-	MD5          [16]byte
+
+	MinFrameSize uint32
+
+	MaxFrameSize uint32
+
+	// this is guaranteed to be non-zero after unmarshaling.
+	SampleRate uint32
+
+	// actual count (1-8)
+	ChannelCount uint8
+
+	// actual bit depth (4-32)
+	BitDepth uint8
+
+	TotalSamples uint64
+
+	MD5 [16]byte
 }
 
-// Unmarshal decodes a StreamInfo.
+// Unmarshal decodes a StreamInfo for FLAC audio.
+// It rejects a zero sample rate, which RFC 9639 permits only for non-audio data.
 func (s *StreamInfo) Unmarshal(buf []byte) error {
 	if len(buf) < 34 {
 		return fmt.Errorf("not enough bytes")
+	}
+
+	sampleRate := uint32(buf[10])<<12 | uint32(buf[11])<<4 | uint32(buf[12])>>4
+	if sampleRate == 0 {
+		return fmt.Errorf("invalid sample rate: 0")
 	}
 
 	s.MinBlockSize = uint16(buf[0])<<8 | uint16(buf[1])
 	s.MaxBlockSize = uint16(buf[2])<<8 | uint16(buf[3])
 	s.MinFrameSize = uint32(buf[4])<<16 | uint32(buf[5])<<8 | uint32(buf[6])
 	s.MaxFrameSize = uint32(buf[7])<<16 | uint32(buf[8])<<8 | uint32(buf[9])
-	s.SampleRate = uint32(buf[10])<<12 | uint32(buf[11])<<4 | uint32(buf[12])>>4
+	s.SampleRate = sampleRate
 	s.ChannelCount = (buf[12]>>1)&0x7 + 1
 	s.BitDepth = ((buf[12]&0x1)<<4 | buf[13]>>4) + 1
 	s.TotalSamples = uint64(buf[13]&0xF)<<32 | uint64(buf[14])<<24 |
