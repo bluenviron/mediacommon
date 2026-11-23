@@ -79,24 +79,30 @@ func (p Part) Marshal(w io.WriteSeeker) error {
 		return err
 	}
 
-	mdat := &amp4.Mdat{} // <mdat/>
-	mdat.Data = make([]byte, dataSize)
-	pos := 0
+	mdatOffset, err := mw.WriteBoxStart(&amp4.Mdat{}) // <mdat>
+	if err != nil {
+		return err
+	}
 
 	for _, track := range p.Tracks {
 		for _, sample := range track.Samples {
-			pos += copy(mdat.Data[pos:], sample.Payload)
+			_, err = mw.Write(sample.Payload)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	mdatOffset, err := mw.WriteBox(mdat)
+	err = mw.WriteBoxEnd() // </mdat>
 	if err != nil {
 		return err
 	}
 
 	for i := range p.Tracks {
 		truns[i].DataOffset = int32(dataOffsets[i] + mdatOffset - moofOffset + 8)
-		err = mw.RewriteBox(trunOffsets[i], truns[i])
+
+		// data_offset follows the box header, the version and flags, and sample_count.
+		err = mw.RewriteUint32(trunOffsets[i]+16, uint32(truns[i].DataOffset))
 		if err != nil {
 			return err
 		}

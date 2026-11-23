@@ -59,6 +59,32 @@ func (w *Writer) WriteBox(box amp4.IImmutableBox) (int, error) {
 	return off, nil
 }
 
+// Write writes raw data inside the current box.
+func (w *Writer) Write(p []byte) (int, error) {
+	return w.mw.Write(p)
+}
+
+// RewriteUint32 rewrites 4 bytes at the given offset, in big-endian order.
+func (w *Writer) RewriteUint32(off int, v uint32) error {
+	prevOff, err := w.mw.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return err
+	}
+
+	_, err = w.mw.Seek(int64(off), io.SeekStart)
+	if err != nil {
+		return err
+	}
+
+	_, err = w.mw.Write([]byte{byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)})
+	if err != nil {
+		return err
+	}
+
+	_, err = w.mw.Seek(prevOff, io.SeekStart)
+	return err
+}
+
 // RewriteBox rewrites a box.
 func (w *Writer) RewriteBox(off int, box amp4.IImmutableBox) error {
 	prevOff, err := w.mw.Seek(0, io.SeekCurrent)
