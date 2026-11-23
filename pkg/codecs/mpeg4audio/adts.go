@@ -7,7 +7,9 @@ import (
 // ADTSPacket is an ADTS packet.
 // Specification: ISO 14496-3, Table 1.A.5
 type ADTSPacket struct {
-	Type       ObjectType
+	// >= 1 and <= 4
+	Type ObjectType
+
 	SampleRate int
 
 	// 0: channel layout defined by a PCE at the start of raw_data_block
@@ -137,11 +139,6 @@ func (ps ADTSPackets) Marshal() ([]byte, error) {
 	pos := 0
 
 	for _, pkt := range ps {
-		// ADTS only supports ObjectType 1-4 (profile 0-3)
-		if pkt.Type < 1 || pkt.Type > 4 {
-			return nil, fmt.Errorf("ADTS only supports ObjectType 1-4, got %d", pkt.Type)
-		}
-
 		sampleRateIndex, ok := reverseSampleRates[pkt.SampleRate]
 		if !ok {
 			return nil, fmt.Errorf("invalid sample rate: %d", pkt.SampleRate)
